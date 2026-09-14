@@ -211,8 +211,11 @@
   .set.k-carry       { grid-template-columns: 40px 1.05fr 9px .82fr 1fr; }
   .set.k-reps,
   .set.k-time        { grid-template-columns: 40px minmax(0,1fr); }
-  .set.k-cardio      { grid-template-columns: 40px 1fr; align-items: start; }
-  .set.k-cardio > .set-n { margin-top: 12px; }
+  .set.k-cardio      { grid-template-columns: 40px 1.15fr .78fr 1.15fr; }
+  /* Cardio carries three fields on one row, so it buys the space back from
+     chrome: tighter padding and a smaller unit. The units are the labels. */
+  .set.k-cardio .field input { padding-left: 9px; padding-right: calc(var(--uw, 2ch) + 14px); }
+  .set.k-cardio .unit { right: 9px; font-size: 11.5px; }
 
   .set-n {
     font-size: 12px; color: var(--faint);
@@ -241,11 +244,6 @@
     pointer-events: none; white-space: nowrap;
   }
   .field.bw input { color: var(--dim); }
-
-  /* cardio: stacked labelled sub-rows */
-  .cardio-rows { display: flex; flex-direction: column; gap: 6px; }
-  .cardio-row { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 10px; }
-  .cardio-row .lbl { font-size: 12.5px; color: var(--faint); }
 
   /* ─── Pills: + set / + note ──────────────────────────────── */
 
@@ -682,11 +680,9 @@
           + field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' })
           + field({ id: k + '-distance', val: v.distance, unit: dUnit });
     } else if (kind === 'cardio') {
-      mid = `<div class="cardio-rows">
-        <div class="cardio-row"><span class="lbl">Distance</span>${field({ id: k + '-distance', val: v.distance, unit: dUnit })}</div>
-        <div class="cardio-row"><span class="lbl">Time</span>${field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'numeric' })}</div>
-        <div class="cardio-row"><span class="lbl">Pace</span>${field({ id: k + '-pace', val: v.pace, unit: paceUnit(set.pace), ph: '0:00', mode: 'numeric' })}</div>
-      </div>`;
+      mid = field({ id: k + '-pace', val: v.pace, unit: paceUnit(set.pace), ph: '0:00', mode: 'numeric' })
+          + field({ id: k + '-distance', val: v.distance, unit: dUnit })
+          + field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'numeric' });
     }
 
     return `<div class="set k-${kind}" data-set="${k}">
@@ -831,7 +827,7 @@
     if (kind === 'reps')        return `${v.reps || '—'}`;
     if (kind === 'time')        return `${v.duration || '—'}`;
     if (kind === 'carry')       return `${v.load || '—'}×${v.reps || '—'} ${v.distance || '—'}${dUnit}`;
-    if (kind === 'cardio')      return `${v.distance || '—'}${dUnit} / ${v.duration || '—'} / ${v.pace || '—'} pace`;
+    if (kind === 'cardio')      return `${v.pace || '—'} pace / ${v.distance || '—'}${dUnit} / ${v.duration || '—'}`;
     return '';
   }
 
