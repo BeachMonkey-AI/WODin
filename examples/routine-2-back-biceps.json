@@ -6,13 +6,8 @@
   "program": "Foundation Return · Week 2 of 8",
   "estDuration": "~50 min",
   "targetRpe": 7,
-  "coachNote": "Real Routine 2 (09-12 was a test). Sleep ~8h + morning headache (Tylenol). Calf ~3–4: stretch first; soft quiet plyo — drop if it complains. Dead hang 20s×2. Empty bar → 75 → 95×5×3 on bent row.",
+  "coachNote": "Shred Shed · 8h sleep · 1 day rest. Real Routine 2 (09-12 was a test). Morning headache (Tylenol). Calf ~3–4: stretch first; soft quiet plyo — drop if it complains. Dead hang 20s×2. Empty bar → 75 → 95×5×3 on bent row.",
   "units": { "load": "lb", "distance": "m" },
-  "context": [
-    { "key": "sleep", "label": "sleep", "value": 8, "unit": "h", "editable": true },
-    { "key": "rest", "label": "rest", "value": 1, "unit": "d", "editable": true },
-    { "key": "location", "label": "location", "value": "Shred Shed", "editable": true }
-  ],
   "sink": { "type": "share" },
   "sections": [
     {
@@ -83,7 +78,6 @@
           "kind": "weight_reps",
           "tag": "Work set",
           "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
-          "link": "https://exrx.net/WeightExercises/BackGeneral/BBBentOverRow",
           "sets": [
             { "id": "s1", "reps": 10, "load": 45 },
             { "id": "s2", "reps": 6, "load": 75 },
@@ -152,8 +146,8 @@
           "tag": "Strongman / grip",
           "cue": "Grip / traps / core — Tall posture; short steps; crush the handles.",
           "sets": [
-            { "id": "s1", "load": 50, "rounds": 1, "distance": 100, "distanceUnit": "ft" },
-            { "id": "s2", "load": 100, "rounds": 1, "distance": 100, "distanceUnit": "ft" }
+            { "id": "s1", "load": 50, "reps": 1, "distance": 100, "distanceUnit": "ft" },
+            { "id": "s2", "load": 100, "reps": 1, "distance": 100, "distanceUnit": "ft" }
           ]
         }
       ]
