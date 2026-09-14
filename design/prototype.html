@@ -1,0 +1,1024 @@
+<title>WODin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    /* Dark-committed: this page lives in a garage gym before sunrise.
+       Neutrals carry a faint green bias so they read as chosen, not default. */
+    --ground:      #0d1011;
+    --surface:     #151a1b;
+    --well:        #1b2223;
+    --well-edge:   #2a3334;
+    --line:        #232b2c;
+    --line-soft:   #1b2223;
+
+    --ink:         #e9efeb;
+    --dim:         #8d9a96;
+    --faint:       #5a6664;
+    --ghost:       #45514f;
+
+    --accent:      #cdf24a;
+    --accent-mute: #93ab3c;
+    --on-accent:   #0d1011;
+
+    --radius: 10px;
+    --tap: 44px;
+
+    --fd: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --fb: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --fm: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--fb);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 20px 120px;
+  }
+
+  input, textarea, button { font: inherit; color: inherit; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ─── Header ─────────────────────────────────────────────── */
+
+  .eyebrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--fd);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .eyebrow b { color: var(--accent); font-weight: 700; }
+
+  h1 {
+    font-family: var(--fd);
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 1.08;
+    letter-spacing: -.005em;
+    text-wrap: balance;
+    margin: 6px 0 0;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 7px;
+    font-size: 13.5px;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .meta .prog { color: var(--accent-mute); font-weight: 600; }
+
+  .coach {
+    margin: 14px 0 0;
+    padding: 2px 0 2px 13px;
+    border-left: 2px solid var(--accent-mute);
+    color: var(--dim);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ─── Timer (sticky) ─────────────────────────────────────── */
+
+  .timer {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px -16px 0;
+    padding: 10px 16px;
+    background: var(--ground);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 6px 16px -8px rgba(0,0,0,.8);
+  }
+  .clock {
+    font-family: var(--fm);
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    flex: 1;
+  }
+  .clock.idle { color: var(--ghost); }
+
+  .btn-timer {
+    min-height: 36px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-family: var(--fd);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .btn-timer.running { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent-mute); }
+
+  .btn-reset {
+    min-height: 36px; min-width: 36px;
+    display: grid; place-items: center;
+    border: 0; background: transparent;
+    color: var(--faint); cursor: pointer;
+  }
+  .btn-reset[hidden] { display: none; }
+
+  /* ─── Context chips ──────────────────────────────────────── */
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    min-height: 32px; padding: 0 12px;
+    border-radius: 999px;
+    background: var(--well);
+    box-shadow: inset 0 0 0 1px var(--well-edge);
+    font-size: 13.5px; color: var(--dim);
+  }
+  .chip input {
+    width: 3.2ch; min-width: 3.2ch;
+    border: 0; background: transparent; padding: 0;
+    color: var(--ink); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip input.wide { width: 10ch; }
+  .chip .k { color: var(--faint); }
+
+  /* ─── Sections ───────────────────────────────────────────── */
+
+  .sec-head {
+    display: flex; align-items: center; gap: 12px;
+    margin: 30px 0 4px;
+    font-family: var(--fd);
+    font-weight: 600; font-size: 13px;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent-mute);
+  }
+  .sec-head::after {
+    content: ''; flex: 1; height: 1px; background: var(--line);
+  }
+
+  /* ─── Exercise ───────────────────────────────────────────── */
+
+  .ex { padding: 16px 0; border-bottom: 1px solid var(--line-soft); }
+  .ex:last-child { border-bottom: 0; }
+  .ex.skipped { opacity: .4; }
+
+  .ex-top { display: flex; align-items: flex-start; gap: 10px; }
+  .ex-name {
+    flex: 1;
+    font-weight: 600; font-size: 16.5px;
+    text-decoration: none; color: var(--ink);
+    text-underline-offset: 3px;
+  }
+  a.ex-name { text-decoration: underline; text-decoration-color: var(--ghost); }
+  a.ex-name:hover { text-decoration-color: var(--accent); }
+
+  .skip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--faint);
+    cursor: pointer; user-select: none;
+    min-height: 24px;
+  }
+  .skip input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+
+  .cue { margin-top: 3px; font-size: 13.5px; color: var(--dim); line-height: 1.45; }
+  .tag { color: var(--accent-mute); font-weight: 600; }
+
+  /* ─── Set rows ───────────────────────────────────────────── */
+
+  .sets { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .set {
+    display: grid;
+    align-items: center;
+    gap: 8px;
+    grid-template-columns: 40px 1fr 36px;
+  }
+  .set.k-weight_reps { grid-template-columns: 40px 1.3fr 10px 1fr 36px; }
+  .set.k-carry       { grid-template-columns: 40px 1.3fr 10px 1fr 36px; }
+  .set.k-reps,
+  .set.k-time        { grid-template-columns: 40px minmax(0,1fr) 36px; }
+  .set.k-cardio      { grid-template-columns: 40px 1fr 36px; align-items: start; }
+  .set.k-cardio > .set-n,
+  .set.k-cardio > .note-btn { margin-top: 12px; }
+
+  .set-n {
+    font-size: 12px; color: var(--faint);
+    font-family: var(--fd); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .times { text-align: center; color: var(--ghost); font-size: 14px; }
+
+  /* field = input + persistent unit suffix */
+  .field { position: relative; display: block; }
+  .field input {
+    width: 100%;
+    min-height: var(--tap);
+    padding: 0 calc(var(--uw, 2ch) + 22px) 0 12px;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--well);
+    box-shadow: inset 0 0 0 1px var(--well-edge);
+    font-size: 16px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .field input::placeholder { color: var(--ghost); font-weight: 400; }
+  .field input:disabled { opacity: .5; }
+  .field .unit {
+    position: absolute; right: 11px; top: 50%; translate: 0 -50%;
+    font-size: 12.5px; color: var(--faint);
+    pointer-events: none; white-space: nowrap;
+  }
+  .field.bw input { color: var(--dim); }
+
+  /* cardio: stacked labelled sub-rows */
+  .cardio-rows { display: flex; flex-direction: column; gap: 6px; }
+  .cardio-row { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 10px; }
+  .cardio-row .lbl { font-size: 12.5px; color: var(--faint); }
+
+  .carry-extra { grid-column: 2 / -2; }
+
+  /* note toggle */
+  .note-btn {
+    width: 36px; height: 36px;
+    display: grid; place-items: center;
+    border: 0; border-radius: 8px;
+    background: transparent; color: var(--ghost);
+    cursor: pointer;
+  }
+  .note-btn:hover { color: var(--dim); }
+  .note-btn.filled { background: var(--accent); color: var(--on-accent); }
+  .note-btn svg { width: 17px; height: 17px; display: block; }
+
+  .note-row { grid-column: 1 / -1; }
+  .note-row[hidden] { display: none; }
+  .note-row input {
+    width: 100%; min-height: 40px;
+    padding: 0 12px;
+    border: 0; border-radius: var(--radius);
+    background: var(--well);
+    box-shadow: inset 0 0 0 1px var(--well-edge);
+    font-size: 14.5px;
+  }
+  .note-row input::placeholder { color: var(--ghost); }
+
+  .add-set {
+    align-self: flex-start;
+    margin-top: 2px;
+    min-height: 32px; padding: 0 12px;
+    border: 0; border-radius: 999px;
+    background: transparent; color: var(--faint);
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-size: 13px; cursor: pointer;
+  }
+  .add-set:hover { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-mute); }
+
+  /* ─── Footer ─────────────────────────────────────────────── */
+
+  .close { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--line); }
+
+  .close-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fl { display: block; font-size: 12px; color: var(--faint); margin-bottom: 6px; }
+  .fl b { color: var(--dim); font-weight: 500; }
+
+  .close textarea {
+    width: 100%; min-height: 92px; margin-top: 4px;
+    padding: 11px 12px;
+    border: 0; border-radius: var(--radius);
+    background: var(--well);
+    box-shadow: inset 0 0 0 1px var(--well-edge);
+    font-size: 15px; line-height: 1.45; resize: vertical;
+  }
+  .close textarea::placeholder { color: var(--ghost); }
+  .close .block { margin-top: 18px; }
+
+  .btn-log {
+    width: 100%; min-height: 54px; margin-top: 22px;
+    border: 0; border-radius: var(--radius);
+    background: var(--accent); color: var(--on-accent);
+    font-family: var(--fd); font-weight: 700; font-size: 19px;
+    letter-spacing: .07em; text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* ─── Submit sheet ───────────────────────────────────────── */
+
+  .scrim {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(0,0,0,.66);
+    display: grid; align-items: end; justify-items: center;
+  }
+  .scrim[hidden] { display: none; }
+
+  .sheet {
+    width: 100%; max-width: 480px;
+    max-height: 88vh; overflow-y: auto;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+    border-top: 1px solid var(--line);
+  }
+  .sheet h2 {
+    font-family: var(--fd); font-weight: 700; font-size: 20px;
+    letter-spacing: .04em; text-transform: uppercase;
+    margin: 0 0 3px;
+  }
+  .sheet p.sub { margin: 0 0 14px; font-size: 13.5px; color: var(--dim); }
+
+  .digest {
+    margin: 0;
+    padding: 13px;
+    max-height: 34vh; overflow: auto;
+    background: var(--ground);
+    border-radius: var(--radius);
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-family: var(--fm); font-size: 12px; line-height: 1.55;
+    color: var(--dim);
+    white-space: pre;
+  }
+
+  .sinks { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+  .sink {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 48px; padding: 0 15px;
+    border: 0; border-radius: var(--radius);
+    background: var(--well);
+    box-shadow: inset 0 0 0 1px var(--well-edge);
+    text-align: left; cursor: pointer;
+  }
+  .sink.primary { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+  .sink .t { font-weight: 600; font-size: 15px; }
+  .sink .d { font-size: 12.5px; color: var(--faint); }
+  .sink.primary .d { color: rgba(13,16,17,.62); }
+  .sink .col { display: flex; flex-direction: column; line-height: 1.25; }
+  .sink svg { width: 18px; height: 18px; flex: none; }
+
+  .sheet-close {
+    width: 100%; min-height: 44px; margin-top: 10px;
+    border: 0; background: transparent; color: var(--faint);
+    font-size: 14px; cursor: pointer;
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; translate: -50% 0;
+    z-index: 60;
+    padding: 11px 18px; border-radius: 999px;
+    background: var(--accent); color: var(--on-accent);
+    font-weight: 600; font-size: 14px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.45);
+  }
+  .toast[hidden] { display: none; }
+
+  .proto-note {
+    margin-top: 26px; padding: 12px 14px;
+    border-radius: var(--radius);
+    background: var(--well);
+    box-shadow: inset 0 0 0 1px var(--well-edge);
+    font-size: 12.5px; color: var(--faint); line-height: 1.5;
+  }
+  .proto-note b { color: var(--dim); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+
+<script type="application/json" id="wod">
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "2026-09-13",
+  "date": "2026-09-13",
+  "title": "Routine 2 — Back + Biceps",
+  "program": "Foundation Return · Week 2 of 8",
+  "estDuration": "~50 min",
+  "targetRpe": 7,
+  "coachNote": "Real Routine 2 (09-12 was a test). Sleep ~8h + morning headache (Tylenol). Calf ~3–4: stretch first; soft quiet plyo — drop if it complains. Dead hang 20s×2. Empty bar → 75 → 95×5×3 on bent row.",
+  "units": { "load": "lb", "distance": "m" },
+  "context": [
+    { "key": "sleep", "label": "sleep", "value": 8, "unit": "h", "editable": true },
+    { "key": "rest", "label": "rest", "value": 1, "unit": "d", "editable": true },
+    { "key": "location", "label": "location", "value": "Shred Shed", "editable": true }
+  ],
+  "sink": { "type": "share" },
+  "sections": [
+    { "id": "warmup", "name": "Warm-up", "type": "warmup", "exercises": [
+      { "id": "ex1", "movement": "Easy row", "kind": "cardio", "tag": "Engine",
+        "cue": "Cardio / posterior chain — Legs–hips–arms; smooth chain. Hit Pace (500m); log the blank Distance or Time.",
+        "sets": [ { "id": "s1", "distance": 600, "pace": "2:30/500m", "duration": "3:00", "athleteFills": "duration" } ] },
+      { "id": "ex2", "movement": "Band pull-apart", "kind": "weight_reps", "tag": "Activation",
+        "cue": "Upper back — Long arms; squeeze mid-back; light and frequent.",
+        "sets": [ { "id": "s1", "reps": 12, "loadType": "bodyweight" }, { "id": "s2", "reps": 12, "loadType": "bodyweight" } ] },
+      { "id": "ex3", "movement": "Dead hang", "kind": "time", "tag": "Work set",
+        "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+        "sets": [ { "id": "s1", "duration": "0:20" }, { "id": "s2", "duration": "0:20" } ] },
+      { "id": "ex4", "movement": "Low box / line hop", "kind": "reps", "tag": "Work set",
+        "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+        "sets": [ { "id": "s1", "reps": 10 }, { "id": "s2", "reps": 10 }, { "id": "s3", "reps": 10 } ] }
+    ]},
+    { "id": "strength", "name": "Strength", "type": "strength", "exercises": [
+      { "id": "ex5", "movement": "Barbell bent row", "kind": "weight_reps", "tag": "Work set",
+        "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+        "link": "https://exrx.net/WeightExercises/BackGeneral/BBBentOverRow",
+        "sets": [ { "id": "s1", "reps": 10, "load": 45 }, { "id": "s2", "reps": 6, "load": 75 },
+                  { "id": "s3", "reps": 5, "load": 95 }, { "id": "s4", "reps": 5, "load": 95 },
+                  { "id": "s5", "reps": 5, "load": 95 } ] },
+      { "id": "ex6", "movement": "Ring row", "kind": "weight_reps", "tag": "Work set",
+        "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+        "sets": [ { "id": "s1", "reps": 10, "loadType": "bodyweight" }, { "id": "s2", "reps": 8, "loadType": "bodyweight" },
+                  { "id": "s3", "reps": 8, "loadType": "bodyweight" } ] },
+      { "id": "ex7", "movement": "Single-arm dumbbell row", "kind": "weight_reps", "tag": "Hypertrophy",
+        "cue": "Lats / mid-back — Hand-knee support; pull elbow high; pause briefly.",
+        "sets": [ { "id": "s1", "reps": 10, "load": 30 }, { "id": "s2", "reps": 10, "load": 30 }, { "id": "s3", "reps": 10, "load": 30 } ] },
+      { "id": "ex8", "movement": "Curl-bar curl", "kind": "weight_reps", "tag": "Hypertrophy",
+        "cue": "Biceps — Elbows pinned; no swing; squeeze at the top.",
+        "sets": [ { "id": "s1", "reps": 10, "load": 25 }, { "id": "s2", "reps": 15, "load": 25 } ] },
+      { "id": "ex9", "movement": "Hammer curl", "kind": "weight_reps", "tag": "Hypertrophy",
+        "cue": "Biceps — Elbows pinned; no swing; squeeze at the top.",
+        "sets": [ { "id": "s1", "reps": 10, "load": 20 }, { "id": "s2", "reps": 10, "load": 20 } ] }
+    ]},
+    { "id": "carry", "name": "Loaded carry", "type": "carry", "exercises": [
+      { "id": "ex10", "movement": "Farmer carry", "kind": "carry", "tag": "Strongman / grip",
+        "cue": "Grip / traps / core — Tall posture; short steps; crush the handles.",
+        "sets": [ { "id": "s1", "load": 50, "rounds": 1, "distance": 100, "distanceUnit": "ft" },
+                  { "id": "s2", "load": 100, "rounds": 1, "distance": 100, "distanceUnit": "ft" } ] }
+    ]},
+    { "id": "finisher", "name": "Finisher", "type": "finisher", "exercises": [
+      { "id": "ex11", "movement": "Row 500m", "kind": "cardio", "tag": "Engine",
+        "cue": "Cardio / posterior chain — Legs–hips–arms; smooth chain. Hit Pace (500m); log the blank Distance or Time.",
+        "sets": [ { "id": "s1", "distance": 500, "pace": "2:00/500m", "duration": null, "athleteFills": "duration" } ] }
+    ]}
+  ]
+}
+</script>
+
+<div class="wrap" id="app"></div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">Send to your coach</h2>
+    <p class="sub">This is exactly what gets handed back to the agent.</p>
+    <pre class="digest" id="digest"></pre>
+    <div class="sinks" id="sinks"></div>
+    <button class="sheet-close" id="sheetClose" type="button">Keep editing</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const WOD = JSON.parse(document.getElementById('wod').textContent);
+  const KEY = 'wodin:' + WOD.workoutId;
+
+  const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3h9L20 8.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5z"/><path d="M14 3v6h6M8.5 13h7M8.5 17h4.5"/></svg>';
+  const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
+  const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+  const ICON_JSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7.5A2.5 2.5 0 0 0 5 6.5v3A2.5 2.5 0 0 1 2.5 12 2.5 2.5 0 0 1 5 14.5v3A2.5 2.5 0 0 0 7.5 20H9"/><path d="M15 4h1.5A2.5 2.5 0 0 1 19 6.5v3a2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0-2.5 2.5v3a2.5 2.5 0 0 1-2.5 2.5H15"/></svg>';
+  const ICON_RESET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+
+  /* ── state ───────────────────────────────────────────────── */
+
+  const eachSet = fn => WOD.sections.forEach(sec =>
+    sec.exercises.forEach(ex => ex.sets.forEach((set, i) => fn(ex, set, i, sec))));
+
+  function seedState() {
+    const sets = {};
+    eachSet((ex, set) => {
+      sets[ex.id + '.' + set.id] = {
+        load:     set.loadType === 'bodyweight' ? 'BW' : numStr(set.load),
+        reps:     numStr(set.reps),
+        rounds:   numStr(set.rounds),
+        distance: numStr(set.distance),
+        duration: set.duration ?? '',
+        pace:     stripPace(set.pace),
+        note:     ''
+      };
+    });
+    const ctx = {};
+    (WOD.context || []).forEach(c => { ctx[c.key] = c.value; });
+    return {
+      elapsed: 0, running: false, startedAt: null,
+      ctx, rpe: '', summary: '',
+      skipped: [], sets, added: {}
+    };
+  }
+
+  function load() {
+    const fresh = seedState();
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return fresh;
+      const saved = JSON.parse(raw);
+      return { ...fresh, ...saved, sets: { ...fresh.sets, ...(saved.sets || {}) } };
+    } catch { return fresh; }
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
+  }
+
+  const S = load();
+
+  // Two notes are pre-filled so this review shows the filled affordance in
+  // place next to the empty one. Only applies on a first, unsaved visit.
+  if (!localStorage.getItem(KEY)) {
+    S.sets['ex5.s4'].note = 'Added a little bounce on the final rep';
+    S.sets['ex9.s1'].note = 'I like the crossbody variant going forward';
+  }
+
+  /* ── helpers ─────────────────────────────────────────────── */
+
+  function numStr(v) { return (v === null || v === undefined) ? '' : String(v); }
+  function stripPace(p) { return p ? String(p).split('/')[0] : ''; }
+  function paceUnit(p) {
+    const m = p && String(p).match(/\/(.+)$/);
+    return m ? '/' + m[1] : '/500m';
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function clock(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    const pad = n => String(n).padStart(2, '0');
+    return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`;
+  }
+  function toSec(str) {
+    if (!str) return null;
+    const p = String(str).split(':').map(Number);
+    if (p.some(isNaN)) return null;
+    return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2]
+         : p.length === 2 ? p[0] * 60 + p[1]
+         : p[0];
+  }
+  // "158" → "1:58". Lets a numeric keypad produce mm:ss with no colon key.
+  function fmtTime(raw) {
+    const d = String(raw).replace(/\D/g, '').slice(0, 6);
+    if (d.length <= 2) return d;
+    return d.slice(0, -2).replace(/^0+(?=\d)/, '') + ':' + d.slice(-2);
+  }
+  const unitOf  = k => (WOD.units && WOD.units[k]) || (k === 'load' ? 'lb' : 'm');
+  const isSkipped = id => S.skipped.includes(id);
+
+  function field({ id, val, unit, ph, mode, cls }) {
+    const uw = Math.max(2, String(unit || '').length) + 'ch';
+    return `<label class="field ${cls || ''}" style="--uw:${uw}">
+      <input id="${id}" value="${esc(val ?? '')}" placeholder="${esc(ph ?? '')}"
+             inputmode="${mode || 'decimal'}" autocomplete="off"
+             aria-label="${esc(id.replace(/[.\-]/g, ' '))}">
+      <span class="unit">${esc(unit || '')}</span>
+    </label>`;
+  }
+
+  /* ── render ──────────────────────────────────────────────── */
+
+  function render() {
+    const d = new Date(WOD.date + 'T12:00:00');
+    const nice = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+
+    const head = `
+      <header>
+        <div class="eyebrow"><b>WODin</b><span>${esc(nice)}</span></div>
+        <h1>${esc(WOD.title)}</h1>
+        <div class="meta">
+          ${WOD.program ? `<span class="prog">${esc(WOD.program)}</span>` : ''}
+          ${WOD.estDuration ? `<span>${esc(WOD.estDuration)}</span>` : ''}
+          ${WOD.targetRpe ? `<span>target RPE ${WOD.targetRpe}</span>` : ''}
+        </div>
+        ${WOD.coachNote ? `<p class="coach">${esc(WOD.coachNote)}</p>` : ''}
+      </header>
+
+      <div class="timer">
+        <span class="clock ${S.elapsed || S.running ? '' : 'idle'}" id="clock">${clock(S.elapsed)}</span>
+        <button class="btn-reset" id="reset" type="button" aria-label="Reset timer"
+                ${S.elapsed || S.running ? '' : 'hidden'}>${ICON_RESET}</button>
+        <button class="btn-timer ${S.running ? 'running' : ''}" id="toggle" type="button">
+          ${S.running ? 'Pause' : (S.elapsed ? 'Resume' : 'Start')}
+        </button>
+      </div>
+
+      <div class="chips">
+        ${(WOD.context || []).map(c => `
+          <span class="chip">
+            <input id="ctx-${c.key}" value="${esc(S.ctx[c.key] ?? '')}"
+                   class="${typeof c.value === 'string' ? 'wide' : ''}"
+                   inputmode="${typeof c.value === 'string' ? 'text' : 'numeric'}"
+                   aria-label="${esc(c.label)}">
+            <span class="k">${esc(c.unit || '')}${c.unit ? ' ' : ''}${esc(c.label)}</span>
+          </span>`).join('')}
+      </div>`;
+
+    const body = WOD.sections.map(sec => `
+      <div class="sec-head">${esc(sec.name)}</div>
+      ${sec.exercises.map(renderEx).join('')}
+    `).join('');
+
+    const rpeGhost = WOD.targetRpe ? `Rx ${WOD.targetRpe}` : '—';
+    const close = `
+      <section class="close">
+        <div class="close-grid">
+          <div>
+            <span class="fl">Duration <b>from timer</b></span>
+            ${field({ id: 'f-duration', val: S.elapsed ? clock(S.elapsed) : '', unit: '', ph: '—', mode: 'numeric' })}
+          </div>
+          <div>
+            <span class="fl">Session RPE <b>optional</b></span>
+            ${field({ id: 'f-rpe', val: S.rpe, unit: '/10', ph: rpeGhost, mode: 'numeric' })}
+          </div>
+        </div>
+        <div class="block">
+          <span class="fl">How it went</span>
+          <textarea id="f-summary" placeholder="How it felt, what to remember">${esc(S.summary)}</textarea>
+        </div>
+        <button class="btn-log" id="log" type="button">Log workout</button>
+      </section>
+
+      <p class="proto-note">
+        <b>Layout prototype.</b> Renders <code>examples/routine-2-back-biceps.json</code>
+        through the real schema — the five field layouts, one note per set, persistent unit
+        suffixes, and blank-with-Rx-ghost for RPE. Entries save to this device as you type.
+      </p>`;
+
+    document.getElementById('app').innerHTML = head + body + close;
+    bind();
+  }
+
+  function renderEx(ex) {
+    const skipped = isSkipped(ex.id);
+    const extra = S.added[ex.id] || 0;
+    const sets = ex.sets.map((set, i) => renderSet(ex, set, i + 1, skipped));
+    for (let i = 0; i < extra; i++) {
+      const id = 'add' + i;
+      if (!S.sets[ex.id + '.' + id]) S.sets[ex.id + '.' + id] = { ...S.sets[ex.id + '.' + ex.sets[ex.sets.length - 1].id], note: '' };
+      sets.push(renderSet(ex, { ...ex.sets[ex.sets.length - 1], id }, ex.sets.length + i + 1, skipped, true));
+    }
+
+    const name = ex.link
+      ? `<a class="ex-name" href="${esc(ex.link)}" target="_blank" rel="noopener">${esc(ex.movement)}</a>`
+      : `<span class="ex-name">${esc(ex.movement)}</span>`;
+
+    return `<div class="ex ${skipped ? 'skipped' : ''}" data-ex="${ex.id}">
+      <div class="ex-top">
+        ${name}
+        <label class="skip">
+          <input type="checkbox" data-skip="${ex.id}" ${skipped ? 'checked' : ''}>Skip
+        </label>
+      </div>
+      ${(ex.tag || ex.cue) ? `<p class="cue">${ex.tag ? `<span class="tag">${esc(ex.tag)}</span> · ` : ''}${esc(ex.cue || '')}</p>` : ''}
+      <div class="sets">
+        ${sets.join('')}
+        <button class="add-set" type="button" data-add="${ex.id}">+ set</button>
+      </div>
+    </div>`;
+  }
+
+  function renderSet(ex, set, n, skipped, isAdded) {
+    const k = ex.id + '.' + set.id;
+    const v = S.sets[k] || {};
+    const kind = set.kind || ex.kind || 'weight_reps';
+    const dUnit = set.distanceUnit || unitOf('distance');
+    const note = v.note || '';
+
+    let mid = '';
+    if (kind === 'weight_reps') {
+      const bw = v.load === 'BW';
+      mid = field({ id: k + '-load', val: v.load, unit: bw ? '' : unitOf('load'), ph: unitOf('load'), cls: bw ? 'bw' : '' })
+          + `<span class="times">×</span>`
+          + field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' });
+    } else if (kind === 'reps') {
+      mid = field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' });
+    } else if (kind === 'time') {
+      mid = field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'numeric' });
+    } else if (kind === 'carry') {
+      mid = field({ id: k + '-load', val: v.load, unit: unitOf('load') })
+          + `<span class="times">×</span>`
+          + field({ id: k + '-rounds', val: v.rounds, unit: 'rounds', mode: 'numeric' })
+          + `<div class="carry-extra">${field({ id: k + '-distance', val: v.distance, unit: dUnit })}</div>`;
+    } else if (kind === 'cardio') {
+      mid = `<div class="cardio-rows">
+        <div class="cardio-row"><span class="lbl">Distance</span>${field({ id: k + '-distance', val: v.distance, unit: dUnit })}</div>
+        <div class="cardio-row"><span class="lbl">Time</span>${field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'numeric' })}</div>
+        <div class="cardio-row"><span class="lbl">Pace</span>${field({ id: k + '-pace', val: v.pace, unit: paceUnit(set.pace), ph: '0:00', mode: 'numeric' })}</div>
+      </div>`;
+    }
+
+    return `<div class="set k-${kind}" data-set="${k}">
+      <span class="set-n">${isAdded ? '+' : 'Set'} ${n}</span>
+      ${mid}
+      <button class="note-btn ${note ? 'filled' : ''}" type="button" data-note="${k}"
+              aria-label="Note for set ${n}" aria-expanded="${note ? 'true' : 'false'}">${ICON_NOTE}</button>
+      <div class="note-row" data-noterow="${k}" ${note ? '' : 'hidden'}>
+        <input id="${k}-note" value="${esc(note)}" placeholder="Note for this set" autocomplete="off">
+      </div>
+    </div>`;
+  }
+
+  /* ── events ──────────────────────────────────────────────── */
+
+  function bind() {
+    const app = document.getElementById('app');
+
+    app.addEventListener('input', e => {
+      const el = e.target;
+      const id = el.id || '';
+
+      if (id.startsWith('ctx-')) { S.ctx[id.slice(4)] = el.value; return save(); }
+      if (id === 'f-rpe')     { S.rpe = el.value; return save(); }
+      if (id === 'f-summary') { S.summary = el.value; return save(); }
+      if (id === 'f-duration') return save();
+
+      const m = id.match(/^(ex\d+\.[a-z0-9]+)-(load|reps|rounds|distance|duration|pace|note)$/);
+      if (!m) return;
+      const [, key, prop] = m;
+      let val = el.value;
+
+      if (prop === 'duration' || prop === 'pace') {
+        const pos = el.selectionStart, before = val;
+        val = fmtTime(val);
+        if (val !== before) { el.value = val; el.setSelectionRange(pos + (val.length - before.length), pos + (val.length - before.length)); }
+      }
+
+      S.sets[key] = S.sets[key] || {};
+      S.sets[key][prop] = val;
+
+      if (prop === 'note') {
+        const btn = app.querySelector(`[data-note="${key}"]`);
+        btn.classList.toggle('filled', !!val.trim());
+      }
+      save();
+    });
+
+    app.addEventListener('click', e => {
+      const noteBtn = e.target.closest('[data-note]');
+      if (noteBtn) {
+        const key = noteBtn.dataset.note;
+        const row = app.querySelector(`[data-noterow="${key}"]`);
+        const open = row.hidden;
+        row.hidden = !open;
+        noteBtn.setAttribute('aria-expanded', String(open));
+        if (open) row.querySelector('input').focus();
+        return;
+      }
+
+      const add = e.target.closest('[data-add]');
+      if (add) {
+        const ex = add.dataset.add;
+        S.added[ex] = (S.added[ex] || 0) + 1;
+        save(); render();
+        return;
+      }
+
+      if (e.target.id === 'toggle') return toggleTimer();
+      if (e.target.closest('#reset')) {
+        S.running = false; S.elapsed = 0; S.startedAt = null;
+        save(); render(); return;
+      }
+      if (e.target.id === 'log') return openSheet();
+    });
+
+    app.addEventListener('change', e => {
+      const sk = e.target.dataset && e.target.dataset.skip;
+      if (!sk) return;
+      S.skipped = e.target.checked ? [...new Set([...S.skipped, sk])] : S.skipped.filter(x => x !== sk);
+      save(); render();
+    });
+  }
+
+  /* ── timer ───────────────────────────────────────────────── */
+
+  let tick = null;
+
+  function toggleTimer() {
+    if (S.running) {
+      S.elapsed = elapsedNow();
+      S.running = false; S.startedAt = null;
+    } else {
+      S.running = true;
+      S.startedAt = Date.now() - S.elapsed * 1000;
+    }
+    save(); render(); runTick();
+  }
+
+  function elapsedNow() {
+    return S.running && S.startedAt ? (Date.now() - S.startedAt) / 1000 : S.elapsed;
+  }
+
+  function runTick() {
+    clearInterval(tick);
+    if (!S.running) return;
+    tick = setInterval(() => {
+      const el = document.getElementById('clock');
+      if (el) el.textContent = clock(elapsedNow());
+      const dur = document.getElementById('f-duration');
+      if (dur && document.activeElement !== dur) dur.value = clock(elapsedNow());
+    }, 1000);
+  }
+
+  /* ── digest + result ─────────────────────────────────────── */
+
+  function setValues(ex, set) {
+    const v = S.sets[ex.id + '.' + set.id] || {};
+    const kind = set.kind || ex.kind || 'weight_reps';
+    const dUnit = set.distanceUnit || unitOf('distance');
+
+    if (kind === 'weight_reps') return `${v.load || '—'}×${v.reps || '—'}`;
+    if (kind === 'reps')        return `${v.reps || '—'}`;
+    if (kind === 'time')        return `${v.duration || '—'}`;
+    if (kind === 'carry')       return `${v.load || '—'}×${v.rounds || '—'} ${v.distance || '—'}${dUnit}`;
+    if (kind === 'cardio')      return `${v.distance || '—'}${dUnit} / ${v.duration || '—'} / ${v.pace || '—'} pace`;
+    return '';
+  }
+
+  function allSets(ex) {
+    const out = ex.sets.slice();
+    for (let i = 0; i < (S.added[ex.id] || 0); i++) out.push({ ...ex.sets[ex.sets.length - 1], id: 'add' + i, _added: true });
+    return out;
+  }
+
+  function buildDigest() {
+    const notes = [];
+    const sup = n => String(n).split('').map(c => '¹²³⁴⁵⁶⁷⁸⁹'['123456789'.indexOf(c)] || c).join('');
+    const lines = [];
+
+    const dur = (document.getElementById('f-duration') || {}).value || (S.elapsed ? clock(S.elapsed) : '—');
+    const ctxBits = (WOD.context || []).map(c => {
+      const val = S.ctx[c.key];
+      return c.unit ? `${val}${c.unit} ${c.label}` : `${val}`;
+    });
+
+    lines.push(`WODin ${WOD.workoutId} · ${WOD.title}`);
+    lines.push([dur, S.rpe ? `RPE ${S.rpe}` : null, ...ctxBits].filter(Boolean).join(' · '));
+
+    const width = 17;
+    WOD.sections.forEach(sec => {
+      const rows = sec.exercises.filter(ex => !isSkipped(ex.id)).map(ex => {
+        const parts = allSets(ex).map(set => {
+          const v = S.sets[ex.id + '.' + set.id] || {};
+          let s = setValues(ex, set);
+          if (v.note && v.note.trim()) { notes.push(v.note.trim()); s += ' ' + sup(notes.length); }
+          return s;
+        });
+        return '  ' + ex.movement.padEnd(width).slice(0, Math.max(width, ex.movement.length)) + ' ' + parts.join(', ');
+      });
+      if (!rows.length) return;
+      lines.push('');
+      lines.push(sec.name.toUpperCase());
+      lines.push(...rows);
+    });
+
+    const skipped = WOD.sections.flatMap(s => s.exercises).filter(ex => isSkipped(ex.id));
+    if (skipped.length) { lines.push(''); lines.push('SKIPPED  ' + skipped.map(e => e.movement).join(', ')); }
+
+    if (notes.length) {
+      lines.push('');
+      notes.forEach((n, i) => lines.push(`${sup(i + 1)} ${n}`));
+    }
+    if (S.summary.trim()) { lines.push(''); lines.push('Summary: ' + S.summary.trim()); }
+
+    return lines.join('\n');
+  }
+
+  function buildResult() {
+    const log = {};
+    WOD.sections.forEach(sec => sec.exercises.forEach(ex => {
+      if (isSkipped(ex.id)) return;
+      allSets(ex).forEach(set => {
+        const k = ex.id + '.' + set.id;
+        const v = S.sets[k] || {};
+        const kind = set.kind || ex.kind || 'weight_reps';
+        const entry = {};
+        if (kind === 'weight_reps' || kind === 'carry') {
+          if (v.load === 'BW') entry.loadType = 'bodyweight'; else entry.load = num(v.load);
+        }
+        if (kind === 'weight_reps' || kind === 'reps') entry.reps = num(v.reps);
+        if (kind === 'carry') { entry.rounds = num(v.rounds); entry.distance = num(v.distance); }
+        if (kind === 'cardio') { entry.distance = num(v.distance); entry.pace = v.pace || null; }
+        if (kind === 'time' || kind === 'cardio') {
+          entry.duration = v.duration || null;
+          entry.durationSec = toSec(v.duration);
+        }
+        if (v.note && v.note.trim()) entry.note = v.note.trim();
+        if (set._added) entry.added = true;
+        entry.asPlanned = isAsPlanned(ex, set, v, kind);
+        log[k] = entry;
+      });
+    }));
+
+    const durStr = (document.getElementById('f-duration') || {}).value || (S.elapsed ? clock(S.elapsed) : null);
+    return {
+      schema: 'wodin/result@1',
+      workoutId: WOD.workoutId,
+      submittedAt: new Date().toISOString(),
+      duration: durStr || null,
+      durationSec: toSec(durStr),
+      rpe: S.rpe === '' ? null : Number(S.rpe),
+      athleteSummary: S.summary.trim() || null,
+      context: { ...S.ctx },
+      log,
+      skipped: S.skipped.slice()
+    };
+  }
+
+  function num(v) { return (v === '' || v == null) ? null : (isNaN(Number(v)) ? v : Number(v)); }
+
+  function isAsPlanned(ex, set, v, kind) {
+    if (set._added) return false;
+    const same = (a, b) => String(a ?? '') === String(b ?? '');
+    if (kind === 'weight_reps') return same(v.reps, set.reps) && (set.loadType === 'bodyweight' ? v.load === 'BW' : same(v.load, set.load));
+    if (kind === 'reps')        return same(v.reps, set.reps);
+    if (kind === 'time')        return same(v.duration, set.duration);
+    if (kind === 'carry')       return same(v.load, set.load) && same(v.rounds, set.rounds) && same(v.distance, set.distance);
+    if (kind === 'cardio')      return same(v.distance, set.distance) && same(v.duration, set.duration);
+    return true;
+  }
+
+  /* ── sheet ───────────────────────────────────────────────── */
+
+  const scrim = document.getElementById('scrim');
+
+  function openSheet() {
+    document.getElementById('digest').textContent = buildDigest();
+
+    const canShare = typeof navigator.share === 'function';
+    document.getElementById('sinks').innerHTML = [
+      canShare ? sink('share', ICON_SHARE, 'Share', 'Send straight to your coach or agent', true) : '',
+      sink('copy', ICON_COPY, 'Copy summary', 'Paste into any chat', !canShare),
+      sink('json', ICON_JSON, 'Copy full JSON', 'The structured result payload', false)
+    ].join('');
+
+    scrim.hidden = false;
+  }
+
+  function sink(act, icon, title, desc, primary) {
+    return `<button class="sink ${primary ? 'primary' : ''}" type="button" data-sink="${act}">
+      ${icon}<span class="col"><span class="t">${title}</span><span class="d">${desc}</span></span>
+    </button>`;
+  }
+
+  scrim.addEventListener('click', async e => {
+    if (e.target === scrim || e.target.id === 'sheetClose') { scrim.hidden = true; return; }
+    const btn = e.target.closest('[data-sink]');
+    if (!btn) return;
+
+    const digest = buildDigest();
+    const act = btn.dataset.sink;
+
+    if (act === 'share') {
+      try { await navigator.share({ title: 'WODin ' + WOD.workoutId, text: digest }); scrim.hidden = true; }
+      catch { /* dismissed */ }
+    } else if (act === 'copy') {
+      try { await navigator.clipboard.writeText(digest); toast('Summary copied'); scrim.hidden = true; }
+      catch { toast("Couldn't copy — select the text above"); }
+    } else {
+      // The shipped PWA downloads this as a file; the artifact viewer blocks
+      // page-initiated downloads, so this prototype copies it instead.
+      try { await navigator.clipboard.writeText(JSON.stringify(buildResult(), null, 2)); toast('JSON copied'); scrim.hidden = true; }
+      catch { toast("Couldn't copy"); }
+    }
+  });
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 2400);
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') scrim.hidden = true; });
+
+  render();
+  runTick();
+})();
+</script>
