@@ -99,6 +99,15 @@ h2 {
   white-space: pre-wrap;
 }
 
+/* Attribution for the note above it — reads as a signature, not another fact. */
+.coach-by {
+  margin: 7px 0 0;
+  padding-left: 15px;
+  font-size: 13px;
+  color: var(--faint);
+  font-style: italic;
+}
+
 /* ─── Timer (sticky) ───────────────────────────────────────── */
 
 .timer {
@@ -416,12 +425,19 @@ h2 {
 }
 .paste-error[hidden] { display: none; }
 
-.build {
-  margin: 26px 0 0;
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 30px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
   font-family: var(--fm);
   font-size: 11px;
   color: var(--ghost);
 }
+.foot a { color: var(--faint); text-decoration: none; }
+.foot a:hover { color: var(--accent-mute); text-decoration: underline; }
 
 /* Offered only when the app is genuinely installed and you are looking at a
    browser tab instead of it. Sits in the flow rather than covering anything —

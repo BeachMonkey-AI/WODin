@@ -13,7 +13,19 @@ import { ICON } from './icons.js';
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = 'e4eb6748';
+const BUILD = '5309f401';
+const REPO = 'https://github.com/BeachMonkey-AI/WODin';
+
+// Shown on every view. The repo link is the answer to "what is this thing and can
+// I run my own?", which a workout arriving by link from a stranger's agent ought
+// to be able to answer for itself.
+const footer = () => {
+  const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  return `<p class="foot">
+    <a href="${REPO}" target="_blank" rel="noopener">github.com/BeachMonkey-AI/WODin</a>
+    <span>build ${esc(BUILD)}${installed ? ' · installed' : ''}</span>
+  </p>`;
+};
 
 const LIB_KEY = 'wodin:index';
 const wodKey = id => 'wodin:wod:' + id;
@@ -263,6 +275,7 @@ function renderWorkout() {
         ${WOD.targetRpe ? `<span>target RPE ${WOD.targetRpe}</span>` : ''}
       </div>
       ${WOD.coachNote ? `<p class="coach">${esc(WOD.coachNote)}</p>` : ''}
+      ${WOD.coach ? `<p class="coach-by">— ${esc(WOD.coach)}</p>` : ''}
     </header>
 
     <div class="timer">
@@ -297,7 +310,8 @@ function renderWorkout() {
         <textarea id="f-summary" placeholder="How it felt, what to remember">${esc(S.summary)}</textarea>
       </div>
       <button class="btn-log" id="log" type="button">Log workout</button>
-    </section>`;
+    </section>
+    ${footer()}`;
 
   $('app').innerHTML = head + body + close;
 }
@@ -444,7 +458,7 @@ function renderLibrary() {
       </div>
       <p class="paste-error" id="pasteError" hidden></p>
     </div>
-    <p class="build">build ${esc(BUILD)}${installed ? ' · installed' : ''}</p>`;
+    ${footer()}`;
 }
 
 function pasteProblem(msg) {
