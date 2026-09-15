@@ -1,0 +1,180 @@
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "2026-09-13",
+  "date": "2026-09-13",
+  "athleteTitle": "Odin's WOD",
+  "title": "Routine 2 — Back + Biceps",
+  "program": "Foundation Return · Week 2 of 8",
+  "estDuration": "~50 min",
+  "targetRpe": 7,
+  "coachNote": "Shred Shed · 8h sleep · 1 day rest. Ease into the plyo — drop it if the calf complains. Dead hang 20s×2. Empty bar → 75 → 95×5×3 on bent row.",
+  "units": { "load": "lb", "distance": "m" },
+  "sink": { "type": "share" },
+  "sections": [
+    {
+      "id": "warmup",
+      "name": "Warm-up",
+      "type": "warmup",
+      "exercises": [
+        {
+          "id": "ex1",
+          "movement": "Row",
+          "kind": "cardio",
+          "tag": "Engine",
+          "cue": "Easy pace to warm up — legs–hips–arms, smooth chain. Hit the target split; log the blank Distance or Time.",
+          "sets": [
+            {
+              "id": "s1",
+              "distance": 600,
+              "pace": "2:30/500m",
+              "duration": "3:00",
+              "athleteFills": "duration"
+            }
+          ]
+        },
+        {
+          "id": "ex2",
+          "movement": "Band pull-apart",
+          "kind": "weight_reps",
+          "tag": "Activation",
+          "cue": "Upper back — Long arms; squeeze mid-back; light and frequent.",
+          "sets": [
+            { "id": "s1", "reps": 12, "loadType": "bodyweight" },
+            { "id": "s2", "reps": 12, "loadType": "bodyweight" }
+          ]
+        },
+        {
+          "id": "ex3",
+          "movement": "Dead hang",
+          "kind": "time",
+          "tag": "Work set",
+          "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+          "sets": [
+            { "id": "s1", "duration": "0:20" },
+            { "id": "s2", "duration": "0:20" }
+          ]
+        },
+        {
+          "id": "ex4",
+          "movement": "Box jump",
+          "kind": "reps",
+          "tag": "Work set",
+          "cue": "Low box, or line hops if the calf objects — soft and quiet on the landing.",
+          "sets": [
+            { "id": "s1", "reps": 10 },
+            { "id": "s2", "reps": 10 },
+            { "id": "s3", "reps": 10 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "strength",
+      "name": "Strength",
+      "type": "strength",
+      "exercises": [
+        {
+          "id": "ex5",
+          "movement": "Barbell bent row",
+          "kind": "weight_reps",
+          "tag": "Work set",
+          "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+          "sets": [
+            { "id": "s1", "reps": 10, "load": 45 },
+            { "id": "s2", "reps": 6, "load": 75 },
+            { "id": "s3", "reps": 5, "load": 95 },
+            { "id": "s4", "reps": 5, "load": 95 },
+            { "id": "s5", "reps": 5, "load": 95 }
+          ]
+        },
+        {
+          "id": "ex6",
+          "movement": "Ring row",
+          "kind": "weight_reps",
+          "tag": "Work set",
+          "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+          "sets": [
+            { "id": "s1", "reps": 10, "loadType": "bodyweight" },
+            { "id": "s2", "reps": 8, "loadType": "bodyweight" },
+            { "id": "s3", "reps": 8, "loadType": "bodyweight" }
+          ]
+        },
+        {
+          "id": "ex7",
+          "movement": "Single-arm dumbbell row",
+          "kind": "weight_reps",
+          "tag": "Hypertrophy",
+          "cue": "Lats / mid-back — Hand-knee support; pull elbow high; pause briefly.",
+          "sets": [
+            { "id": "s1", "reps": 10, "load": 30 },
+            { "id": "s2", "reps": 10, "load": 30 },
+            { "id": "s3", "reps": 10, "load": 30 }
+          ]
+        },
+        {
+          "id": "ex8",
+          "movement": "Curl-bar curl",
+          "kind": "weight_reps",
+          "tag": "Hypertrophy",
+          "cue": "Biceps — Elbows pinned; no swing; squeeze at the top.",
+          "sets": [
+            { "id": "s1", "reps": 10, "load": 25 },
+            { "id": "s2", "reps": 15, "load": 25 }
+          ]
+        },
+        {
+          "id": "ex9",
+          "movement": "Hammer curl",
+          "kind": "weight_reps",
+          "tag": "Hypertrophy",
+          "cue": "Biceps — Elbows pinned; no swing; squeeze at the top.",
+          "sets": [
+            { "id": "s1", "reps": 10, "load": 20 },
+            { "id": "s2", "reps": 10, "load": 20 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "carry",
+      "name": "Loaded carry",
+      "type": "carry",
+      "exercises": [
+        {
+          "id": "ex10",
+          "movement": "Farmer carry",
+          "kind": "carry",
+          "tag": "Strongman / grip",
+          "cue": "Grip / traps / core — Tall posture; short steps; crush the handles.",
+          "sets": [
+            { "id": "s1", "load": 50, "reps": 1, "distance": 100, "distanceUnit": "ft" },
+            { "id": "s2", "load": 100, "reps": 1, "distance": 100, "distanceUnit": "ft" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "finisher",
+      "name": "Finisher",
+      "type": "finisher",
+      "exercises": [
+        {
+          "id": "ex11",
+          "movement": "Row",
+          "kind": "cardio",
+          "tag": "Engine",
+          "cue": "For time — hold the target split as long as you can, then log what you actually rowed.",
+          "sets": [
+            {
+              "id": "s1",
+              "distance": 500,
+              "pace": "2:00/500m",
+              "duration": null,
+              "athleteFills": "duration"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
