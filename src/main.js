@@ -913,7 +913,51 @@ async function route() {
   runTick();
 }
 
+/* ── "open it in the app" ────────────────────────────────────
+ *
+ * Only offered when all three are true: this is a browser tab rather than the
+ * installed app, we are on Android, and the app really is installed. Anything
+ * less and it is a nag for something the reader cannot act on.
+ *
+ * It offers copy-and-paste rather than a launch because an Android intent:// URI
+ * cannot carry a fragment — the intent syntax claims "#" for itself — and the
+ * whole workout lives in ours. An intent launch would open the app at its base
+ * URL with an empty library, which is worse than not offering. Chrome's own
+ * ⋮ → Open in <app> does preserve the fragment, so the hint points there too.
+ */
+const DISMISS_KEY = 'wodin:openapp-dismissed';
+
+async function maybeOfferApp() {
+  const installedHere = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (installedHere) return;
+  if (!/android/i.test(navigator.userAgent)) return;
+  if (readJSON(DISMISS_KEY, false)) return;
+  if (!navigator.getInstalledRelatedApps) return;
+
+  let apps = [];
+  try { apps = await navigator.getInstalledRelatedApps(); } catch { return; }
+  if (!apps.length) return;
+
+  $('openApp').hidden = false;
+}
+
+document.getElementById('openApp').addEventListener('click', async e => {
+  if (e.target.id === 'openAppDismiss') {
+    writeJSON(DISMISS_KEY, true);
+    $('openApp').hidden = true;
+    return;
+  }
+  if (e.target.id !== 'openAppCopy') return;
+  try {
+    await navigator.clipboard.writeText(location.href);
+    toast('Link copied — open WODin and tap Paste');
+  } catch {
+    toast("Couldn't copy — use Chrome's ⋮ menu instead");
+  }
+});
+
 window.addEventListener('hashchange', route);
 
 bind();
 route();
+maybeOfferApp();
