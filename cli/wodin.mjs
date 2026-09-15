@@ -266,7 +266,7 @@ function cmdValidate(files) {
           const paren = ex.movement.match(/\s*\(([^)]*)\)\s*$/);
           const measure = ex.movement.match(/\s+\d+\s*(m|km|mi|ft|s|sec|min|reps?)$/i);
           if (paren) {
-            warnings.push(`${ex.movement}: move "(${paren[1]})" to qualifier — it is searched verbatim and is not part of the exercise's name`);
+            warnings.push(`${ex.movement}: move "(${paren[1]})" into cue or tag — the name is searched verbatim and is not the place for it`);
           } else if (measure) {
             warnings.push(`${ex.movement}: the prescription belongs in sets, not the name — search and progress tracking both key on this`);
           }

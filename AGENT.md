@@ -94,19 +94,19 @@ This matters twice over:
    this string. Call it "Easy row" on Monday and "Row 500m" on Thursday and you have
    invented two unrelated exercises that can never be compared.
 
-Everything else has its own home:
+Everything else already has a home — use them rather than decorating the name:
 
 | Not this | This |
 |---|---|
-| `"Easy row"` | `movement: "Row"`, `qualifier: "easy"` |
+| `"Easy row"` | `movement: "Row"`, `cue: "Easy pace — conversational the whole way."` |
 | `"Row 500m"` | `movement: "Row"`, with `distance: 500` in the set |
-| `"Bench press light"` | `movement: "Bench press"`, `qualifier: "light"` |
-| `"Dumbbell lateral raise (pump)"` | `movement: "Dumbbell lateral raise"`, `qualifier: "pump"` |
-| `"Bulgarian split squat (each leg)"` | `movement: "Bulgarian split squat"`, `qualifier: "each leg"` |
+| `"Bench press light"` | `movement: "Bench press"`, `cue: "Light — leave three in the tank."` |
+| `"Dumbbell lateral raise (pump)"` | `movement: "Dumbbell lateral raise"`, `tag: "Pump"` |
+| `"Bulgarian split squat (each leg)"` | `movement: "Bulgarian split squat"`, `cue: "8 per leg."` |
 
-`qualifier` shows beside the name and is excluded from the search. Reach for it when one
-movement appears twice in a session and the headings would otherwise be identical — a warm-up
-row and a finisher row.
+Don't worry about a movement appearing twice in one session. A warm-up row and a finisher
+row both read "Row", but they sit under different section headings with different
+prescriptions and different cues — nobody confuses them.
 
 `wodin validate` warns about the two shapes it can reliably spot: a trailing parenthetical,
 and a measurement in the name.
