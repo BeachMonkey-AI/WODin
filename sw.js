@@ -1,11 +1,24 @@
 /* App service worker — stale-while-revalidate for the shell, network-first for everything else.
  * CACHE name is bumped by scripts/build.mjs from a content hash on every build.
  */
-const CACHE = 'app-b8804abf';
+const CACHE = 'app-c5855f59';
 // Relative to this script's own location, so this works unmodified whether it's
 // deployed at / (prod) or /preview/pr-<N>/ — self.location gives that automatically.
-const SHELL = ['.', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png']
-  .map(p => new URL(p, self.location.href).pathname);
+//
+// Every file the app needs to boot is precached at install, not left to be picked
+// up opportunistically on a later visit. Offline is a hard requirement here: an
+// athlete installs this at home and opens it in a basement gym with no signal, and
+// a shell that loads without its own JavaScript is just a blank screen.
+const SHELL = [
+  '.',
+  'manifest.webmanifest',
+  'src/main.js',
+  'src/icons.js',
+  'src/app.css',
+  'styles/tokens.css',
+  'icons/icon-192.png',
+  'icons/icon-512.png'
+].map(p => new URL(p, self.location.href).pathname);
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
