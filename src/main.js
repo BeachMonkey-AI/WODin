@@ -429,11 +429,19 @@ async function openPastedLink(text, quiet) {
   const raw = String(text).trim();
   const m = raw.match(/#?((?:w|wj|id)=[^\s&#]+)/);
 
+  // An elided link — "…/WODin/#w=…" — is the displayed text of a link rather than
+  // the link itself, and it is what you get by selecting a link instead of copying
+  // it. It partly matches the pattern, so check before trying to decode.
+  if (raw.includes('…') || raw.includes('...')) {
+    if (!quiet) {
+      pasteProblem('That is the shortened text shown for a link, not the link itself. Long-press it and choose Copy Link, or use Share from the app it arrived in.');
+    }
+    return false;
+  }
+
   if (!m) {
     if (!quiet) {
-      pasteProblem(raw.includes('…') || raw.includes('...')
-        ? 'That is the shortened text of a link, not the link itself. Long-press the link and choose Copy Link, or use Share.'
-        : 'That is not a workout link — a real one contains #w= followed by a long code.');
+      pasteProblem('That is not a workout link — a real one contains #w= followed by a long code.');
     }
     return false;
   }
