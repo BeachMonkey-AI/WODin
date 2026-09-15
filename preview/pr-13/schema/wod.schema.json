@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beachmonkey-ai.github.io/WODin/schema/wod.schema.json",
+  "title": "WODin workout plan",
+  "description": "A prescribed workout, written by an agent and rendered as a loggable page. Everything here is the plan; what the athlete actually did comes back in result.schema.json.",
+  "type": "object",
+  "required": ["workoutId", "sections"],
+  "additionalProperties": false,
+
+  "properties": {
+    "schema": { "const": "wodin/wod@1" },
+
+    "workoutId": {
+      "type": "string",
+      "description": "Stable id for this workout. A date (2026-09-13) is the usual choice; it is what the result references and what local autosave is keyed on.",
+      "minLength": 1
+    },
+    "date": { "type": "string", "format": "date" },
+
+    "athleteTitle": {
+      "type": "string",
+      "description": "The athlete's standing banner, shown as the page's primary heading — e.g. \"Odin's WOD\". Constant across workouts. If omitted, `title` is promoted to the primary heading."
+    },
+    "title": {
+      "type": "string",
+      "description": "What this particular workout is — e.g. \"Routine 2 — Back + Biceps\"."
+    },
+    "program": {
+      "type": "string",
+      "description": "Where this sits in a larger arc — e.g. \"Foundation Return · Week 2 of 8\"."
+    },
+    "estDuration": { "type": "string", "description": "Human-readable estimate, e.g. \"~50 min\"." },
+    "targetRpe": {
+      "type": "number", "minimum": 1, "maximum": 10,
+      "description": "Prescribed effort. Shown as a ghost hint (\"Rx 7\") on the blank session-RPE field; never prefilled as an answer."
+    },
+
+    "coachNote": {
+      "type": "string",
+      "description": "Free text from the agent to the athlete, rendered as a blockquote under the heading. The right home for session context — sleep, rest days, location, niggles, how to scale."
+    },
+
+    "units": {
+      "type": "object",
+      "description": "Document-wide defaults. Every rendered field shows its unit, so these are never implicit.",
+      "additionalProperties": false,
+      "properties": {
+        "load": { "type": "string", "default": "lb", "examples": ["lb", "kg"] },
+        "distance": { "type": "string", "default": "m", "examples": ["m", "ft", "mi", "km"] }
+      }
+    },
+
+    "sink": {
+      "type": "object",
+      "description": "Where a submitted result should go. Omit for the default, which offers share / copy / download. Everything here travels inside the link, so treat it as public.",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["share", "post"] },
+        "url": { "type": "string", "format": "uri", "description": "Required when type is \"post\". The page POSTs the result JSON here." },
+
+        "mode": {
+          "enum": ["cors", "blind"],
+          "default": "cors",
+          "description": "cors: normal JSON POST — the endpoint must answer the OPTIONS preflight and allow the headers used, and delivery is confirmed. blind: a no-cors POST that reaches an endpoint knowing nothing about CORS with no server changes, at the cost of an opaque response — the page cannot confirm delivery and does not claim to. headers are dropped in blind mode, which no-cors forbids."
+        },
+
+        "headers": {
+          "type": "object",
+          "description": "Extra request headers, for routing an athlete or program to the right handler. WARNING: the plan travels inside a shareable URL and is stored on the athlete's device, so anything here is public — a credential placed here is published, not protected. Prefer an unguessable capability URL, or hold the secret in a proxy. `wodin validate` warns on credential-shaped headers.",
+          "additionalProperties": { "type": "string" },
+          "examples": [{ "X-Athlete-Id": "a1", "X-Program": "foundation-return" }]
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "post" } } }, "then": { "required": ["url"] } }
+      ]
+    },
+
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/section" }
+    }
+  },
+
+  "$defs": {
+    "section": {
+      "type": "object",
+      "required": ["name", "exercises"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "description": "Shown as the section rule, e.g. \"Warm-up\"." },
+        "type": {
+          "enum": ["warmup", "activation", "strength", "accessory", "conditioning", "carry", "finisher", "cooldown", "other"],
+          "default": "other"
+        },
+        "exercises": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/exercise" } }
+      }
+    },
+
+    "exercise": {
+      "type": "object",
+      "description": "One movement and its sets. The athlete's note attaches here — one per exercise, never one per set.",
+      "required": ["movement", "sets"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+
+        "movement": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The exercise's canonical name and nothing else — \"Row\", not \"Easy row\" or \"Row 500m\". Two reasons. It is searched verbatim to build the form-check link, and adjectives wreck the results. And it is the movement's identity: anything tracking progress across sessions matches on this, so \"Easy row\" and \"Row 500m\" would look like two unrelated exercises. Session-specific detail goes in `cue` (\"easy pace\", \"8 per leg\"), training intent in `tag` (\"Pump\"), and the prescription in `sets`.",
+          "examples": ["Row", "Barbell bent row", "Farmer carry", "Bulgarian split squat"]
+        },
+
+        "kind": {
+          "$ref": "#/$defs/kind",
+          "description": "Which field layout to draw. Set it explicitly — it cannot be inferred reliably, because a field the athlete is meant to fill is null in the plan too."
+        },
+
+        "tag": {
+          "type": "string",
+          "description": "Short classifier shown before the cue, e.g. \"Work set\", \"Engine\", \"Hypertrophy\"."
+        },
+        "cue": {
+          "type": "string",
+          "description": "The coach's line — what to focus on. Agent to athlete. Distinct from the athlete's own note, which only exists in the result."
+        },
+        "link": {
+          "type": "string", "format": "uri",
+          "description": "Where the movement name links to. Omit it and the page builds a YouTube search for \"<movement> form\", so a form check is always one tap away. Set it to point at a specific demonstration — your own video, a coaching cue you trust, an ExRx page — instead.",
+          "examples": ["https://www.youtube.com/watch?v=JCXUYuzwNrM", "https://exrx.net/WeightExercises/BackGeneral/BBBentOverRow"]
+        },
+
+        "sets": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/set" } }
+      }
+    },
+
+    "set": {
+      "type": "object",
+      "description": "One prescription row, rendered as \"Set 1\", \"Set 2\". Which of these fields are drawn is decided by the exercise's kind. A null field that the athlete is expected to supply should name itself in athleteFills.",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "$ref": "#/$defs/kind", "description": "Overrides the exercise's kind for this row alone. Rarely needed." },
+
+        "reps": { "type": ["integer", "null"], "minimum": 0 },
+        "load": { "type": ["number", "null"], "minimum": 0 },
+        "loadType": {
+          "enum": ["bodyweight"],
+          "description": "Use instead of load:0 for unweighted work. Renders as \"BW\"."
+        },
+        "tempo": { "type": ["string", "null"], "examples": ["3-1-1-0"] },
+        "rest": { "type": ["string", "null"], "examples": ["90s", "2:00"] },
+
+        "duration": { "type": ["string", "null"], "examples": ["0:20", "3:00"], "description": "mm:ss or h:mm:ss." },
+        "distance": { "type": ["number", "null"], "minimum": 0 },
+        "distanceUnit": { "type": "string", "description": "Overrides units.distance for this row — a carry in ft alongside a row in m." },
+        "pace": { "type": ["string", "null"], "examples": ["2:00/500m"], "description": "Value and denominator together; the denominator becomes the field's unit suffix." },
+        "intensity": { "type": ["string", "null"], "examples": ["RPE 8", "75%", "Z2"] },
+
+        "athleteFills": {
+          "type": "string",
+          "description": "Names the field the athlete is expected to supply, for a partial prescription — e.g. distance and pace given, athlete fills duration.",
+          "examples": ["duration", "distance", "load", "reps"]
+        },
+
+        "note": {
+          "type": "string",
+          "description": "Not used in a plan. Athlete notes live on the exercise and only exist in a result. Present here only so a round-tripped document does not fail validation."
+        }
+      }
+    },
+
+    "kind": {
+      "enum": ["weight_reps", "reps", "time", "cardio", "carry"],
+      "description": "weight_reps: load × reps. reps: reps only. time: a single duration. cardio: pace + distance + time on one row, any two implying the third. carry: load × reps + distance."
+    },
+
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "Optional on input — the renderer assigns ids positionally when absent. Required in a result, where entries are keyed \"<exerciseId>.<setId>\"."
+    }
+  }
+}

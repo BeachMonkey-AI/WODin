@@ -1,0 +1,39 @@
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "2026-09-20",
+  "date": "2026-09-20",
+  "title": "Squat + carry",
+  "units": { "load": "lb", "distance": "m" },
+  "sections": [
+    {
+      "name": "Strength",
+      "type": "strength",
+      "exercises": [
+        {
+          "movement": "Back squat",
+          "kind": "weight_reps",
+          "cue": "Brace before you unrack.",
+          "sets": [
+            { "reps": 5, "load": 135 },
+            { "reps": 5, "load": 155 },
+            { "reps": 3, "load": 175 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Finisher",
+      "type": "finisher",
+      "exercises": [
+        {
+          "movement": "Row",
+          "kind": "cardio",
+          "cue": "Hold the split; log the time.",
+          "sets": [
+            { "distance": 1000, "pace": "2:10/500m", "duration": null, "athleteFills": "duration" }
+          ]
+        }
+      ]
+    }
+  ]
+}
