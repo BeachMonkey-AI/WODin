@@ -1,0 +1,147 @@
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "athlete-1-2026-09-15",
+  "date": "2026-09-15",
+  "athleteTitle": "Athlete 1's WOD",
+  "title": "Squat Day — Heavy Triple",
+  "program": "Peaking Block · Week 5 of 8",
+  "estDuration": "~75 min",
+  "targetRpe": 9,
+  "coachNote": "Top single is the session. Take full rest between the last three sets — 4 to 5 minutes, no heroics on the clock. If 315 moves slower than the 275 triple, stop there and log it; we are peaking, not testing. Bench and accessories are optional if the squat took everything.",
+  "units": { "load": "lb", "distance": "ft" },
+  "sections": [
+    {
+      "id": "prep",
+      "name": "Prep",
+      "type": "warmup",
+      "exercises": [
+        {
+          "id": "ex1",
+          "movement": "Assault bike",
+          "kind": "time",
+          "tag": "Engine",
+          "cue": "Easy spin, just get warm. Conversational the whole way.",
+          "sets": [
+            { "id": "s1", "duration": "5:00" }
+          ]
+        },
+        {
+          "id": "ex2",
+          "movement": "Air squat",
+          "kind": "reps",
+          "tag": "Activation",
+          "cue": "Full depth, slow on the way down. Find the groove before you load it.",
+          "sets": [
+            { "id": "s1", "reps": 15 },
+            { "id": "s2", "reps": 15 }
+          ]
+        },
+        {
+          "id": "ex3",
+          "movement": "Banded lateral walk",
+          "kind": "reps",
+          "tag": "Activation",
+          "cue": "Glute med — band above the knees, stay low, don't let the knees cave.",
+          "sets": [
+            { "id": "s1", "reps": 20, "loadType": "bodyweight" },
+            { "id": "s2", "reps": 20, "loadType": "bodyweight" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "squat",
+      "name": "Back squat",
+      "type": "strength",
+      "exercises": [
+        {
+          "id": "ex4",
+          "movement": "Back squat",
+          "kind": "weight_reps",
+          "tag": "Work set",
+          "cue": "Brace before you unrack. Same bar speed on every rep — when it slows, the set is over.",
+          "sets": [
+            { "id": "s1", "reps": 5, "load": 45 },
+            { "id": "s2", "reps": 5, "load": 135 },
+            { "id": "s3", "reps": 3, "load": 185 },
+            { "id": "s4", "reps": 3, "load": 225 },
+            { "id": "s5", "reps": 3, "load": 275 },
+            { "id": "s6", "reps": 3, "load": 315 }
+          ]
+        },
+        {
+          "id": "ex5",
+          "movement": "Paused squat",
+          "kind": "weight_reps",
+          "tag": "Work set",
+          "cue": "Two-count pause in the hole. No bounce out of the bottom.",
+          "sets": [
+            { "id": "s1", "reps": 3, "load": 225 },
+            { "id": "s2", "reps": 3, "load": 225 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accessory",
+      "name": "Accessory",
+      "type": "accessory",
+      "exercises": [
+        {
+          "id": "ex6",
+          "movement": "Bench press",
+          "kind": "weight_reps",
+          "tag": "Strength",
+          "cue": "Feet planted, slight arch, bar to mid-chest. Elbows ~45°.",
+          "sets": [
+            { "id": "s1", "reps": 5, "load": 135 },
+            { "id": "s2", "reps": 5, "load": 185 },
+            { "id": "s3", "reps": 5, "load": 205 }
+          ]
+        },
+        {
+          "id": "ex7",
+          "movement": "Romanian deadlift",
+          "kind": "weight_reps",
+          "tag": "Hypertrophy",
+          "cue": "Bar over mid-foot, push the floor away. Stop where the hamstrings stop, not where the back starts.",
+          "sets": [
+            { "id": "s1", "reps": 8, "load": 185 },
+            { "id": "s2", "reps": 8, "load": 185 },
+            { "id": "s3", "reps": 8, "load": 185 }
+          ]
+        },
+        {
+          "id": "ex8",
+          "movement": "Walking lunge",
+          "kind": "carry",
+          "tag": "Work set",
+          "cue": "Dumbbells at the sides. Knee tracks over the toe; step through, don't push back.",
+          "sets": [
+            { "id": "s1", "load": 40, "reps": 1, "distance": 50 },
+            { "id": "s2", "load": 40, "reps": 1, "distance": 50 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "name": "Core",
+      "type": "cooldown",
+      "exercises": [
+        {
+          "id": "ex9",
+          "movement": "Plank",
+          "kind": "time",
+          "tag": "Core",
+          "cue": "Ribs down, glutes on. Stop when the hips start to sag.",
+          "sets": [
+            { "id": "s1", "duration": "1:00" },
+            { "id": "s2", "duration": "1:00" },
+            { "id": "s3", "duration": "1:00" }
+          ]
+        }
+      ]
+    }
+  ]
+}
