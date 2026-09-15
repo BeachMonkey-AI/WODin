@@ -106,7 +106,19 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
-        "movement": { "type": "string", "minLength": 1, "examples": ["Barbell bent row", "Farmer carry"] },
+
+        "movement": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The exercise's canonical name and nothing else — \"Row\", not \"Easy row\" or \"Row 500m\". Two reasons. It is searched verbatim to build the form-check link, and adjectives wreck the results. And it is the movement's identity: anything tracking progress across sessions matches on this, so \"Easy row\" and \"Row 500m\" would look like two unrelated exercises. Put the session-specific part in `qualifier`, the prescription in `sets`, and the coaching in `cue`.",
+          "examples": ["Row", "Barbell bent row", "Farmer carry", "Bulgarian split squat"]
+        },
+
+        "qualifier": {
+          "type": "string",
+          "description": "Short session-specific distinction shown beside the name but excluded from the search — \"easy\", \"light\", \"pump\", \"each leg\". Use it when one movement appears twice in a session and the headings would otherwise be identical.",
+          "examples": ["easy", "light", "each leg", "pump"]
+        },
 
         "kind": {
           "$ref": "#/$defs/kind",
@@ -123,7 +135,8 @@
         },
         "link": {
           "type": "string", "format": "uri",
-          "description": "Overrides the movement-name link. Defaults to a YouTube search for \"<movement> form\", so a form check is always one tap away."
+          "description": "Where the movement name links to. Omit it and the page builds a YouTube search for \"<movement> form\", so a form check is always one tap away. Set it to point at a specific demonstration — your own video, a coaching cue you trust, an ExRx page — instead.",
+          "examples": ["https://www.youtube.com/watch?v=JCXUYuzwNrM", "https://exrx.net/WeightExercises/BackGeneral/BBBentOverRow"]
         },
 
         "sets": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/set" } }

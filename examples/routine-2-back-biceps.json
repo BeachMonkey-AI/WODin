@@ -18,7 +18,8 @@
       "exercises": [
         {
           "id": "ex1",
-          "movement": "Easy row",
+          "movement": "Row",
+          "qualifier": "easy",
           "kind": "cardio",
           "tag": "Engine",
           "cue": "Cardio / posterior chain — Legs–hips–arms; smooth chain. Hit Pace (500m); log the blank Distance or Time.",
@@ -56,7 +57,8 @@
         },
         {
           "id": "ex4",
-          "movement": "Low box / line hop",
+          "movement": "Box jump",
+          "qualifier": "low box / line hop",
           "kind": "reps",
           "tag": "Work set",
           "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
@@ -160,7 +162,8 @@
       "exercises": [
         {
           "id": "ex11",
-          "movement": "Row 500m",
+          "movement": "Row",
+          "qualifier": "for time",
           "kind": "cardio",
           "tag": "Engine",
           "cue": "Cardio / posterior chain — Legs–hips–arms; smooth chain. Hit Pace (500m); log the blank Distance or Time.",
