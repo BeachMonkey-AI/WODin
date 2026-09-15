@@ -19,10 +19,9 @@
         {
           "id": "ex1",
           "movement": "Row",
-          "qualifier": "easy",
           "kind": "cardio",
           "tag": "Engine",
-          "cue": "Cardio / posterior chain — Legs–hips–arms; smooth chain. Hit Pace (500m); log the blank Distance or Time.",
+          "cue": "Easy pace to warm up — legs–hips–arms, smooth chain. Hit the target split; log the blank Distance or Time.",
           "sets": [
             {
               "id": "s1",
@@ -58,10 +57,9 @@
         {
           "id": "ex4",
           "movement": "Box jump",
-          "qualifier": "low box / line hop",
           "kind": "reps",
           "tag": "Work set",
-          "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
+          "cue": "Low box, or line hops if the calf objects — soft and quiet on the landing.",
           "sets": [
             { "id": "s1", "reps": 10 },
             { "id": "s2", "reps": 10 },
@@ -163,10 +161,9 @@
         {
           "id": "ex11",
           "movement": "Row",
-          "qualifier": "for time",
           "kind": "cardio",
           "tag": "Engine",
-          "cue": "Cardio / posterior chain — Legs–hips–arms; smooth chain. Hit Pace (500m); log the blank Distance or Time.",
+          "cue": "For time — hold the target split as long as you can, then log what you actually rowed.",
           "sets": [
             {
               "id": "s1",
