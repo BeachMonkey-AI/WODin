@@ -3,7 +3,11 @@
   "workoutId": "2026-09-20",
   "date": "2026-09-20",
   "title": "Squat + carry",
-  "units": { "load": "lb", "distance": "m" },
+  "coach": "Shred Shed",
+  "units": {
+    "load": "lb",
+    "distance": "m"
+  },
   "sections": [
     {
       "name": "Strength",
@@ -14,9 +18,18 @@
           "kind": "weight_reps",
           "cue": "Brace before you unrack.",
           "sets": [
-            { "reps": 5, "load": 135 },
-            { "reps": 5, "load": 155 },
-            { "reps": 3, "load": 175 }
+            {
+              "reps": 5,
+              "load": 135
+            },
+            {
+              "reps": 5,
+              "load": 155
+            },
+            {
+              "reps": 3,
+              "load": 175
+            }
           ]
         }
       ]
@@ -30,7 +43,12 @@
           "kind": "cardio",
           "cue": "Hold the split; log the time.",
           "sets": [
-            { "distance": 1000, "pace": "2:10/500m", "duration": null, "athleteFills": "duration" }
+            {
+              "distance": 1000,
+              "pace": "2:10/500m",
+              "duration": null,
+              "athleteFills": "duration"
+            }
           ]
         }
       ]

@@ -35,6 +35,12 @@
       "description": "Prescribed effort. Shown as a ghost hint (\"Rx 7\") on the blank session-RPE field; never prefilled as an answer."
     },
 
+    "coach": {
+      "type": "string",
+      "description": "Who wrote this workout — a person, a gym, or the agent itself. Rendered as an attribution beneath the coach note, so a workout that gets shared onward still says where it came from.",
+      "examples": ["Alex Rivera", "Shred Shed", "GrokBot"]
+    },
+
     "coachNote": {
       "type": "string",
       "description": "Free text from the agent to the athlete, rendered as a blockquote under the heading. The right home for session context — sleep, rest days, location, niggles, how to scale."

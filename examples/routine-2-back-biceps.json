@@ -7,9 +7,15 @@
   "program": "Foundation Return · Week 2 of 8",
   "estDuration": "~50 min",
   "targetRpe": 7,
+  "coach": "Shred Shed",
   "coachNote": "Shred Shed · 8h sleep · 1 day rest. Ease into the plyo — drop it if the calf complains. Dead hang 20s×2. Empty bar → 75 → 95×5×3 on bent row.",
-  "units": { "load": "lb", "distance": "m" },
-  "sink": { "type": "share" },
+  "units": {
+    "load": "lb",
+    "distance": "m"
+  },
+  "sink": {
+    "type": "share"
+  },
   "sections": [
     {
       "id": "warmup",
@@ -39,8 +45,16 @@
           "tag": "Activation",
           "cue": "Upper back — Long arms; squeeze mid-back; light and frequent.",
           "sets": [
-            { "id": "s1", "reps": 12, "loadType": "bodyweight" },
-            { "id": "s2", "reps": 12, "loadType": "bodyweight" }
+            {
+              "id": "s1",
+              "reps": 12,
+              "loadType": "bodyweight"
+            },
+            {
+              "id": "s2",
+              "reps": 12,
+              "loadType": "bodyweight"
+            }
           ]
         },
         {
@@ -50,8 +64,14 @@
           "tag": "Work set",
           "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
           "sets": [
-            { "id": "s1", "duration": "0:20" },
-            { "id": "s2", "duration": "0:20" }
+            {
+              "id": "s1",
+              "duration": "0:20"
+            },
+            {
+              "id": "s2",
+              "duration": "0:20"
+            }
           ]
         },
         {
@@ -61,9 +81,18 @@
           "tag": "Work set",
           "cue": "Low box, or line hops if the calf objects — soft and quiet on the landing.",
           "sets": [
-            { "id": "s1", "reps": 10 },
-            { "id": "s2", "reps": 10 },
-            { "id": "s3", "reps": 10 }
+            {
+              "id": "s1",
+              "reps": 10
+            },
+            {
+              "id": "s2",
+              "reps": 10
+            },
+            {
+              "id": "s3",
+              "reps": 10
+            }
           ]
         }
       ]
@@ -80,11 +109,31 @@
           "tag": "Work set",
           "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
           "sets": [
-            { "id": "s1", "reps": 10, "load": 45 },
-            { "id": "s2", "reps": 6, "load": 75 },
-            { "id": "s3", "reps": 5, "load": 95 },
-            { "id": "s4", "reps": 5, "load": 95 },
-            { "id": "s5", "reps": 5, "load": 95 }
+            {
+              "id": "s1",
+              "reps": 10,
+              "load": 45
+            },
+            {
+              "id": "s2",
+              "reps": 6,
+              "load": 75
+            },
+            {
+              "id": "s3",
+              "reps": 5,
+              "load": 95
+            },
+            {
+              "id": "s4",
+              "reps": 5,
+              "load": 95
+            },
+            {
+              "id": "s5",
+              "reps": 5,
+              "load": 95
+            }
           ]
         },
         {
@@ -94,9 +143,21 @@
           "tag": "Work set",
           "cue": "As programmed — Own the ROM; stop 1–2 reps before form breaks.",
           "sets": [
-            { "id": "s1", "reps": 10, "loadType": "bodyweight" },
-            { "id": "s2", "reps": 8, "loadType": "bodyweight" },
-            { "id": "s3", "reps": 8, "loadType": "bodyweight" }
+            {
+              "id": "s1",
+              "reps": 10,
+              "loadType": "bodyweight"
+            },
+            {
+              "id": "s2",
+              "reps": 8,
+              "loadType": "bodyweight"
+            },
+            {
+              "id": "s3",
+              "reps": 8,
+              "loadType": "bodyweight"
+            }
           ]
         },
         {
@@ -106,9 +167,21 @@
           "tag": "Hypertrophy",
           "cue": "Lats / mid-back — Hand-knee support; pull elbow high; pause briefly.",
           "sets": [
-            { "id": "s1", "reps": 10, "load": 30 },
-            { "id": "s2", "reps": 10, "load": 30 },
-            { "id": "s3", "reps": 10, "load": 30 }
+            {
+              "id": "s1",
+              "reps": 10,
+              "load": 30
+            },
+            {
+              "id": "s2",
+              "reps": 10,
+              "load": 30
+            },
+            {
+              "id": "s3",
+              "reps": 10,
+              "load": 30
+            }
           ]
         },
         {
@@ -118,8 +191,16 @@
           "tag": "Hypertrophy",
           "cue": "Biceps — Elbows pinned; no swing; squeeze at the top.",
           "sets": [
-            { "id": "s1", "reps": 10, "load": 25 },
-            { "id": "s2", "reps": 15, "load": 25 }
+            {
+              "id": "s1",
+              "reps": 10,
+              "load": 25
+            },
+            {
+              "id": "s2",
+              "reps": 15,
+              "load": 25
+            }
           ]
         },
         {
@@ -129,8 +210,16 @@
           "tag": "Hypertrophy",
           "cue": "Biceps — Elbows pinned; no swing; squeeze at the top.",
           "sets": [
-            { "id": "s1", "reps": 10, "load": 20 },
-            { "id": "s2", "reps": 10, "load": 20 }
+            {
+              "id": "s1",
+              "reps": 10,
+              "load": 20
+            },
+            {
+              "id": "s2",
+              "reps": 10,
+              "load": 20
+            }
           ]
         }
       ]
@@ -147,8 +236,20 @@
           "tag": "Strongman / grip",
           "cue": "Grip / traps / core — Tall posture; short steps; crush the handles.",
           "sets": [
-            { "id": "s1", "load": 50, "reps": 1, "distance": 100, "distanceUnit": "ft" },
-            { "id": "s2", "load": 100, "reps": 1, "distance": 100, "distanceUnit": "ft" }
+            {
+              "id": "s1",
+              "load": 50,
+              "reps": 1,
+              "distance": 100,
+              "distanceUnit": "ft"
+            },
+            {
+              "id": "s2",
+              "load": 100,
+              "reps": 1,
+              "distance": 100,
+              "distanceUnit": "ft"
+            }
           ]
         }
       ]
