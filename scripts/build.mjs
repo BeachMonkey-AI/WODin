@@ -25,6 +25,7 @@ function build() {
   cpSync(path.join(ROOT, 'styles'), path.join(DIST, 'styles'), { recursive: true });
   cpSync(path.join(ROOT, 'src'), path.join(DIST, 'src'), { recursive: true });
   cpSync(path.join(ROOT, 'public', 'manifest.webmanifest'), path.join(DIST, 'manifest.webmanifest'));
+  cpSync(path.join(ROOT, 'public', 'fonts'), path.join(DIST, 'fonts'), { recursive: true });
 
   // The schemas are part of the deliverable, not just repo furniture — their $id
   // values point at the deployed copies, so an agent can fetch them by URL.

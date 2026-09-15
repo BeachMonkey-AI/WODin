@@ -137,6 +137,15 @@ let WOD = null;
 let S = null;
 const openNotes = new Set();
 let tick = null;
+let pendingRemove = null;   // library entry awaiting its inline confirm
+
+function forget(workoutId) {
+  writeJSON(LIB_KEY, library().filter(x => x.workoutId !== workoutId));
+  try {
+    localStorage.removeItem(wodKey(workoutId));
+    localStorage.removeItem(logKey(workoutId));
+  } catch { /* storage unavailable — the index entry is already gone */ }
+}
 
 const unitOf = k => (WOD.units && WOD.units[k]) || (k === 'load' ? 'lb' : 'm');
 const isSkipped = id => S.skipped.includes(id);
@@ -331,15 +340,31 @@ function renderSet(ex, set, n, reserveDelCol) {
 function renderLibrary() {
   const list = library();
   const items = list.map(x => {
-    const done = readJSON(logKey(x.workoutId), null);
-    const started = done && (done.elapsed || Object.keys(done.notes || {}).length || done.summary);
-    return `<a class="lib-item" href="#id=${encodeURIComponent(x.workoutId)}">
-      <span class="col">
+    const log = readJSON(logKey(x.workoutId), null);
+    const started = log && (log.elapsed || Object.keys(log.notes || {}).length || log.summary);
+
+    // Removing is confirmed inline rather than with a dialog, because a mis-tap
+    // here would throw away a logged session with nothing else holding a copy.
+    if (pendingRemove === x.workoutId) {
+      return `<div class="lib-item confirming">
+        <span class="col">
+          <span class="t">Remove this?</span>
+          <span class="d">${started ? 'It has entries you logged — they go too' : 'Nothing logged yet'}</span>
+        </span>
+        <button class="lib-btn danger" type="button" data-remove="${esc(x.workoutId)}">Remove</button>
+        <button class="lib-btn" type="button" data-cancel-remove="1">Keep</button>
+      </div>`;
+    }
+
+    return `<div class="lib-item">
+      <a class="col" href="#id=${encodeURIComponent(x.workoutId)}">
         <span class="t">${esc(x.title)}</span>
         <span class="d">${esc(x.date)}</span>
-      </span>
+      </a>
       <span class="badge ${started ? '' : 'dim'}">${started ? 'In progress' : 'New'}</span>
-    </a>`;
+      <button class="lib-x" type="button" data-ask-remove="${esc(x.workoutId)}"
+              aria-label="Remove ${esc(x.title)}">×</button>
+    </div>`;
   }).join('');
 
   $('app').innerHTML = `
@@ -421,6 +446,19 @@ function bind() {
       delete S.sets[del.dataset.del];
       save(); renderWorkout();
       return;
+    }
+
+    const ask = e.target.closest('[data-ask-remove]');
+    if (ask) { pendingRemove = ask.dataset.askRemove; return renderLibrary(); }
+
+    if (e.target.closest('[data-cancel-remove]')) { pendingRemove = null; return renderLibrary(); }
+
+    const remove = e.target.closest('[data-remove]');
+    if (remove) {
+      forget(remove.dataset.remove);
+      pendingRemove = null;
+      toast('Removed');
+      return renderLibrary();
     }
 
     if (e.target.id === 'toggle') return toggleTimer();
@@ -738,6 +776,7 @@ async function resolveWod() {
 
 async function route() {
   clearInterval(tick);
+  pendingRemove = null;
   const wod = await resolveWod();
 
   if (!wod) { WOD = null; S = null; renderLibrary(); return; }
