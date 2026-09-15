@@ -110,14 +110,8 @@
         "movement": {
           "type": "string",
           "minLength": 1,
-          "description": "The exercise's canonical name and nothing else — \"Row\", not \"Easy row\" or \"Row 500m\". Two reasons. It is searched verbatim to build the form-check link, and adjectives wreck the results. And it is the movement's identity: anything tracking progress across sessions matches on this, so \"Easy row\" and \"Row 500m\" would look like two unrelated exercises. Put the session-specific part in `qualifier`, the prescription in `sets`, and the coaching in `cue`.",
+          "description": "The exercise's canonical name and nothing else — \"Row\", not \"Easy row\" or \"Row 500m\". Two reasons. It is searched verbatim to build the form-check link, and adjectives wreck the results. And it is the movement's identity: anything tracking progress across sessions matches on this, so \"Easy row\" and \"Row 500m\" would look like two unrelated exercises. Session-specific detail goes in `cue` (\"easy pace\", \"8 per leg\"), training intent in `tag` (\"Pump\"), and the prescription in `sets`.",
           "examples": ["Row", "Barbell bent row", "Farmer carry", "Bulgarian split squat"]
-        },
-
-        "qualifier": {
-          "type": "string",
-          "description": "Short session-specific distinction shown beside the name but excluded from the search — \"easy\", \"light\", \"pump\", \"each leg\". Use it when one movement appears twice in a session and the headings would otherwise be identical.",
-          "examples": ["easy", "light", "each leg", "pump"]
         },
 
         "kind": {

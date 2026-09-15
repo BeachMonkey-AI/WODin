@@ -167,12 +167,6 @@ h2 {
   text-underline-offset: 3px;
 }
 .ex-name:hover { text-decoration-color: var(--accent); }
-.ex-name .qual {
-  font-weight: 400;
-  color: var(--faint);
-  text-decoration: none;
-  margin-left: 6px;
-}
 .ex-name .ext { display: inline-block; width: 11px; height: 11px; margin-left: 5px; color: var(--ghost); }
 .ex-name:hover .ext { color: var(--accent-mute); }
 

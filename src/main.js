@@ -13,7 +13,7 @@ import { ICON } from './icons.js';
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = '9f141983';
+const BUILD = '772e845d';
 
 const LIB_KEY = 'wodin:index';
 const wodKey = id => 'wodin:wod:' + id;
@@ -109,9 +109,9 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// Every movement links out to a form check unless the plan overrides it. Only the
-// canonical `movement` is searched — a qualifier like "easy" or "each leg" describes
-// this session, not the exercise, and would only degrade the results.
+// Every movement links out to a form check unless the plan overrides it. `movement`
+// is searched verbatim, which is why it has to be the exercise's canonical name —
+// "Row form" finds rowing technique, "Easy row 500m form" finds nothing useful.
 const formLink = ex => ex.link ||
   'https://www.youtube.com/results?search_query=' + encodeURIComponent(ex.movement + ' form');
 
@@ -283,8 +283,7 @@ function renderEx(ex) {
 
   return `<div class="ex ${skipped ? 'skipped' : ''}" data-ex="${ex.id}">
     <div class="ex-top">
-      <a class="ex-name" href="${esc(formLink(ex))}" target="_blank" rel="noopener">${esc(ex.movement)}${
-        ex.qualifier ? `<span class="qual">${esc(ex.qualifier)}</span>` : ''}${ICON.ext}</a>
+      <a class="ex-name" href="${esc(formLink(ex))}" target="_blank" rel="noopener">${esc(ex.movement)}${ICON.ext}</a>
       <label class="skip"><input type="checkbox" data-skip="${ex.id}" ${skipped ? 'checked' : ''}>Skip</label>
     </div>
     ${(ex.tag || ex.cue) ? `<p class="cue">${ex.tag ? `<span class="tag">${esc(ex.tag)}</span> · ` : ''}${esc(ex.cue || '')}</p>` : ''}
