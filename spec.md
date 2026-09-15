@@ -141,6 +141,27 @@ Gyms have no signal, so nothing in the logging path may touch the network after 
 The service worker caches the shell; state autosaves to `localStorage` on every keystroke,
 keyed by `workoutId`. A dropped connection mid-session must cost nothing.
 
+## The invariants
+
+WODin is one instance of a general loop — an agent plans, a human executes, a structured
+result returns. Most of this document is specific to training. These four rules are not,
+and they're the part worth carrying to any other domain built on the same transport:
+
+1. **The plan is complete and prefilled.** The human confirms a prescription rather than
+   filling in a blank form, so doing it exactly as written costs nothing and every edit is a
+   real deviation.
+2. **The result is complete.** Everything that wasn't skipped comes back, including what
+   matched the plan. Absence means skipped — never compliance.
+3. **Subjective fields start empty.** Anything only the human can judge begins blank, with
+   the prescription shown as a hint at most. Unanswered stays `null`, distinct from any
+   answer.
+4. **One human thought per unit of work.** A single note per exercise, not per row — one
+   place to say how a thing went, not five boxes that fragment it.
+
+A second domain — inspections, maintenance, checklists — would keep these and replace
+everything else: its own schema, its own field layouts, its own renderer. It would not be a
+mode of WODin. Until a real second workflow exists, there is nothing to extract.
+
 ## What it deliberately doesn't do
 
 No progression logic, no volume tracking, no coaching. The agent owns all of that — WODin
