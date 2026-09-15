@@ -11,9 +11,9 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <!-- Self-hosted: a service worker cannot cache a cross-origin font it may not
+       read, and this has to look right in a gym with no signal. -->
+  <link rel="stylesheet" href="styles/fonts.css" />
   <link rel="stylesheet" href="styles/tokens.css" />
   <link rel="stylesheet" href="src/app.css" />
 </head>

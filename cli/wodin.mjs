@@ -61,9 +61,19 @@ function cmdRender(file) {
   const icons = readFileSync(path.join(ROOT, 'src', 'icons.js'), 'utf8');
   const js = readFileSync(path.join(ROOT, 'src', 'main.js'), 'utf8');
 
+  // A standalone file has no directory to resolve ../fonts/ against, so the faces
+  // are embedded. It roughly quadruples the file, which is the price of a single
+  // document that renders identically with no network and no sibling files.
+  const fontCss = readFileSync(path.join(ROOT, 'styles', 'fonts.css'), 'utf8')
+    .replace(/url\('\.\.\/fonts\/([^']+)'\)/g, (_, file) => {
+      const b64 = readFileSync(path.join(ROOT, 'public', 'fonts', file)).toString('base64');
+      return `url('data:font/woff2;base64,${b64}')`;
+    });
+
   const inlined = html
     .replace(/<link rel="manifest"[^>]*>\s*/g, '')
     .replace(/<link rel="(icon|apple-touch-icon)"[^>]*>\s*/g, '')
+    .replace(/<link rel="stylesheet" href="styles\/fonts\.css"[^>]*>/, `<style>\n${fontCss}\n</style>`)
     .replace(/<link rel="stylesheet" href="styles\/tokens\.css"[^>]*>/, `<style>\n${tokens}\n</style>`)
     .replace(/<link rel="stylesheet" href="src\/app\.css"[^>]*>/, `<style>\n${css}\n</style>`)
     .replace(/<script type="module" src="src\/main\.js"><\/script>/,

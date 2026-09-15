@@ -16,6 +16,15 @@ const SHELL = [
   'src/icons.js',
   'src/app.css',
   'styles/tokens.css',
+  'styles/fonts.css',
+  'fonts/barlow-400.woff2',
+  'fonts/barlow-500.woff2',
+  'fonts/barlow-600.woff2',
+  'fonts/barlow-condensed-500.woff2',
+  'fonts/barlow-condensed-600.woff2',
+  'fonts/barlow-condensed-700.woff2',
+  'fonts/jetbrains-mono-400.woff2',
+  'fonts/jetbrains-mono-500.woff2',
   'icons/icon-192.png',
   'icons/icon-512.png'
 ].map(p => new URL(p, self.location.href).pathname);
