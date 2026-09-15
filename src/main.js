@@ -405,28 +405,32 @@ function renderLibrary() {
 }
 
 // Accepts a full link or a bare fragment, so it works whether the athlete copied
-// the whole URL or the tail of one.
-function openPastedLink(text) {
+// the whole URL or the tail of one. `quiet` suppresses the complaint, for the
+// speculative clipboard read where the athlete never claimed to have copied a link.
+function openPastedLink(text, quiet) {
   const m = String(text).match(/#?((?:w|wj|id)=[^\s&#]+)/);
-  if (!m) { toast('That does not look like a workout link'); return false; }
+  if (!m) {
+    if (!quiet) toast('That does not look like a workout link');
+    return false;
+  }
   if (location.hash === '#' + m[1]) { route(); return true; }
   location.hash = m[1];
   return true;
 }
 
-async function pasteLink() {
-  // Clipboard reads need a gesture and can be refused outright; the manual field
-  // is the fallback, not an afterthought.
-  try {
-    const text = await navigator.clipboard.readText();
-    if (text && openPastedLink(text)) return;
-  } catch { /* denied or unsupported */ }
-
+function pasteLink() {
+  // The field opens first and the clipboard is only a shortcut. Reading the
+  // clipboard can sit behind a permission prompt that never resolves, and a
+  // button that appears to do nothing is worse than one extra paste.
   const manual = $('pasteManual');
   if (manual) {
     manual.hidden = false;
     $('pasteInput').focus();
   }
+
+  navigator.clipboard?.readText?.()
+    .then(text => { if (text) openPastedLink(text, true); })
+    .catch(() => { /* denied, unsupported, or still prompting — the field is there */ });
 }
 
 /* ── events ──────────────────────────────────────────────────── */
