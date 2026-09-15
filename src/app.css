@@ -42,6 +42,20 @@ input, textarea, button { font: inherit; color: inherit; }
 .eyebrow b { color: var(--accent); font-weight: 700; }
 .eyebrow a { color: var(--faint); text-decoration: none; }
 .eyebrow a:hover { color: var(--accent); }
+.eb-right { display: inline-flex; align-items: center; gap: 12px; }
+
+.btn-share {
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 30px; padding: 0 11px;
+  border: 0; border-radius: 999px;
+  background: transparent; color: var(--faint);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-family: var(--fd); font-weight: 600; font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase;
+  cursor: pointer;
+}
+.btn-share:hover { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-mute); }
+.btn-share svg { width: 13px; height: 13px; }
 
 h1 {
   font-family: var(--fd);
@@ -368,6 +382,12 @@ h2 {
   font-family: var(--fd); letter-spacing: .08em; text-transform: uppercase;
 }
 .lib-item .badge.dim { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); }
+/* Logged reads as settled rather than active — the session is done and needs nothing. */
+.lib-item .badge.done {
+  background: transparent;
+  color: var(--accent-mute);
+  box-shadow: inset 0 0 0 1px var(--accent-mute);
+}
 
 /* Paste a link. The only route into an installed iOS web app, which keeps its own
    storage and never receives the link the athlete taps. */

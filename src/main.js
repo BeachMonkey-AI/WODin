@@ -63,6 +63,27 @@ async function inflateRaw(bytes) {
   return new Response(stream).text();
 }
 
+function bytesToB64url(bytes) {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Mirrors decodeFragment. Falls back to the uncompressed #wj= form where
+// CompressionStream is missing — a longer link beats no link.
+async function encodeFragment(wod) {
+  const text = JSON.stringify(wod);
+  if (typeof CompressionStream === 'function') {
+    try {
+      const stream = new Blob([text]).stream()
+        .pipeThrough(new CompressionStream('deflate-raw'));
+      const buf = await new Response(stream).arrayBuffer();
+      return 'w=' + bytesToB64url(new Uint8Array(buf));
+    } catch { /* fall through */ }
+  }
+  return 'wj=' + bytesToB64url(new TextEncoder().encode(text));
+}
+
 async function decodeFragment(hash) {
   const m = hash.match(/^#(w|wj|id)=([\s\S]+)$/);
   if (!m) return null;
@@ -226,7 +247,14 @@ function renderWorkout() {
 
   const head = `
     <header>
-      <div class="eyebrow"><a href="#" id="home">← WODin</a><span>${esc(nice)}</span></div>
+      <div class="eyebrow">
+        <a href="#" id="home">← WODin</a>
+        <span class="eb-right">
+          <span>${esc(nice)}</span>
+          <button class="btn-share" id="shareWod" type="button"
+                  aria-label="Share this workout without your submit link">${ICON.share}<span>Share</span></button>
+        </span>
+      </div>
       <h1>${esc(WOD.athleteTitle || WOD.title || 'Workout')}</h1>
       ${WOD.athleteTitle && WOD.title ? `<h2>${esc(WOD.title)}</h2>` : ''}
       <div class="meta">
@@ -348,7 +376,13 @@ function renderLibrary() {
   const list = library();
   const items = list.map(x => {
     const log = readJSON(logKey(x.workoutId), null);
+    // Three states, because "touched" and "finished" are different facts and the
+    // athlete needs to know which sessions they still owe their coach.
+    const sent = log && log.submittedAt;
     const started = log && (log.elapsed || Object.keys(log.notes || {}).length || log.summary);
+    const badge = sent ? { text: 'Logged', cls: 'done' }
+                : started ? { text: 'In progress', cls: '' }
+                : { text: 'New', cls: 'dim' };
 
     // Removing is confirmed inline rather than with a dialog, because a mis-tap
     // here would throw away a logged session with nothing else holding a copy.
@@ -356,7 +390,7 @@ function renderLibrary() {
       return `<div class="lib-item confirming">
         <span class="col">
           <span class="t">Remove this?</span>
-          <span class="d">${started ? 'It has entries you logged — they go too' : 'Nothing logged yet'}</span>
+          <span class="d">${started || sent ? 'It has entries you logged — they go too' : 'Nothing logged yet'}</span>
         </span>
         <button class="lib-btn danger" type="button" data-remove="${esc(x.workoutId)}">Remove</button>
         <button class="lib-btn" type="button" data-cancel-remove="1">Keep</button>
@@ -368,7 +402,7 @@ function renderLibrary() {
         <span class="t">${esc(x.title)}</span>
         <span class="d">${esc(x.date)}</span>
       </a>
-      <span class="badge ${started ? '' : 'dim'}">${started ? 'In progress' : 'New'}</span>
+      <span class="badge ${badge.cls}">${badge.text}</span>
       <button class="lib-x" type="button" data-ask-remove="${esc(x.workoutId)}"
               aria-label="Remove ${esc(x.title)}">×</button>
     </div>`;
@@ -576,6 +610,7 @@ function bind() {
       S.running = false; S.elapsed = 0; S.startedAt = null;
       save(); renderWorkout(); return;
     }
+    if (e.target.closest('#shareWod')) return void shareWod();
     if (e.target.id === 'log') return openSheet();
     if (e.target.closest('#home')) {
       e.preventDefault();
@@ -752,10 +787,11 @@ async function postResult() {
       });
       toast('Sent — delivery not confirmed');
       $('scrim').hidden = true;
+      return true;
     } catch {
       toast('No signal — nothing sent');
+      return false;
     }
-    return;
   }
 
   try {
@@ -768,10 +804,11 @@ async function postResult() {
     if (res.ok) {
       toast('Sent');
       $('scrim').hidden = true;
-    } else {
-      // Definitely not accepted — leave the sheet open so Share and Copy are one tap away.
-      toast(`Rejected by the server (${res.status})`);
+      return true;
     }
+    // Definitely not accepted — leave the sheet open so Share and Copy are one tap away.
+    toast(`Rejected by the server (${res.status})`);
+    return false;
   } catch {
     // A cors-mode fetch rejects identically whether the request never left or it
     // was delivered and the response merely omitted Access-Control-Allow-Origin.
@@ -781,9 +818,10 @@ async function postResult() {
     if (navigator.onLine) {
       toast('Sent — delivery not confirmed');
       $('scrim').hidden = true;
-    } else {
-      toast('No signal — nothing sent');
+      return true;
     }
+    toast('No signal — nothing sent');
+    return false;
   }
 }
 
@@ -841,14 +879,21 @@ $('scrim').addEventListener('click', async e => {
 
   const digest = buildDigest();
 
+  // Handing the result off in any form is the athlete finishing with this
+  // session — that is what the library's "Logged" badge reports. A copy is not
+  // proof it was pasted, but it is the last thing we can observe, and leaving a
+  // finished workout labelled "In progress" forever is the worse error.
+  const markSent = () => { S.submittedAt = new Date().toISOString(); save(); };
+
   switch (btn.dataset.sink) {
     case 'post':
-      await postResult();
+      if (await postResult()) markSent();
       break;
 
     case 'share':
       try {
         await navigator.share({ title: 'WODin ' + WOD.workoutId, text: digest });
+        markSent();
         $('scrim').hidden = true;
       } catch { /* dismissed */ }
       break;
@@ -856,6 +901,7 @@ $('scrim').addEventListener('click', async e => {
     case 'copy':
       try {
         await navigator.clipboard.writeText(digest);
+        markSent();
         toast('Summary copied'); $('scrim').hidden = true;
       } catch { toast("Couldn't copy — select the text above"); }
       break;
@@ -867,6 +913,7 @@ $('scrim').addEventListener('click', async e => {
       a.download = `wodin-${WOD.workoutId}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
+      markSent();
       toast('Downloaded');
       $('scrim').hidden = true;
     }
@@ -911,6 +958,41 @@ async function route() {
   seedAdded();
   renderWorkout();
   runTick();
+}
+
+/* ── sharing the workout onward ──────────────────────────────
+ *
+ * The link you were sent carries `sink` — the address, and possibly the token,
+ * that submits a result to your agent. Passing that link to a training partner
+ * would hand them the ability to post workouts as you.
+ *
+ * So sharing re-encodes the plan with `sink` removed. They get the workout and
+ * can log it for themselves; their Submit offers Share and Copy, and has
+ * nowhere to post. Nothing else is stripped — the coach note travels with it,
+ * which is worth knowing if yours carries anything personal.
+ */
+async function shareWod() {
+  if (!WOD) return;
+
+  const plan = JSON.parse(JSON.stringify(WOD));
+  delete plan.sink;
+
+  const url = location.origin + location.pathname + '#' + await encodeFragment(plan);
+  const title = [WOD.title, WOD.athleteTitle].filter(Boolean)[0] || 'Workout';
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, url });
+      return;
+    } catch { /* dismissed, or unavailable — fall through to the clipboard */ }
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Workout link copied — without your submit link');
+  } catch {
+    toast("Couldn't copy the link");
+  }
 }
 
 /* ── "open it in the app" ────────────────────────────────────
