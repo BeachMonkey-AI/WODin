@@ -236,9 +236,9 @@ function cmdValidate(files) {
       }
       for (const name of Object.keys(wod.sink.headers || {})) {
         if (CREDENTIAL_HEADERS.includes(name.toLowerCase())) {
-          warnings.push(`sink.headers.${name} looks like a credential, and the plan travels inside a shareable link`);
-          warnings.push('  anyone with the link can read it; rotating it means reissuing every outstanding link');
-          warnings.push('  prefer an unguessable capability URL, or keep the secret in a proxy');
+          warnings.push(`sink.headers.${name} rides inside the link and is stored on the athlete's device`);
+          warnings.push('  fine if it is a per-workout token: bound to this workoutId, ~72h, single use');
+          warnings.push('  not fine if it is a standing credential — rotating one means reissuing every link');
         }
       }
     }

@@ -201,25 +201,60 @@ infrastructure, works everywhere. If you'd rather it arrive on its own, add a `s
 Submit then grows a primary **Send to coach** button that POSTs the result JSON. Share and
 Copy stay as fallbacks, so a failed send is never a dead end.
 
-### Everything in `sink` is public
+### Authenticating: mint a token per workout
 
-The plan travels inside the URL fragment and is stored on the athlete's device. A credential
-in `sink.headers` is **published, not protected** — it's in every link you send, in browser
-history, in `localStorage`, and visible in devtools. Rotating it means reissuing every
+Plenty of agent hosts — GrokBot among them — expect `Authorization: Bearer`. That works:
+
+```json
+{
+  "sink": {
+    "type": "post",
+    "url": "https://grokbot.example/hooks/workout-logged",
+    "headers": { "Authorization": "Bearer <token>" }
+  }
+}
+```
+
+**But issue that token per workout, never per athlete or per integration.** Everything in
+`sink` travels inside the link and is stored on the athlete's device — it's in every link
+you send, in browser history, in `localStorage`, and visible in devtools. A standing
+credential there is *published, not protected*, and rotating it means reissuing every
 outstanding link.
 
-So authenticate with an **unguessable URL** rather than a header:
-`https://hooks.example/log/8f3a9c2b1d4e…`. Same practical security, individually revocable,
-and it's what Slack, Discord and GitHub webhooks all do. If your endpoint requires a real
-secret, keep it in a small proxy that the page posts to unauthenticated.
+A per-workout token has none of those problems:
 
-`sink.headers` exists for routing, not auth:
+- **bound to one `workoutId`** — it can't be replayed against any other session
+- **valid ~72 hours** — athletes delay; a Monday workout logged on Wednesday is normal, and
+  a token that expires while someone is standing at the rack is a miserable failure
+- **single use** — accept one submission, then it's spent
+
+You're generating a fresh plan every session anyway, so this is one extra line at mint time.
+A leaked link then buys an attacker exactly one forged log, for a workout they already had,
+inside a 72-hour window. That's a risk you can stop thinking about.
+
+Verifying on your end is about as short:
+
+```js
+const result = await req.json();
+const claim = await verifyToken(bearer);             // your signing or lookup
+if (claim.workoutId !== result.workoutId) return new Response('wrong workout', { status: 403 });
+if (claim.expiresAt < Date.now())          return new Response('expired',       { status: 403 });
+if (await spend(claim.jti) === 'already')  return new Response('already used',  { status: 409 });
+```
+
+`wodin validate` warns whenever it sees `Authorization`, `Cookie` or `X-Api-Key` in
+`sink.headers`. The warning doesn't fail the run — it's there to make sure the token in the
+link is a deliberate short-lived one rather than an account credential someone pasted in.
+
+**If your endpoint doesn't do Bearer**, an unguessable URL is equally good and needs no
+header at all: `https://hooks.example/log/8f3a9c2b1d4e…`. Scope it per workout on the same
+terms. That's what Slack, Discord and GitHub webhooks do.
+
+`sink.headers` also carries plain routing values, which need none of this care:
 
 ```json
 { "sink": { "type": "post", "url": "…", "headers": { "X-Athlete-Id": "a1" } } }
 ```
-
-`wodin validate` warns (without failing) if it sees `Authorization`, `Cookie` or `X-Api-Key`.
 
 ### CORS, which is what actually bites
 
