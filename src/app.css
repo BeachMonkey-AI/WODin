@@ -476,83 +476,31 @@ h2 {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* ─── Wider screens ────────────────────────────────────────────
+/* ─── Filling a bigger screen ──────────────────────────────────
  *
- * Everything above is the phone-portrait layout and stays untouched below
- * 720px. Wider than that, the single 480px column leaves most of the screen
- * empty, so exercise cards tile into columns — halving the scrolling, which is
- * what actually costs you mid-workout.
+ * The layout above is tuned as one 480px column and stays that shape at every
+ * size. A wider screen scales the whole thing up instead of rearranging it —
+ * same column, bigger — so the proportions never change and a workout read at
+ * arm's length on a propped-up tablet is easier, not just wider.
  *
- * Prose does NOT get wider with the viewport. The coach note and the closing
- * fields keep a readable measure; only the card grid grows. Widening
- * everything is how a good phone layout becomes a bad tablet one.
+ * zoom rather than transform: it re-lays out at the scaled size, so sticky,
+ * scrolling and tap targets all behave. Where zoom is unsupported the page
+ * simply stays at its phone size, which is the layout it was designed at.
+ *
+ * Height is in every condition on purpose. Scaling up on a short landscape
+ * phone would just push the workout off the bottom — there has to be room to
+ * spend before spending it.
  */
-@media (min-width: 720px) {
-  .wrap {
-    max-width: 1060px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 34px;
-    align-items: start;
-    padding-block: 26px calc(80px + env(safe-area-inset-bottom));
-  }
+.wrap, .sheet, .toast { zoom: var(--ui-scale, 1); }
 
-  /* Only exercise cards tile; everything else spans. */
-  .wrap > * { grid-column: 1 / -1; }
-  .wrap > .ex { grid-column: auto; }
+@media (min-width: 560px)  and (min-height: 560px) { :root { --ui-scale: 1.15; } }
+@media (min-width: 660px)  and (min-height: 560px) { :root { --ui-scale: 1.35; } }
+@media (min-width: 780px)  and (min-height: 600px) { :root { --ui-scale: 1.6;  } }
+@media (min-width: 900px)  and (min-height: 620px) { :root { --ui-scale: 1.85; } }
+@media (min-width: 1040px) and (min-height: 640px) { :root { --ui-scale: 2.1;  } }
+@media (min-width: 1200px) and (min-height: 660px) { :root { --ui-scale: 2.4;  } }
+@media (min-width: 1400px) and (min-height: 700px) { :root { --ui-scale: 2.7;  } }
 
-  header { max-width: 660px; }
-  .close { max-width: 560px; }
-  .lib-empty { max-width: 660px; }
-
-  /* A card is its own object here rather than a row in a list, so the hairline
-     that separated stacked items would just be a stray line under a column. */
-  .ex {
-    padding: 18px 20px;
-    border-bottom: 0;
-    border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: inset 0 0 0 1px var(--line-soft);
-  }
-
-  .sec-head { margin-top: 34px; }
-  .lib { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-}
-
-@media (min-width: 1240px) {
-  .wrap { max-width: 1440px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-/* A landscape phone has width to spare and almost no height, so the vertical
-   rhythm tightens rather than the layout changing shape. */
-@media (orientation: landscape) and (max-height: 540px) {
-  .wrap { padding-block: 14px calc(70px + env(safe-area-inset-bottom)); }
-  h1 { font-size: 26px; }
-  h2 { font-size: 17px; }
-  .coach { margin-top: 10px; font-size: 13.5px; }
-  .timer { margin-top: 12px; padding-block: 7px; }
-  .clock { font-size: 22px; }
-  .sec-head { margin-top: 22px; }
-  .ex { padding-block: 13px; }
-}
-
-/* Dual-screen, hinged devices — Surface Duo and similar. The seam falls between
-   the two columns instead of down the middle of a card. The exact geometry comes
-   from the viewport-segment env() values; the preceding declarations stand where
-   those are unsupported, so this only ever refines what already works. */
-@media (horizontal-viewport-segments: 2) {
-  .wrap {
-    max-width: none;
-    padding-inline: 20px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 52px;
-    column-gap: calc(
-      env(viewport-segment-left 1 0, 52px) - env(viewport-segment-right 0 0, 0px) + 40px
-    );
-  }
-}
-
-@media (vertical-viewport-segments: 2) {
-  /* Folded open the tall way: one column, and nothing straddles the fold. */
-  .wrap { max-width: none; grid-template-columns: minmax(0, 1fr); }
-}
+/* Wide but short — a landscape phone, or a tall window dragged flat. Width is
+   no use without the height to show the result, so it takes a small step only. */
+@media (min-width: 720px) and (max-height: 619px) { :root { --ui-scale: 1.12; } }
