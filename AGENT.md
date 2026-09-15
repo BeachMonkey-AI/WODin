@@ -42,6 +42,7 @@ A minimal but complete plan:
   "workoutId": "2026-09-13",
   "athleteTitle": "Odin's WOD",
   "title": "Routine 2 — Back + Biceps",
+  "coach": "Shred Shed",
   "coachNote": "Shred Shed · 8h sleep · 1 day rest. Calf ~3–4: stretch first.",
   "units": { "load": "lb", "distance": "m" },
   "sections": [{
@@ -129,6 +130,9 @@ The search is the fallback, not the feature — if you have a better reference, 
 
 ### What goes where
 
+- `coach` — who wrote it. A person, a gym, or your own name if you're the agent. Shown as an
+  attribution under the note, so a workout forwarded to a training partner still says where
+  it came from. Set it; an unsigned workout is a worse artifact.
 - `coachNote` — session context: sleep, rest days, location, niggles, how to scale. This is
   where anything situational belongs; there are no separate context fields.
 - `cue` — per-exercise coaching, one line. Yours, to them.
