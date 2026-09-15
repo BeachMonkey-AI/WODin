@@ -47,6 +47,9 @@ function build() {
     ...collectFiles(path.join(ROOT, 'styles')),
     path.join(ROOT, 'index.html'),
     path.join(ROOT, 'public', 'manifest.webmanifest'),
+    // The worker's own source too — changing which files it precaches changes what
+    // is served, so it should invalidate the cache like any other content change.
+    path.join(ROOT, 'public', 'sw.js'),
   ];
   const hash = createHash('sha256');
   for (const f of hashInputs.sort()) hash.update(readFileSync(f));
