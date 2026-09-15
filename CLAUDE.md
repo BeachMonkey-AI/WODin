@@ -48,3 +48,9 @@
 - **`sink.mode: "blind"`** exists so an endpoint that knows nothing about CORS still works
   with zero server changes — no-cors POST, no preflight, opaque response. The UI must keep
   saying "delivery not confirmed"; never report success from a response we can't read.
+- **Never report a send failure we cannot observe.** A cors-mode `fetch` rejects identically
+  whether the request never left or it landed and the response merely omitted
+  `Access-Control-Allow-Origin` — a very common server-side miss, since people set it on the
+  preflight and forget the POST. WODin shipped claiming "Send failed" there, while payloads
+  were arriving fine; a real smoke test caught it. Only `navigator.onLine === false` lets us
+  say "nothing sent". Everything else that throws is "Sent — delivery not confirmed".

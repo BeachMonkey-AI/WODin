@@ -605,7 +605,7 @@ async function postResult() {
       toast('Sent — delivery not confirmed');
       $('scrim').hidden = true;
     } catch {
-      toast('Send failed — use Share or Copy');
+      toast('No signal — nothing sent');
     }
     return;
   }
@@ -616,11 +616,26 @@ async function postResult() {
       headers: { 'Content-Type': 'application/json', ...headers },
       body
     });
-    if (!res.ok) throw new Error(res.status);
-    toast('Sent');
-    $('scrim').hidden = true;
+    // A readable response is the only case we can speak about with certainty.
+    if (res.ok) {
+      toast('Sent');
+      $('scrim').hidden = true;
+    } else {
+      // Definitely not accepted — leave the sheet open so Share and Copy are one tap away.
+      toast(`Rejected by the server (${res.status})`);
+    }
   } catch {
-    toast('Send failed — use Share or Copy');
+    // A cors-mode fetch rejects identically whether the request never left or it
+    // was delivered and the response merely omitted Access-Control-Allow-Origin.
+    // Those are indistinguishable from here, and the second is common enough that
+    // reporting failure is usually the wrong call — the payload already landed.
+    // Only an offline device lets us say "nothing sent" honestly.
+    if (navigator.onLine) {
+      toast('Sent — delivery not confirmed');
+      $('scrim').hidden = true;
+    } else {
+      toast('No signal — nothing sent');
+    }
   }
 }
 

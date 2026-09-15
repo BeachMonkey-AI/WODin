@@ -270,6 +270,24 @@ Access-Control-Allow-Headers: Content-Type
 (add any `sink.headers` names to that last line). Testing with curl proves nothing here —
 curl has no CORS, so an endpoint that works from a terminal can still fail from the page.
 
+**The trap that catches nearly everyone: `Access-Control-Allow-Origin` has to be on the POST
+response too, not just the `OPTIONS` one.** Miss it and the request is delivered and
+processed normally — your handler runs, you get a 200 — but the browser refuses to let the
+page read the reply, so the `fetch` rejects. From the page it is indistinguishable from the
+request never leaving.
+
+WODin deliberately does not call that a failure. What it reports:
+
+| What happened | What the athlete sees |
+|---|---|
+| Readable 2xx | **Sent** |
+| Readable non-2xx | **Rejected by the server (401)** — sheet stays open |
+| Reply unreadable, device online | **Sent — delivery not confirmed** |
+| Device offline | **No signal — nothing sent** — sheet stays open |
+
+So a missing header on the POST response costs you a confident receipt, not a lost workout.
+Add the header and the button can say Sent honestly.
+
 **If you can't change the endpoint at all**, use blind mode:
 
 ```json
