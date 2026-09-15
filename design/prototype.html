@@ -223,6 +223,24 @@
   .set.k-reps,
   .set.k-time        { grid-template-columns: 40px minmax(0,1fr); }
   .set.k-cardio      { grid-template-columns: 40px 1.15fr .78fr 1.15fr; }
+
+  /* An exercise that has added sets reserves a trailing column across ALL of its
+     rows, so the columns stay aligned down the block instead of going ragged. */
+  .sets.has-added .set.k-weight_reps { grid-template-columns: 40px 1.25fr 10px 1fr 28px; }
+  .sets.has-added .set.k-carry       { grid-template-columns: 40px 1.05fr 9px .82fr 1fr 28px; }
+  .sets.has-added .set.k-reps,
+  .sets.has-added .set.k-time        { grid-template-columns: 40px minmax(0,1fr) 28px; }
+  .sets.has-added .set.k-cardio      { grid-template-columns: 40px 1.15fr .78fr 1.15fr 28px; }
+
+  .btn-del {
+    width: 28px; height: 32px;
+    display: grid; place-items: center;
+    border: 0; background: transparent;
+    color: var(--ghost); cursor: pointer;
+    font-size: 19px; line-height: 1;
+  }
+  .btn-del:hover { color: var(--accent); }
+  .set-n.added { color: var(--accent-mute); }
   /* Cardio carries three fields on one row, so it buys the space back from
      chrome: tighter padding and a smaller unit. The units are the labels. */
   .set.k-cardio .field input { padding-left: 9px; padding-right: calc(var(--uw, 2ch) + 14px); }
@@ -640,12 +658,12 @@
       </p>`;
 
     document.getElementById('app').innerHTML = head + body + close;
-    bind();
   }
 
   function renderEx(ex) {
     const skipped = isSkipped(ex.id);
-    const rows = allSets(ex).map((set, i) => renderSet(ex, set, i + 1));
+    const added = S.added[ex.id] || [];
+    const rows = allSets(ex).map((set, i) => renderSet(ex, set, i + 1, added.length > 0));
     const note = S.notes[ex.id] || '';
     const noteOpen = !!note || openNotes.has(ex.id);
 
@@ -657,7 +675,7 @@
         </label>
       </div>
       ${(ex.tag || ex.cue) ? `<p class="cue">${ex.tag ? `<span class="tag">${esc(ex.tag)}</span> · ` : ''}${esc(ex.cue || '')}</p>` : ''}
-      <div class="sets">
+      <div class="sets ${added.length ? 'has-added' : ''}">
         ${rows.join('')}
         <div class="pills">
           <button class="pill" type="button" data-add="${ex.id}">+ set</button>
@@ -671,7 +689,7 @@
     </div>`;
   }
 
-  function renderSet(ex, set, n) {
+  function renderSet(ex, set, n, reserveDelCol) {
     const k = ex.id + '.' + set.id;
     const v = S.sets[k] || {};
     const kind = set.kind || ex.kind || 'weight_reps';
@@ -698,14 +716,25 @@
           + field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'numeric' });
     }
 
+    // Only added sets can be removed — a prescribed set is part of the plan and
+    // stays on the page; skipping it is what records that it wasn't done.
+    const del = !reserveDelCol ? ''
+      : set._added
+        ? `<button class="btn-del" type="button" data-del="${k}" aria-label="Remove added set ${n}">×</button>`
+        : '<span></span>';
+
     return `<div class="set k-${kind}" data-set="${k}">
-      <span class="set-n">${set._added ? '+' : 'Set'} ${n}</span>
+      <span class="set-n ${set._added ? 'added' : ''}">Set ${n}</span>
       ${mid}
+      ${del}
     </div>`;
   }
 
   /* ── events ──────────────────────────────────────────────── */
 
+  // Bound exactly once. #app survives every render — only its innerHTML is
+  // replaced — so binding inside render() stacked a listener per render, and one
+  // click then fired every one of them.
   function bind() {
     const app = document.getElementById('app');
 
@@ -756,8 +785,20 @@
       const add = e.target.closest('[data-add]');
       if (add) {
         const ex = add.dataset.add;
-        S.added[ex] = (S.added[ex] || 0) + 1;
+        const list = S.added[ex] = S.added[ex] || [];
+        let n = 1;
+        while (list.includes('a' + n)) n++;
+        list.push('a' + n);
         seedAdded();
+        save(); render();
+        return;
+      }
+
+      const del = e.target.closest('[data-del]');
+      if (del) {
+        const [exId, setId] = del.dataset.del.split('.');
+        S.added[exId] = (S.added[exId] || []).filter(id => id !== setId);
+        delete S.sets[del.dataset.del];
         save(); render();
         return;
       }
@@ -781,11 +822,10 @@
   /* ── added sets ──────────────────────────────────────────── */
 
   function allSets(ex) {
-    const out = ex.sets.slice();
-    for (let i = 0; i < (S.added[ex.id] || 0); i++) {
-      out.push({ ...ex.sets[ex.sets.length - 1], id: 'add' + i, _added: true });
-    }
-    return out;
+    const template = ex.sets[ex.sets.length - 1];
+    return ex.sets.concat(
+      (S.added[ex.id] || []).map(id => ({ ...template, id, _added: true }))
+    );
   }
 
   function seedAdded() {
@@ -986,8 +1026,16 @@
 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') scrim.hidden = true; });
 
+  // An older build stored added sets as a count; carry those over as ids.
+  Object.keys(S.added).forEach(ex => {
+    if (typeof S.added[ex] === 'number') {
+      S.added[ex] = Array.from({ length: S.added[ex] }, (_, i) => 'a' + (i + 1));
+    }
+  });
+
   seedAdded();
   render();
+  bind();
   runTick();
 })();
 </script>
