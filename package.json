@@ -1,0 +1,18 @@
+{
+  "name": "wodin",
+  "version": "1.0.0",
+  "description": "Hand a structured workout to a human, get back what they actually did. An agent-agnostic protocol plus a phone-first logging PWA.",
+  "private": true,
+  "type": "module",
+  "bin": { "wodin": "cli/wodin.mjs" },
+  "scripts": {
+    "gen-icons": "node scripts/gen-icons.mjs",
+    "build": "node scripts/build.mjs",
+    "validate": "node cli/wodin.mjs validate examples/routine-2-back-biceps.json examples/minimal.json",
+    "link": "node cli/wodin.mjs link",
+    "serve": "node cli/wodin.mjs serve"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
+  }
+}

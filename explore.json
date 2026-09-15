@@ -1,0 +1,8 @@
+{
+  "name": "WODin",
+  "description": "Log the workout your coach or agent handed you, then send back what you actually did.",
+  "icon": { "emoji": "🏋️", "favicon": "auto" },
+  "tags": ["fitness", "pwa", "offline", "agents"],
+  "status": "live",
+  "visibility": "public"
+}

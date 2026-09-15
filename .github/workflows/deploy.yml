@@ -1,0 +1,14 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [main]
+
+jobs:
+  ci:
+    uses: BeachMonkey-AI/app-template/.github/workflows/ci.yml@main
+  pages:
+    uses: BeachMonkey-AI/app-template/.github/workflows/pages.yml@main
