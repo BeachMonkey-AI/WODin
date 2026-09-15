@@ -10,6 +10,11 @@
 
 import { ICON } from './icons.js';
 
+// Replaced by scripts/build.mjs with the same content hash the service worker
+// caches under. Shown in the library so "is this thing even updated?" is a
+// question you can answer by looking, rather than by guessing.
+const BUILD = '__BUILD__';
+
 const LIB_KEY = 'wodin:index';
 const wodKey = id => 'wodin:wod:' + id;
 const logKey = id => 'wodin:log:' + id;
@@ -401,20 +406,52 @@ function renderLibrary() {
                placeholder="Paste the link here" aria-label="Workout link">
         <button class="lib-btn danger" type="button" id="pasteGo">Open</button>
       </div>
-    </div>`;
+      <p class="paste-error" id="pasteError" hidden></p>
+    </div>
+    <p class="build">build ${esc(BUILD)}${installed ? ' · installed' : ''}</p>`;
+}
+
+function pasteProblem(msg) {
+  const box = $('pasteError');
+  if (!box) return;
+  box.textContent = msg;
+  box.hidden = !msg;
 }
 
 // Accepts a full link or a bare fragment, so it works whether the athlete copied
-// the whole URL or the tail of one. `quiet` suppresses the complaint, for the
+// the whole URL or the tail of one. `quiet` suppresses complaints, for the
 // speculative clipboard read where the athlete never claimed to have copied a link.
-function openPastedLink(text, quiet) {
-  const m = String(text).match(/#?((?:w|wj|id)=[^\s&#]+)/);
+//
+// The workout is decoded here rather than after navigating, so a bad link can say
+// what is wrong with it. Silently landing back on an unchanged library was the
+// worst version of this: indistinguishable from the button not working.
+async function openPastedLink(text, quiet) {
+  const raw = String(text).trim();
+  const m = raw.match(/#?((?:w|wj|id)=[^\s&#]+)/);
+
   if (!m) {
-    if (!quiet) toast('That does not look like a workout link');
+    if (!quiet) {
+      pasteProblem(raw.includes('…') || raw.includes('...')
+        ? 'That is the shortened text of a link, not the link itself. Long-press the link and choose Copy Link, or use Share.'
+        : 'That is not a workout link — a real one contains #w= followed by a long code.');
+    }
     return false;
   }
-  if (location.hash === '#' + m[1]) { route(); return true; }
-  location.hash = m[1];
+
+  const hash = '#' + m[1];
+  try {
+    const wod = await decodeFragment(hash);
+    if (!wod || !wod.sections) throw new Error('no workout');
+  } catch {
+    if (!quiet) {
+      pasteProblem('That link is damaged, most likely cut short when it was copied — they run to about 1,600 characters. Copy it again with Copy Link, or use Share from the app it arrived in.');
+    }
+    return false;
+  }
+
+  pasteProblem('');
+  if (location.hash === hash) { route(); return true; }
+  location.hash = hash;
   return true;
 }
 

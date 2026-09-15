@@ -385,6 +385,24 @@ h2 {
 .paste-manual input::placeholder { color: var(--ghost); }
 .paste-manual .lib-btn { min-height: 44px; }
 
+.paste-error {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--accent-mute);
+  color: var(--dim);
+  font-size: 13.5px; line-height: 1.5;
+}
+.paste-error[hidden] { display: none; }
+
+.build {
+  margin: 26px 0 0;
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--ghost);
+}
+
 /* ─── Submit sheet ─────────────────────────────────────────── */
 
 .scrim {

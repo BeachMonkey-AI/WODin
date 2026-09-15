@@ -56,6 +56,13 @@ function build() {
   for (const f of hashInputs.sort()) hash.update(readFileSync(f));
   const shortHash = hash.digest('hex').slice(0, 8);
 
+  // Stamp the build into the app so a stale cached copy is visible on the page
+  // rather than something you have to deduce from behaviour.
+  const mainPath = path.join(DIST, 'src', 'main.js');
+  const main = readFileSync(mainPath, 'utf8');
+  if (!main.includes('__BUILD__')) throw new Error('src/main.js is missing its __BUILD__ placeholder');
+  writeFileSync(mainPath, main.replace('__BUILD__', shortHash));
+
   let sw = readFileSync(path.join(ROOT, 'public', 'sw.js'), 'utf8');
   const cacheLine = /const CACHE\s*=\s*'[^']*';/;
   if (!cacheLine.test(sw)) throw new Error("sw.js is missing the expected \"const CACHE = '...'\" line");
