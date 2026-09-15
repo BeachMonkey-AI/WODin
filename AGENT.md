@@ -189,6 +189,69 @@ beyond the prescription get `a1`, `a2` and are flagged `added: true`.
 
 ---
 
+## 3b. Closing the loop without a human in the middle
+
+By default the athlete hands you the result — Share, Copy, or a downloaded file. No
+infrastructure, works everywhere. If you'd rather it arrive on its own, add a `sink`:
+
+```json
+{ "sink": { "type": "post", "url": "https://hooks.example/log/8f3a9c2b1d4e" } }
+```
+
+Submit then grows a primary **Send to coach** button that POSTs the result JSON. Share and
+Copy stay as fallbacks, so a failed send is never a dead end.
+
+### Everything in `sink` is public
+
+The plan travels inside the URL fragment and is stored on the athlete's device. A credential
+in `sink.headers` is **published, not protected** — it's in every link you send, in browser
+history, in `localStorage`, and visible in devtools. Rotating it means reissuing every
+outstanding link.
+
+So authenticate with an **unguessable URL** rather than a header:
+`https://hooks.example/log/8f3a9c2b1d4e…`. Same practical security, individually revocable,
+and it's what Slack, Discord and GitHub webhooks all do. If your endpoint requires a real
+secret, keep it in a small proxy that the page posts to unauthenticated.
+
+`sink.headers` exists for routing, not auth:
+
+```json
+{ "sink": { "type": "post", "url": "…", "headers": { "X-Athlete-Id": "a1" } } }
+```
+
+`wodin validate` warns (without failing) if it sees `Authorization`, `Cookie` or `X-Api-Key`.
+
+### CORS, which is what actually bites
+
+The page is served from one origin and your endpoint is on another, so a normal JSON POST
+triggers an `OPTIONS` preflight. Your endpoint must answer it:
+
+```
+Access-Control-Allow-Origin: https://beachmonkey-ai.github.io
+Access-Control-Allow-Methods: POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type
+```
+
+(add any `sink.headers` names to that last line). Testing with curl proves nothing here —
+curl has no CORS, so an endpoint that works from a terminal can still fail from the page.
+
+**If you can't change the endpoint at all**, use blind mode:
+
+```json
+{ "sink": { "type": "post", "url": "…", "mode": "blind" } }
+```
+
+That sends a no-cors POST with a simple content type, so no preflight happens and it reaches
+an endpoint that knows nothing about CORS with zero server changes. The cost is an opaque
+response: the page cannot confirm delivery, and says so rather than pretending. Custom
+headers are dropped — no-cors forbids them.
+
+### Or skip HTTP entirely
+
+If you run on the same machine or LAN as the athlete, `npx wodin serve` hosts the page and
+accepts the POST same-origin — no CORS, no endpoint, no proxy — writing
+`logs/<workoutId>.json` for you to watch.
+
 ## 4. Then do your job
 
 WODin deliberately contains no coaching logic. It renders what you prescribe and reports

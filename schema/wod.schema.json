@@ -52,11 +52,24 @@
 
     "sink": {
       "type": "object",
-      "description": "Where a submitted result should go. Omit for the default, which offers share / copy / download.",
+      "description": "Where a submitted result should go. Omit for the default, which offers share / copy / download. Everything here travels inside the link, so treat it as public.",
       "required": ["type"],
       "properties": {
         "type": { "enum": ["share", "post"] },
-        "url": { "type": "string", "format": "uri", "description": "Required when type is \"post\". The page POSTs the result JSON here." }
+        "url": { "type": "string", "format": "uri", "description": "Required when type is \"post\". The page POSTs the result JSON here." },
+
+        "mode": {
+          "enum": ["cors", "blind"],
+          "default": "cors",
+          "description": "cors: normal JSON POST — the endpoint must answer the OPTIONS preflight and allow the headers used, and delivery is confirmed. blind: a no-cors POST that reaches an endpoint knowing nothing about CORS with no server changes, at the cost of an opaque response — the page cannot confirm delivery and does not claim to. headers are dropped in blind mode, which no-cors forbids."
+        },
+
+        "headers": {
+          "type": "object",
+          "description": "Extra request headers, for routing an athlete or program to the right handler. WARNING: the plan travels inside a shareable URL and is stored on the athlete's device, so anything here is public — a credential placed here is published, not protected. Prefer an unguessable capability URL, or hold the secret in a proxy. `wodin validate` warns on credential-shaped headers.",
+          "additionalProperties": { "type": "string" },
+          "examples": [{ "X-Athlete-Id": "a1", "X-Program": "foundation-return" }]
+        }
       },
       "allOf": [
         { "if": { "properties": { "type": { "const": "post" } } }, "then": { "required": ["url"] } }

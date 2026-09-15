@@ -38,3 +38,11 @@
   A full session is ~1.6 KB of URL.
 - **Offline is a requirement, not a nice-to-have.** Gyms have no signal. Nothing in the
   logging path may need the network after first load.
+- **`sink` is public.** It rides in the fragment and is stored on the athlete's device, so a
+  credential in `sink.headers` is published rather than protected. The field exists for
+  routing headers; `wodin validate` warns on credential-shaped names but deliberately does
+  not fail, because we can't stop it and a hard error would just get worked around.
+  Authenticate with an unguessable capability URL, or a proxy holding the secret.
+- **`sink.mode: "blind"`** exists so an endpoint that knows nothing about CORS still works
+  with zero server changes — no-cors POST, no preflight, opaque response. The UI must keep
+  saying "delivery not confirmed"; never report success from a response we can't read.

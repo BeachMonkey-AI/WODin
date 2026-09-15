@@ -577,6 +577,53 @@ function buildResult() {
 
 /* ── submit sheet ────────────────────────────────────────────── */
 
+/* Two delivery modes, because endpoints differ in what they can be made to do.
+ *
+ *   default — JSON + any sink.headers. Cross-origin, so the browser preflights:
+ *             the endpoint must answer OPTIONS and allow the headers used.
+ *             We can read the response, so delivery is confirmed.
+ *
+ *   "blind" — no-cors. Content type drops to text/plain so it qualifies as a
+ *             simple request and no preflight happens, which means it reaches an
+ *             endpoint that knows nothing about CORS with zero server changes.
+ *             The response is opaque, so we cannot tell success from failure and
+ *             must not claim otherwise. sink.headers are dropped — no-cors
+ *             forbids custom headers.
+ */
+async function postResult() {
+  const { url, headers = {}, mode } = WOD.sink;
+  const body = JSON.stringify(buildResult());
+
+  if (mode === 'blind') {
+    try {
+      await fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body
+      });
+      toast('Sent — delivery not confirmed');
+      $('scrim').hidden = true;
+    } catch {
+      toast('Send failed — use Share or Copy');
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body
+    });
+    if (!res.ok) throw new Error(res.status);
+    toast('Sent');
+    $('scrim').hidden = true;
+  } catch {
+    toast('Send failed — use Share or Copy');
+  }
+}
+
 function sink(act, icon, title, desc, primary) {
   return `<button class="sink ${primary ? 'primary' : ''}" type="button" data-sink="${act}">
     ${icon}<span class="col"><span class="t">${title}</span><span class="d">${desc}</span></span>
@@ -590,7 +637,9 @@ function openSheet() {
   const posting = WOD.sink && WOD.sink.type === 'post' && WOD.sink.url;
 
   $('sinks').innerHTML = [
-    posting ? sink('post', ICON.send, 'Send to coach', 'Posts straight to your agent', true) : '',
+    posting ? sink('post', ICON.send, 'Send to coach',
+      WOD.sink.mode === 'blind' ? 'Posts to your agent — no delivery receipt' : 'Posts straight to your agent',
+      true) : '',
     canShare ? sink('share', ICON.share, 'Share', 'Hand it to any app', !posting) : '',
     sink('copy', ICON.copy, 'Copy summary', 'Paste into any chat', !posting && !canShare),
     sink('download', ICON.json, 'Download JSON', 'The structured result payload', false)
@@ -617,17 +666,7 @@ $('scrim').addEventListener('click', async e => {
 
   switch (btn.dataset.sink) {
     case 'post':
-      try {
-        const res = await fetch(WOD.sink.url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildResult())
-        });
-        if (!res.ok) throw new Error(res.status);
-        toast('Sent'); $('scrim').hidden = true;
-      } catch {
-        toast('Send failed — use Share or Copy');
-      }
+      await postResult();
       break;
 
     case 'share':
