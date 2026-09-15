@@ -320,15 +320,41 @@ h2 {
 
 .lib { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
 .lib-item {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 10px;
   padding: 13px 15px;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line);
-  text-decoration: none; color: inherit;
+  color: inherit;
 }
 .lib-item:hover { box-shadow: inset 0 0 0 1px var(--accent-mute); }
-.lib-item .col { flex: 1; min-width: 0; }
+.lib-item.confirming { box-shadow: inset 0 0 0 1px var(--accent-mute); }
+.lib-item .col {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  text-decoration: none; color: inherit;
+}
+
+.lib-x {
+  flex: none;
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border: 0; border-radius: 8px;
+  background: transparent; color: var(--ghost);
+  font-size: 20px; line-height: 1; cursor: pointer;
+}
+.lib-x:hover { color: var(--ink); background: var(--well); }
+
+.lib-btn {
+  flex: none;
+  min-height: 32px; padding: 0 12px;
+  border: 0; border-radius: 999px;
+  background: transparent; color: var(--dim);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 13px; cursor: pointer;
+}
+.lib-btn:hover { color: var(--ink); }
+.lib-btn.danger { background: var(--accent); color: var(--on-accent); box-shadow: none; font-weight: 600; }
 .lib-item .t { font-weight: 600; font-size: 15.5px; }
 .lib-item .d {
   font-size: 12.5px; color: var(--faint);

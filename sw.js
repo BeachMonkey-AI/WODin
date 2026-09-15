@@ -1,7 +1,7 @@
 /* App service worker — stale-while-revalidate for the shell, network-first for everything else.
  * CACHE name is bumped by scripts/build.mjs from a content hash on every build.
  */
-const CACHE = 'app-c5855f59';
+const CACHE = 'app-340a95fa';
 // Relative to this script's own location, so this works unmodified whether it's
 // deployed at / (prod) or /preview/pr-<N>/ — self.location gives that automatically.
 //
@@ -16,6 +16,15 @@ const SHELL = [
   'src/icons.js',
   'src/app.css',
   'styles/tokens.css',
+  'styles/fonts.css',
+  'fonts/barlow-400.woff2',
+  'fonts/barlow-500.woff2',
+  'fonts/barlow-600.woff2',
+  'fonts/barlow-condensed-500.woff2',
+  'fonts/barlow-condensed-600.woff2',
+  'fonts/barlow-condensed-700.woff2',
+  'fonts/jetbrains-mono-400.woff2',
+  'fonts/jetbrains-mono-500.woff2',
   'icons/icon-192.png',
   'icons/icon-512.png'
 ].map(p => new URL(p, self.location.href).pathname);
