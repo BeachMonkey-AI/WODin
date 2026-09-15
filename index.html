@@ -39,9 +39,21 @@
     // and PR previews (/preview/pr-<N>/) both register correctly with no base-path build
     // parameter. Offline is the whole point here; gyms have no signal.
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      // The shell is served from cache first, so a freshly deployed build would
+      // otherwise not appear until some later launch — leaving an installed app
+      // running old code with no way to tell. When a new worker takes over,
+      // reload once so the update lands now.
+      var hadController = !!navigator.serviceWorker.controller;
+      var reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!hadController || reloading) return;
+        reloading = true;
+        location.reload();
+      });
+
+      window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js')
-          .catch(err => console.warn('SW registration failed:', err));
+          .catch(function (err) { console.warn('SW registration failed:', err); });
       });
     }
   </script>
