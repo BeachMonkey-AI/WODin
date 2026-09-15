@@ -17,7 +17,8 @@
       "exercises": [
         {
           "id": "ex1",
-          "movement": "Row easy",
+          "movement": "Row",
+          "qualifier": "easy",
           "kind": "cardio",
           "tag": "Engine",
           "cue": "Nose-breathing pace. Long chain, no rush on the recovery.",
@@ -56,7 +57,8 @@
       "exercises": [
         {
           "id": "ex4",
-          "movement": "Row 500m repeats",
+          "movement": "Row",
+          "qualifier": "4 × 500m",
           "kind": "cardio",
           "tag": "Engine",
           "cue": "4 × 500m, 2:00 rest between. Target split is the whole point — log the time you actually held.",

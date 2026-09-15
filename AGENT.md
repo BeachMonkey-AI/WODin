@@ -81,6 +81,52 @@ Give what you're prescribing, leave the rest null, and name what the athlete sup
 { "distance": 500, "pace": "2:00/500m", "duration": null, "athleteFills": "duration" }
 ```
 
+### Name movements canonically
+
+`movement` is the exercise's name and nothing else. **"Row", not "Easy row" or "Row 500m".**
+
+This matters twice over:
+
+1. **It is searched verbatim.** The movement name links to a YouTube search for
+   `<movement> form`, so the athlete can check technique mid-set. "Easy row form" and
+   "Row 500m form" return junk; "Row form" returns rowing technique.
+2. **It is the movement's identity.** Anything tracking progress across sessions matches on
+   this string. Call it "Easy row" on Monday and "Row 500m" on Thursday and you have
+   invented two unrelated exercises that can never be compared.
+
+Everything else has its own home:
+
+| Not this | This |
+|---|---|
+| `"Easy row"` | `movement: "Row"`, `qualifier: "easy"` |
+| `"Row 500m"` | `movement: "Row"`, with `distance: 500` in the set |
+| `"Bench press light"` | `movement: "Bench press"`, `qualifier: "light"` |
+| `"Dumbbell lateral raise (pump)"` | `movement: "Dumbbell lateral raise"`, `qualifier: "pump"` |
+| `"Bulgarian split squat (each leg)"` | `movement: "Bulgarian split squat"`, `qualifier: "each leg"` |
+
+`qualifier` shows beside the name and is excluded from the search. Reach for it when one
+movement appears twice in a session and the headings would otherwise be identical — a warm-up
+row and a finisher row.
+
+`wodin validate` warns about the two shapes it can reliably spot: a trailing parenthetical,
+and a measurement in the name.
+
+### Linking to a specific demonstration
+
+By default the name links to that YouTube search. Set `link` to point somewhere specific
+instead — your own video, a coach you trust, an ExRx page:
+
+```json
+{
+  "movement": "Romanian deadlift",
+  "kind": "weight_reps",
+  "link": "https://www.youtube.com/watch?v=JCXUYuzwNrM",
+  "sets": [{ "reps": 8, "load": 185 }]
+}
+```
+
+The search is the fallback, not the feature — if you have a better reference, use it.
+
 ### What goes where
 
 - `coachNote` — session context: sleep, rest days, location, niggles, how to scale. This is
@@ -88,8 +134,6 @@ Give what you're prescribing, leave the rest null, and name what the athlete sup
 - `cue` — per-exercise coaching, one line. Yours, to them.
 - `targetRpe` — shown only as a ghost hint (`Rx 7`) on a blank field. The athlete's actual
   RPE comes back in the result. Never assume they're equal.
-- Movement names link to a YouTube form search automatically. Set `link` on the exercise
-  only to override with something specific.
 
 ---
 
