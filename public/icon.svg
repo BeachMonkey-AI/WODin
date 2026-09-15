@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0d1011"/>
+  <!-- A loaded barbell, read end-on: sleeve, inner plate, outer plate, mirrored. -->
+  <g fill="#cdf24a">
+    <rect x="152" y="236" width="208" height="40" rx="20"/>
+    <rect x="104" y="184" width="44" height="144" rx="18"/>
+    <rect x="364" y="184" width="44" height="144" rx="18"/>
+  </g>
+  <g fill="#93ab3c">
+    <rect x="56" y="214" width="34" height="84" rx="14"/>
+    <rect x="422" y="214" width="34" height="84" rx="14"/>
+  </g>
+</svg>
