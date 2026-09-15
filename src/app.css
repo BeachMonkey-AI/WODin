@@ -403,6 +403,39 @@ h2 {
   color: var(--ghost);
 }
 
+/* Offered only when the app is genuinely installed and you are looking at a
+   browser tab instead of it. Sits in the flow rather than covering anything —
+   it is a suggestion, and the workout below it works perfectly well as is. */
+.openapp {
+  max-width: 480px;
+  margin: 14px auto 0;
+  padding: 14px 15px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--accent-mute);
+}
+.openapp[hidden] { display: none; }
+.openapp .t { margin: 0; font-weight: 600; font-size: 15px; }
+.openapp .d { margin: 5px 0 0; font-size: 13.5px; color: var(--dim); line-height: 1.45; }
+.openapp .row { display: flex; gap: 9px; margin-top: 12px; }
+.openapp .hint { margin: 11px 0 0; font-size: 12.5px; color: var(--faint); line-height: 1.45; }
+.openapp .hint b { color: var(--dim); font-weight: 600; }
+
+.openapp-go {
+  min-height: 40px; padding: 0 15px;
+  border: 0; border-radius: 999px;
+  background: var(--accent); color: var(--on-accent);
+  font-weight: 600; font-size: 14px; cursor: pointer;
+}
+.openapp-x {
+  min-height: 40px; padding: 0 15px;
+  border: 0; border-radius: 999px;
+  background: transparent; color: var(--dim);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 14px; cursor: pointer;
+}
+.openapp-x:hover { color: var(--ink); }
+
 /* ─── Submit sheet ─────────────────────────────────────────── */
 
 .scrim {
@@ -491,7 +524,7 @@ h2 {
  * phone would just push the workout off the bottom — there has to be room to
  * spend before spending it.
  */
-.wrap, .sheet, .toast { zoom: var(--ui-scale, 1); }
+.wrap, .sheet, .toast, .openapp { zoom: var(--ui-scale, 1); }
 
 @media (min-width: 560px)  and (min-height: 560px) { :root { --ui-scale: 1.15; } }
 @media (min-width: 660px)  and (min-height: 560px) { :root { --ui-scale: 1.35; } }
