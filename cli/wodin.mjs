@@ -259,6 +259,18 @@ function cmdValidate(files) {
       (sec.exercises || []).forEach((ex, j) => {
         const exWhere = `${where}.exercises[${j}]`;
         if (!ex.movement) problems.push(`${exWhere}: missing movement`);
+        else {
+          // `movement` is searched verbatim for the form-check link and is what any
+          // cross-session progress tracking matches on, so it has to be the exercise's
+          // name and nothing else. These two shapes are reliably not that.
+          const paren = ex.movement.match(/\s*\(([^)]*)\)\s*$/);
+          const measure = ex.movement.match(/\s+\d+\s*(m|km|mi|ft|s|sec|min|reps?)$/i);
+          if (paren) {
+            warnings.push(`${ex.movement}: move "(${paren[1]})" to qualifier — it is searched verbatim and is not part of the exercise's name`);
+          } else if (measure) {
+            warnings.push(`${ex.movement}: the prescription belongs in sets, not the name — search and progress tracking both key on this`);
+          }
+        }
         if (!ex.kind) problems.push(`${exWhere} (${ex.movement}): missing kind — the renderer cannot infer it`);
         else if (!KINDS.includes(ex.kind)) problems.push(`${exWhere} (${ex.movement}): kind "${ex.kind}" is not one of ${KINDS.join(', ')}`);
         if (!Array.isArray(ex.sets) || !ex.sets.length) problems.push(`${exWhere} (${ex.movement}): no sets`);
