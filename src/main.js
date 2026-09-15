@@ -13,7 +13,7 @@ import { ICON } from './icons.js';
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = '27106a5d';
+const BUILD = '42dbf70e';
 
 const LIB_KEY = 'wodin:index';
 const wodKey = id => 'wodin:wod:' + id;
@@ -794,6 +794,20 @@ function sink(act, icon, title, desc, primary) {
 }
 
 function openSheet() {
+  // Reaching for Submit ends the session, so stop the clock before reading it.
+  // Pause rather than reset: nothing is destroyed, and Resume is there if the
+  // sheet was opened early. It also keeps the duration honest — a clock still
+  // running behind the sheet would show one number in the preview and send
+  // another by the time anything was tapped.
+  if (S.running) {
+    S.elapsed = elapsedNow();
+    S.running = false;
+    S.startedAt = null;
+    save();
+    renderWorkout();
+    runTick();
+  }
+
   $('digest').textContent = buildDigest();
 
   const canShare = typeof navigator.share === 'function';
