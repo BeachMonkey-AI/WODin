@@ -367,18 +367,70 @@ function renderLibrary() {
     </div>`;
   }).join('');
 
+  // An installed iOS web app gets its own storage, separate from the browser's,
+  // and iOS never opens an in-scope link in it. So the library it sees can only
+  // ever be filled by pasting — saying "your link opens straight into this app"
+  // would be a plain lie here.
+  const installed = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+  const empty = installed
+    ? `<div class="lib-empty">
+         <p><b>Nothing here yet.</b> Workout links open in your browser, not in this
+         installed app — and the two keep separate storage, so what you opened there
+         doesn't show up here.</p>
+         <p style="margin-bottom:0">Copy the link your coach sent and paste it below.
+         After that the workout lives here, and works with no signal.</p>
+       </div>`
+    : `<div class="lib-empty">
+         <p><b>Nothing here yet.</b> Your coach or agent sends you a link and the
+         workout opens straight into this app — after that it stays on this device,
+         listed here, and works with no signal.</p>
+         <p style="margin-bottom:0">A link looks like <code>…/WODin/#w=…</code></p>
+       </div>`;
+
   $('app').innerHTML = `
     <header>
       <div class="eyebrow"><b>WODin</b></div>
       <h1>Your workouts</h1>
     </header>
-    ${list.length ? `<div class="lib">${items}</div>` : `
-      <div class="lib-empty">
-        <p><b>Nothing here yet.</b> Your coach or agent sends you a link and the
-        workout opens straight into this app — after that it stays on this device,
-        listed here, and works with no signal.</p>
-        <p style="margin-bottom:0">A link looks like <code>…/WODin/#w=…</code></p>
-      </div>`}`;
+    ${list.length ? `<div class="lib">${items}</div>` : empty}
+    <div class="paste">
+      <button class="pill" type="button" id="paste">Paste a workout link</button>
+      <div class="paste-manual" id="pasteManual" hidden>
+        <input id="pasteInput" type="url" inputmode="url" autocomplete="off"
+               placeholder="Paste the link here" aria-label="Workout link">
+        <button class="lib-btn danger" type="button" id="pasteGo">Open</button>
+      </div>
+    </div>`;
+}
+
+// Accepts a full link or a bare fragment, so it works whether the athlete copied
+// the whole URL or the tail of one. `quiet` suppresses the complaint, for the
+// speculative clipboard read where the athlete never claimed to have copied a link.
+function openPastedLink(text, quiet) {
+  const m = String(text).match(/#?((?:w|wj|id)=[^\s&#]+)/);
+  if (!m) {
+    if (!quiet) toast('That does not look like a workout link');
+    return false;
+  }
+  if (location.hash === '#' + m[1]) { route(); return true; }
+  location.hash = m[1];
+  return true;
+}
+
+function pasteLink() {
+  // The field opens first and the clipboard is only a shortcut. Reading the
+  // clipboard can sit behind a permission prompt that never resolves, and a
+  // button that appears to do nothing is worse than one extra paste.
+  const manual = $('pasteManual');
+  if (manual) {
+    manual.hidden = false;
+    $('pasteInput').focus();
+  }
+
+  navigator.clipboard?.readText?.()
+    .then(text => { if (text) openPastedLink(text, true); })
+    .catch(() => { /* denied, unsupported, or still prompting — the field is there */ });
 }
 
 /* ── events ──────────────────────────────────────────────────── */
@@ -389,9 +441,17 @@ function renderLibrary() {
 function bind() {
   const app = $('app');
 
+  app.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'pasteInput') {
+      e.preventDefault();
+      openPastedLink(e.target.value);
+    }
+  });
+
   app.addEventListener('input', e => {
     const el = e.target;
     const id = el.id || '';
+    if (id === 'pasteInput') return;
 
     if (id === 'f-rpe')      { S.rpe = el.value; return save(); }
     if (id === 'f-summary')  { S.summary = el.value; return save(); }
@@ -447,6 +507,9 @@ function bind() {
       save(); renderWorkout();
       return;
     }
+
+    if (e.target.id === 'paste') return pasteLink();
+    if (e.target.id === 'pasteGo') return void openPastedLink($('pasteInput').value);
 
     const ask = e.target.closest('[data-ask-remove]');
     if (ask) { pendingRemove = ask.dataset.askRemove; return renderLibrary(); }
