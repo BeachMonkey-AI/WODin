@@ -212,16 +212,36 @@ function cmdParse(file) {
 /* ── validate ────────────────────────────────────────────────── */
 
 const KINDS = ['weight_reps', 'reps', 'time', 'cardio', 'carry'];
+// A plan travels inside a shareable URL and is stored on the athlete's device.
+// Anything shaped like a credential in sink.headers is published, not protected.
+const CREDENTIAL_HEADERS = ['authorization', 'cookie', 'x-api-key', 'x-auth-token', 'proxy-authorization'];
 
 function cmdValidate(files) {
   let bad = 0;
   for (const file of files) {
-    const problems = [];
+    const problems = [], warnings = [];
     let wod;
     try { wod = readWod(file); } catch (err) { console.error(`✗ ${file}: ${err.message}`); bad++; continue; }
 
     if (!wod.workoutId) problems.push('missing workoutId');
     if (!Array.isArray(wod.sections) || !wod.sections.length) problems.push('missing sections');
+
+    if (wod.sink) {
+      if (wod.sink.type === 'post' && !wod.sink.url) problems.push('sink: type "post" needs a url');
+      if (wod.sink.mode && !['cors', 'blind'].includes(wod.sink.mode)) {
+        problems.push(`sink: mode "${wod.sink.mode}" is not one of cors, blind`);
+      }
+      if (wod.sink.mode === 'blind' && wod.sink.headers) {
+        warnings.push('sink: headers are dropped in blind mode — no-cors forbids custom headers');
+      }
+      for (const name of Object.keys(wod.sink.headers || {})) {
+        if (CREDENTIAL_HEADERS.includes(name.toLowerCase())) {
+          warnings.push(`sink.headers.${name} looks like a credential, and the plan travels inside a shareable link`);
+          warnings.push('  anyone with the link can read it; rotating it means reissuing every outstanding link');
+          warnings.push('  prefer an unguessable capability URL, or keep the secret in a proxy');
+        }
+      }
+    }
 
     (wod.sections || []).forEach((sec, i) => {
       const where = `sections[${i}]`;
@@ -240,6 +260,8 @@ function cmdValidate(files) {
 
     if (problems.length) { bad++; console.error(`✗ ${file}`); problems.forEach(p => console.error(`    ${p}`)); }
     else console.log(`✓ ${file}`);
+    // Warnings never fail the run — they flag a real risk without blocking anyone.
+    warnings.forEach(w => console.error(`  ⚠ ${w}`));
   }
   process.exit(bad ? 1 : 0);
 }
