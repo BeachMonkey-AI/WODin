@@ -13,7 +13,7 @@ import { ICON } from './icons.js';
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = '772e845d';
+const BUILD = '9b20ea75';
 
 const LIB_KEY = 'wodin:index';
 const wodKey = id => 'wodin:wod:' + id;
