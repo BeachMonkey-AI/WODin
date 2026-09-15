@@ -794,6 +794,20 @@ function sink(act, icon, title, desc, primary) {
 }
 
 function openSheet() {
+  // Reaching for Submit ends the session, so stop the clock before reading it.
+  // Pause rather than reset: nothing is destroyed, and Resume is there if the
+  // sheet was opened early. It also keeps the duration honest — a clock still
+  // running behind the sheet would show one number in the preview and send
+  // another by the time anything was tapped.
+  if (S.running) {
+    S.elapsed = elapsedNow();
+    S.running = false;
+    S.startedAt = null;
+    save();
+    renderWorkout();
+    runTick();
+  }
+
   $('digest').textContent = buildDigest();
 
   const canShare = typeof navigator.share === 'function';
