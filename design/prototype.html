@@ -76,11 +76,22 @@
   h1 {
     font-family: var(--fd);
     font-weight: 700;
-    font-size: 30px;
-    line-height: 1.08;
+    font-size: 32px;
+    line-height: 1.06;
     letter-spacing: -.005em;
     text-wrap: balance;
     margin: 6px 0 0;
+  }
+
+  h2 {
+    font-family: var(--fd);
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 1.15;
+    letter-spacing: .012em;
+    text-wrap: balance;
+    color: var(--dim);
+    margin: 3px 0 0;
   }
 
   .meta {
@@ -385,6 +396,7 @@
   "schema": "wodin/wod@1",
   "workoutId": "2026-09-13",
   "date": "2026-09-13",
+  "athleteTitle": "Odin's WOD",
   "title": "Routine 2 — Back + Biceps",
   "program": "Foundation Return · Week 2 of 8",
   "estDuration": "~50 min",
@@ -576,7 +588,8 @@
     const head = `
       <header>
         <div class="eyebrow"><b>WODin</b><span>${esc(nice)}</span></div>
-        <h1>${esc(WOD.title)}</h1>
+        <h1>${esc(WOD.athleteTitle || WOD.title)}</h1>
+        ${WOD.athleteTitle ? `<h2>${esc(WOD.title)}</h2>` : ''}
         <div class="meta">
           ${WOD.program ? `<span class="prog">${esc(WOD.program)}</span>` : ''}
           ${WOD.estDuration ? `<span>${esc(WOD.estDuration)}</span>` : ''}
