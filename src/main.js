@@ -333,14 +333,14 @@ function renderEx(ex) {
     <div class="sets ${added.length ? 'has-added' : ''}">
       ${rows.join('')}
       <div class="pills">
-        <button class="pill" type="button" data-add="${ex.id}">+ set</button>
-        <button class="pill" type="button" data-opennote="${ex.id}" ${noteOpen ? 'hidden' : ''}>+ note</button>
         <select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${ex.id}"
                 aria-label="How hard ${esc(ex.movement.toLowerCase())} felt, 1 to 10">
           <option value="">RPE</option>
           ${[1,2,3,4,5,6,7,8,9,10].map(n =>
             `<option value="${n}" ${String(rpe) === String(n) ? 'selected' : ''}>RPE ${n}</option>`).join('')}
         </select>
+        <button class="pill" type="button" data-opennote="${ex.id}" ${noteOpen ? 'hidden' : ''}>+ note</button>
+        <button class="pill" type="button" data-add="${ex.id}">+ set</button>
       </div>
       <div class="ex-note" data-noterow="${ex.id}" ${noteOpen ? '' : 'hidden'}>
         <textarea id="note-${ex.id}" data-note="${ex.id}"
