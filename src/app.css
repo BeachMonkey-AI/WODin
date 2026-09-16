@@ -324,6 +324,32 @@ h2 {
 .fl { display: block; font-size: 12px; color: var(--faint); margin-bottom: 6px; }
 .fl b { color: var(--dim); font-weight: 500; }
 
+/* Duration and session RPE wear the movement pills' shape so the closing row
+   reads as the same family of controls. They keep the full tap height and 16px
+   text — a 13px input is what makes iOS zoom the page on focus, which at the
+   rack is worse than a slightly larger pill. Both light up once answered. */
+.close-grid .pill-rpe,
+.close-grid .field.pill-field { width: 100%; }
+.close-grid .pill-rpe {
+  min-height: var(--tap);
+  padding: 0 14px;
+  font-size: 16px;
+}
+.field.pill-field input {
+  padding: 0 calc(var(--uw, 2ch) + 22px) 0 14px;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--faint); font-weight: 400;
+}
+.field.pill-field input::placeholder { color: var(--faint); }
+/* Non-empty placeholder means :placeholder-shown is exactly "nothing entered". */
+.field.pill-field input:not(:placeholder-shown) {
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-mute);
+}
+.field.pill-field .unit { right: 14px; }
+
 .close textarea {
   width: 100%; min-height: 92px; margin-top: 4px;
   padding: 11px 12px;
