@@ -222,17 +222,22 @@ Conforms to [`schema/result.schema.json`](schema/result.schema.json).
     "ex11.s1": { "distance": 500, "pace": "1:58", "duration": "1:58", "durationSec": 118, "asPlanned": false }
   },
   "notes": { "ex5": "Added a little bounce on the last two reps" },
+  "exerciseRpe": { "ex5": 9, "ex8": 6 },
   "skipped": ["ex3"]
 }
 ```
 
-**Three things to know when reading it:**
+**Four things to know when reading it:**
 
 1. **`log` contains every set that wasn't skipped**, including ones done exactly as
    prescribed. Those carry `asPlanned: true`. A set missing from `log` was skipped — absence
    never means compliance. Filter `asPlanned: false` to find where the session diverged.
 2. **`rpe: null` and `athleteSummary: null` mean unanswered**, not zero and not agreement.
 3. **`notes` is keyed by exercise**, one per movement. There are no per-set notes.
+4. **`exerciseRpe` is how hard each movement felt**, 1–10, keyed by exercise. This is the
+   signal for what to change next session: the session `rpe` can be 7 while one lift was a 9.
+   An absent key means unrated, never easy — the athlete taps this only when they want to
+   tell you something, so treat a rating as deliberate.
 
 Ids you didn't supply were assigned positionally (`ex3`, `s2`). Sets the athlete added
 beyond the prescription get `a1`, `a2` and are flagged `added: true`.

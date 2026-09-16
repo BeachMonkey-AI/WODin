@@ -205,7 +205,7 @@ function seedState() {
   return {
     elapsed: 0, running: false, startedAt: null,
     rpe: '', summary: '',
-    skipped: [], sets, notes: {}, added: {}
+    skipped: [], sets, notes: {}, rpes: {}, added: {}
   };
 }
 
@@ -322,6 +322,7 @@ function renderEx(ex) {
   const rows = allSets(ex).map((set, i) => renderSet(ex, set, i + 1, added.length > 0));
   const note = S.notes[ex.id] || '';
   const noteOpen = !!note || openNotes.has(ex.id);
+  const rpe = S.rpes[ex.id] ?? '';
 
   return `<div class="ex ${skipped ? 'skipped' : ''}" data-ex="${ex.id}">
     <div class="ex-top">
@@ -334,6 +335,12 @@ function renderEx(ex) {
       <div class="pills">
         <button class="pill" type="button" data-add="${ex.id}">+ set</button>
         <button class="pill" type="button" data-opennote="${ex.id}" ${noteOpen ? 'hidden' : ''}>+ note</button>
+        <select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${ex.id}"
+                aria-label="How hard ${esc(ex.movement.toLowerCase())} felt, 1 to 10">
+          <option value="">RPE</option>
+          ${[1,2,3,4,5,6,7,8,9,10].map(n =>
+            `<option value="${n}" ${String(rpe) === String(n) ? 'selected' : ''}>RPE ${n}</option>`).join('')}
+        </select>
       </div>
       <div class="ex-note" data-noterow="${ex.id}" ${noteOpen ? '' : 'hidden'}>
         <textarea id="note-${ex.id}" data-note="${ex.id}"
@@ -634,6 +641,16 @@ function bind() {
   });
 
   app.addEventListener('change', e => {
+    const rated = e.target.dataset && e.target.dataset.rpe;
+    if (rated) {
+      // Clearing it removes the key entirely: unrated and "felt easy" are
+      // different answers, and the result must not conflate them.
+      if (e.target.value) S.rpes[rated] = Number(e.target.value);
+      else delete S.rpes[rated];
+      save(); renderWorkout();
+      return;
+    }
+
     const sk = e.target.dataset && e.target.dataset.skip;
     if (!sk) return;
     S.skipped = e.target.checked
@@ -696,7 +713,9 @@ function buildDigest() {
   (WOD.sections || []).forEach(sec => {
     const rows = [];
     (sec.exercises || []).filter(ex => !isSkipped(ex.id)).forEach(ex => {
-      rows.push('  ' + ex.movement.padEnd(width) + ' ' + allSets(ex).map(s => setValues(ex, s)).join(', '));
+      const exRpe = S.rpes[ex.id];
+      rows.push('  ' + ex.movement.padEnd(width) + ' ' + allSets(ex).map(s => setValues(ex, s)).join(', ')
+        + (exRpe ? '  · RPE ' + exRpe : ''));
       const note = (S.notes[ex.id] || '').trim();
       if (note) rows.push('  ' + ' '.repeat(width) + ' ↳ ' + note);
     });
@@ -726,12 +745,13 @@ function isAsPlanned(set, v, kind) {
 }
 
 function buildResult() {
-  const log = {}, notes = {};
+  const log = {}, notes = {}, exerciseRpe = {};
 
   eachExercise().forEach(ex => {
     if (isSkipped(ex.id)) return;
     const note = (S.notes[ex.id] || '').trim();
     if (note) notes[ex.id] = note;
+    if (S.rpes[ex.id]) exerciseRpe[ex.id] = S.rpes[ex.id];
 
     allSets(ex).forEach(set => {
       const k = ex.id + '.' + set.id;
@@ -768,6 +788,7 @@ function buildResult() {
     athleteSummary: S.summary.trim() || null,
     log,
     notes,
+    exerciseRpe,
     skipped: S.skipped.slice()
   };
 }
