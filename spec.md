@@ -104,7 +104,7 @@ without the link. That matters more than it sounds: an installed PWA launches it
 `start_url`, not the URL you installed from, so a fragment-only design would open to nothing.
 The home screen is that library.
 
-Alternatives, same schema: commit `wods/<date>.json` and link `?d=<date>`; or `wodin serve`
+Alternatives, same schema: commit `wods/<date>.json` and link `?d=<date>`; or `node cli/wodin.mjs serve`
 for a local page with a real POST.
 
 ## Coming back
@@ -132,7 +132,7 @@ STRENGTH
                      ↳ Added a little bounce on the last two reps
 ```
 
-`wodin parse` converts it back, so the two formats are equivalent rather than one being a
+`node cli/wodin.mjs parse` converts it back, so the two formats are equivalent rather than one being a
 lossy shortcut. The digest identifies exercises by name; the JSON keeps exact ids.
 
 ## Offline
@@ -140,27 +140,6 @@ lossy shortcut. The digest identifies exercises by name; the JSON keeps exact id
 Gyms have no signal, so nothing in the logging path may touch the network after first load.
 The service worker caches the shell; state autosaves to `localStorage` on every keystroke,
 keyed by `workoutId`. A dropped connection mid-session must cost nothing.
-
-## The invariants
-
-WODin is one instance of a general loop — an agent plans, a human executes, a structured
-result returns. Most of this document is specific to training. These four rules are not,
-and they're the part worth carrying to any other domain built on the same transport:
-
-1. **The plan is complete and prefilled.** The human confirms a prescription rather than
-   filling in a blank form, so doing it exactly as written costs nothing and every edit is a
-   real deviation.
-2. **The result is complete.** Everything that wasn't skipped comes back, including what
-   matched the plan. Absence means skipped — never compliance.
-3. **Subjective fields start empty.** Anything only the human can judge begins blank, with
-   the prescription shown as a hint at most. Unanswered stays `null`, distinct from any
-   answer.
-4. **One human thought per unit of work.** A single note per exercise, not per row — one
-   place to say how a thing went, not five boxes that fragment it.
-
-A second domain — inspections, maintenance, checklists — would keep these and replace
-everything else: its own schema, its own field layouts, its own renderer. It would not be a
-mode of WODin. Until a real second workflow exists, there is nothing to extract.
 
 ## What it deliberately doesn't do
 

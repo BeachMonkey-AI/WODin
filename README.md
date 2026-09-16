@@ -1,11 +1,10 @@
 # WODin
 
-**AI plans the workout. The athlete does it. WODin returns what actually happened.**
+**Hand a structured workout to a human. Get back what they actually did.**
 
 An agent writes a workout as JSON. WODin turns it into a page the athlete opens on their
 phone at the gym — offline, installable, prefilled with the plan. They log what really
-happened, tap once, and the agent gets back structured data it can plan the next session
-from.
+happened, tap once, and the agent gets it back as structured data.
 
 🏋️ **[beachmonkey-ai.github.io/WODin](https://beachmonkey-ai.github.io/WODin/)**
 
@@ -16,44 +15,16 @@ from.
   (the plan)                (phone, offline)                  (the log)
 ```
 
-## What makes the loop work
-
-These are properties of the protocol, not implementation details — they're why any agent
-can adopt it without provisioning anything.
-
-- **No server, no account, no API key.** The workout travels in the URL fragment, which
-  browsers never send. The host serves a generic page and never sees the plan.
-- **Offline once loaded.** Nothing in the logging path touches the network, because gyms
-  don't have signal.
-- **Agent-agnostic.** Two JSON Schemas and a link. OpenClaw, GrokBot, Claude or a shell
-  script — anything that can write JSON can drive it.
-- **Honest results.** Every set comes back, including the ones done exactly as prescribed,
-  and anything the athlete didn't answer comes back as `null` rather than a guess.
+No server. No account. No API key. The workout travels in the URL fragment, so it never
+touches a server at all — and the page keeps working with no signal, which matters because
+gyms don't have any.
 
 ## Why it exists
 
 This started as Google Apps Script talking to a Sheet. That worked, but it welded the idea
 to one runtime: an agent that isn't Apps Script couldn't generate a page, and an agent that
 wasn't the author's couldn't read a result. WODin is the same idea with the protocol pulled
-out of the plumbing.
-
-## The pattern underneath
-
-Workouts are the first use of a more general loop:
-
-```
-  agent ── structured plan ──> human executes ── structured result ──> agent
-```
-
-The agent owns the reasoning — what to prescribe, and what to change after seeing the
-result. WODin owns the human-facing half: a plan someone can execute with their hands full,
-and a record that comes back as data instead of a paragraph recounted from memory.
-
-The same shape fits other work: an inspection, a maintenance procedure, a field survey, an
-operational checklist. **WODin does none of those.** Its schemas, field layouts and UI are
-built for training, and they're better for being specific. The parts that do generalise are
-written down in [`spec.md` → The invariants](spec.md#the-invariants); another domain would be
-its own renderer on the same transport, not a mode of this one.
+out of the plumbing, so OpenClaw, GrokBot, Claude or anything else can drive it.
 
 ## Use it in 30 seconds
 
@@ -64,9 +35,6 @@ node cli/wodin.mjs link examples/routine-2-back-biceps.json
 ```
 
 Send that link. That's the whole integration.
-
-> **Not `npx wodin`.** That name on npm belongs to an unrelated package — running it would
-> execute someone else's code. Use the CLI from a clone.
 
 ## For agents
 
@@ -94,18 +62,19 @@ actually needs:
 
 ## CLI
 
-The integration surface for any agent with a shell. Zero dependencies — node's own `zlib`
-and `http`.
+Zero dependencies — node's own `zlib` and `http`.
 
 ```bash
 node cli/wodin.mjs link     wod.json [--base URL]   # shareable #w= URL — the phone path
 node cli/wodin.mjs render   wod.json [-o out.html]  # self-contained single file
 node cli/wodin.mjs serve    [wod.json] [--port N]   # localhost + LAN; POST /submit → logs/
-node cli/wodin.mjs parse    <file|->                # digest or JSON → canonical result JSON
-node cli/wodin.mjs validate wod.json ...            # structural check
+node cli/wodin.mjs parse    <file|->               # digest or JSON → canonical result JSON
+node cli/wodin.mjs validate wod.json ...           # structural check
 ```
 
-`link` is how a plan reaches the human; `parse` is how the result re-enters the agent.
+Run it from a clone. There is no published npm package, and `npx wodin` would fetch an
+unrelated package of that name owned by someone else.
+
 `serve` is the tightest loop when the agent and the athlete share a machine or a wifi
 network: a real Submit button, writing `logs/<workoutId>.json` where the agent can watch.
 
@@ -140,12 +109,11 @@ at either location with no base-path parameter.
 
 ```
 AGENT.md              the protocol, written for an agent to read
-spec.md               the model, and the invariants that generalise
 schema/               wod + result JSON Schemas
 examples/             a real workout, two contrasting athletes, the smallest valid plan
 index.html            app shell
 src/                  main.js, app.css, icons.js
-styles/               design tokens, self-hosted fonts
+styles/               design tokens, self-hosted font faces
 public/               manifest, service worker, icon source, font files
 cli/wodin.mjs         link | render | serve | parse | validate
 design/prototype.html the layout pass this app was built from

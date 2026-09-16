@@ -3,12 +3,6 @@
 You are an agent that coaches a human athlete. WODin is how you hand them a workout and get
 back what they actually did.
 
-**Divide the work cleanly.** You are the coach: you decide what to prescribe, and you decide
-what the result means for next time. WODin is the execution surface: it renders your plan
-for a human with their hands full, and returns a structured record of what happened. It
-contains no coaching logic, and you shouldn't need to build a logging format of your own —
-don't invent a parallel one for workouts; use these two documents.
-
 The whole protocol is two JSON documents and one URL. There is no server, no account, no
 API key, and no SDK. If you can write JSON and produce a link, you can use this.
 
@@ -156,11 +150,10 @@ https://beachmonkey-ai.github.io/WODin/#w=<deflate-raw, then base64url>
 ```
 
 ```bash
-node cli/wodin.mjs link wod.json   # from a clone of the repo; prints the URL
+node cli/wodin.mjs link wod.json   # from a clone; prints the URL
 ```
 
-**Not `npx wodin`** — that npm name belongs to an unrelated package, so it would run someone
-else's code.
+There is no published npm package — `npx wodin` would run an unrelated package of that name.
 
 Or by hand in Node:
 
@@ -374,9 +367,8 @@ Write the next `wod.json`, send the next link.
 
 ## Using it from a specific environment
 
-- **Any agent with a shell** — clone the repo and use `node cli/wodin.mjs`. `link` is how a
-  plan reaches the human, `parse` is how the result comes back to you, and `serve` is the
-  tight loop when you share a network with the athlete. No dependencies to install.
+- **Any agent with a shell** — clone the repo and run `node cli/wodin.mjs link|render|serve|parse`.
+  No dependencies to install.
 - **No shell at all** — write the JSON, base64url it into `#wj=`, hand over the link, and
   read the digest the athlete pastes back. That path needs no tooling whatsoever.
 

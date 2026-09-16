@@ -14,16 +14,10 @@
 
 ## Things that aren't obvious from the code
 
-- **WODin is a workout app that demonstrates a general pattern — not a generic platform.**
-  The agent → human → agent loop is named in the docs (issue #18) so other builders can see
-  why the schemas are worth adopting. It is deliberately *not* reflected in the UI or the
-  schema: no task types, checklists, photo capture or plugin architecture. The five set
-  kinds and the gym UX are what make it work. If a second real domain ever appears, it gets
-  its own renderer on the same transport; the four portable rules live in
-  `spec.md` → The invariants.
-- **Never document `npx wodin`.** `wodin` on npm is an unrelated package owned by someone
-  else, so that command would run a stranger's code. Use `node cli/wodin.mjs` from a clone.
-  Publishing would need a scoped name like `@beachmonkey-ai/wodin`, which is Odin's call.
+- **There is no published npm package.** `package.json` is `private: true` and was never
+  published, so never write `npx wodin` in docs — that name on npm belongs to an unrelated
+  package and would run someone else's code. Every documented command is `node cli/wodin.mjs`
+  from a clone.
 
 - **Odin's taxonomy is load-bearing.** A **set** is one prescription row (`Set 1`, `Set 2`);
   an **exercise** is the movement containing them. The athlete's note attaches to the
