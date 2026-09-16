@@ -204,7 +204,7 @@ function seedState() {
   }));
   return {
     elapsed: 0, running: false, startedAt: null,
-    rpe: '', summary: '',
+    rpe: '', summary: '', duration: '',
     skipped: [], sets, notes: {}, rpes: {}, added: {}
   };
 }
@@ -292,18 +292,21 @@ function renderWorkout() {
     ${(sec.exercises || []).map(renderEx).join('')}
   `).join('');
 
-  const rpeGhost = WOD.targetRpe ? `Rx ${WOD.targetRpe}` : '—';
+  // Both closing controls carry their own label — the placeholder on one, the
+  // empty option on the other — so neither needs a caption above it.
+  const sessionRpe = S.rpe ?? '';
+  const rpeGhost = WOD.targetRpe ? ` · Rx ${WOD.targetRpe}` : '';
   const close = `
     <section class="close">
       <div class="close-grid">
-        <div>
-          <span class="fl">Duration <b>from timer</b></span>
-          ${field({ id: 'f-duration', val: S.elapsed ? clock(S.elapsed) : '', unit: '', ph: '—', mode: 'numeric' })}
-        </div>
-        <div>
-          <span class="fl">Session RPE <b>optional</b></span>
-          ${field({ id: 'f-rpe', val: S.rpe, unit: '/10', ph: rpeGhost, mode: 'numeric' })}
-        </div>
+        ${field({ id: 'f-duration', val: S.duration || (S.elapsed ? clock(S.elapsed) : ''),
+                  unit: 'hh:mm:ss', ph: 'Duration', mode: 'numeric', cls: 'pill-field' })}
+        <select class="pill-rpe ${sessionRpe === '' ? '' : 'set'}" id="f-rpe"
+                aria-label="Session RPE, 1 to 10">
+          <option value="">Session RPE${rpeGhost}</option>
+          ${[1,2,3,4,5,6,7,8,9,10].map(n =>
+            `<option value="${n}" ${String(sessionRpe) === String(n) ? 'selected' : ''}>Session RPE ${n}</option>`).join('')}
+        </select>
       </div>
       <div class="block">
         <span class="fl">How it went</span>
@@ -555,9 +558,11 @@ function bind() {
     const id = el.id || '';
     if (id === 'pasteInput') return;
 
-    if (id === 'f-rpe')      { S.rpe = el.value; return save(); }
     if (id === 'f-summary')  { S.summary = el.value; return save(); }
-    if (id === 'f-duration') return save();
+    // Duration has to live in state, not just the DOM: any re-render rebuilds
+    // this field, and a typed value that only existed in the input was lost the
+    // moment the athlete tapped a pill.
+    if (id === 'f-duration') { S.duration = el.value; return save(); }
 
     if (el.dataset && el.dataset.note) { S.notes[el.dataset.note] = el.value; return save(); }
 
@@ -641,6 +646,14 @@ function bind() {
   });
 
   app.addEventListener('change', e => {
+    if (e.target.id === 'f-rpe') {
+      S.rpe = e.target.value;
+      // Deliberately no re-render: the select shows its own choice, and
+      // rebuilding the section here would fight whatever is being typed below.
+      e.target.classList.toggle('set', e.target.value !== '');
+      return save();
+    }
+
     const rated = e.target.dataset && e.target.dataset.rpe;
     if (rated) {
       // Clearing it removes the key entirely: unrated and "felt easy" are
