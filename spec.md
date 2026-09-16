@@ -104,7 +104,7 @@ without the link. That matters more than it sounds: an installed PWA launches it
 `start_url`, not the URL you installed from, so a fragment-only design would open to nothing.
 The home screen is that library.
 
-Alternatives, same schema: commit `wods/<date>.json` and link `?d=<date>`; or `wodin serve`
+Alternatives, same schema: commit `wods/<date>.json` and link `?d=<date>`; or `node cli/wodin.mjs serve`
 for a local page with a real POST.
 
 ## Coming back
@@ -132,7 +132,7 @@ STRENGTH
                      ↳ Added a little bounce on the last two reps
 ```
 
-`wodin parse` converts it back, so the two formats are equivalent rather than one being a
+`node cli/wodin.mjs parse` converts it back, so the two formats are equivalent rather than one being a
 lossy shortcut. The digest identifies exercises by name; the JSON keeps exact ids.
 
 ## Offline

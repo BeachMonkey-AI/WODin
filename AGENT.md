@@ -150,8 +150,10 @@ https://beachmonkey-ai.github.io/WODin/#w=<deflate-raw, then base64url>
 ```
 
 ```bash
-npx wodin link wod.json        # prints the URL
+node cli/wodin.mjs link wod.json   # from a clone; prints the URL
 ```
+
+There is no published npm package — `npx wodin` would run an unrelated package of that name.
 
 Or by hand in Node:
 
@@ -167,7 +169,7 @@ A fragment never leaves the browser — GitHub never sees the workout. Typical p
 around 1–1.5 KB of URL. Nobody types it; you send it.
 
 **Alternatives.** Commit `wods/<date>.json` to a deploy and link `?d=<date>`. Or run
-`npx wodin serve wod.json` for a local page on your own machine and LAN.
+`node cli/wodin.mjs serve wod.json` for a local page on your own machine and LAN.
 
 Once opened, the workout is saved on the device and reachable from the app's home screen
 without the link. The page works fully offline after first load — which is the point, since
@@ -201,7 +203,7 @@ SKIPPED  Dead hang
 Summary: Felt good. Row splits consistent.
 ```
 
-Read it directly, or normalise it: `npx wodin parse result.txt` emits canonical JSON.
+Read it directly, or normalise it: `node cli/wodin.mjs parse result.txt` emits canonical JSON.
 
 ### The JSON — when you want structure
 
@@ -349,7 +351,7 @@ headers are dropped — no-cors forbids them.
 
 ### Or skip HTTP entirely
 
-If you run on the same machine or LAN as the athlete, `npx wodin serve` hosts the page and
+If you run on the same machine or LAN as the athlete, `node cli/wodin.mjs serve` hosts the page and
 accepts the POST same-origin — no CORS, no endpoint, no proxy — writing
 `logs/<workoutId>.json` for you to watch.
 
@@ -365,10 +367,8 @@ Write the next `wod.json`, send the next link.
 
 ## Using it from a specific environment
 
-- **Any agent with a shell** — `npx wodin link|render|serve|parse`. Nothing to install
-  beyond the package.
-- **MCP** — `mcp/server.mjs` exposes `wod_link`, `wod_render` and `wod_read_result` over the
-  same core. Optional; the CLI and the schemas are the real interface.
+- **Any agent with a shell** — clone the repo and run `node cli/wodin.mjs link|render|serve|parse`.
+  No dependencies to install.
 - **No shell at all** — write the JSON, base64url it into `#wj=`, hand over the link, and
   read the digest the athlete pastes back. That path needs no tooling whatsoever.
 

@@ -4,7 +4,6 @@
   "description": "Hand a structured workout to a human, get back what they actually did. An agent-agnostic protocol plus a phone-first logging PWA.",
   "private": true,
   "type": "module",
-  "bin": { "wodin": "cli/wodin.mjs" },
   "scripts": {
     "gen-icons": "node scripts/gen-icons.mjs",
     "build": "node scripts/build.mjs",

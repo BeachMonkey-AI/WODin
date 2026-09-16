@@ -14,6 +14,11 @@
 
 ## Things that aren't obvious from the code
 
+- **There is no published npm package.** `package.json` is `private: true` and was never
+  published, so never write `npx wodin` in docs — that name on npm belongs to an unrelated
+  package and would run someone else's code. Every documented command is `node cli/wodin.mjs`
+  from a clone.
+
 - **Odin's taxonomy is load-bearing.** A **set** is one prescription row (`Set 1`, `Set 2`);
   an **exercise** is the movement containing them. The athlete's note attaches to the
   *exercise*, one per movement. This was gotten wrong once — an earlier pass put notes on

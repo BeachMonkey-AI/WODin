@@ -29,8 +29,9 @@ out of the plumbing, so OpenClaw, GrokBot, Claude or anything else can drive it.
 ## Use it in 30 seconds
 
 ```bash
-npx wodin link examples/routine-2-back-biceps.json
-# → https://beachmonkey-ai.github.io/WODin/#w=dZFNT8MwDIb...
+git clone https://github.com/BeachMonkey-AI/WODin && cd WODin
+node cli/wodin.mjs link examples/routine-2-back-biceps.json
+# → https://beachmonkey-ai.github.io/WODin/#w=zZbNbuM2EMdf...
 ```
 
 Send that link. That's the whole integration.
@@ -64,12 +65,15 @@ actually needs:
 Zero dependencies — node's own `zlib` and `http`.
 
 ```bash
-wodin link     wod.json [--base URL]    # shareable #w= URL — the phone path
-wodin render   wod.json [-o out.html]   # self-contained single file
-wodin serve    [wod.json] [--port N]    # localhost + LAN; POST /submit → logs/
-wodin parse    <file|->                 # digest or JSON → canonical result JSON
-wodin validate wod.json ...             # structural check
+node cli/wodin.mjs link     wod.json [--base URL]   # shareable #w= URL — the phone path
+node cli/wodin.mjs render   wod.json [-o out.html]  # self-contained single file
+node cli/wodin.mjs serve    [wod.json] [--port N]   # localhost + LAN; POST /submit → logs/
+node cli/wodin.mjs parse    <file|->               # digest or JSON → canonical result JSON
+node cli/wodin.mjs validate wod.json ...           # structural check
 ```
+
+Run it from a clone. There is no published npm package, and `npx wodin` would fetch an
+unrelated package of that name owned by someone else.
 
 `serve` is the tightest loop when the agent and the athlete share a machine or a wifi
 network: a real Submit button, writing `logs/<workoutId>.json` where the agent can watch.
@@ -106,12 +110,12 @@ at either location with no base-path parameter.
 ```
 AGENT.md              the protocol, written for an agent to read
 schema/               wod + result JSON Schemas
-examples/             a real workout, and the smallest valid one
+examples/             a real workout, two contrasting athletes, the smallest valid plan
 index.html            app shell
 src/                  main.js, app.css, icons.js
-styles/tokens.css     design tokens
-public/               manifest, service worker, icon source
+styles/               design tokens, self-hosted font faces
+public/               manifest, service worker, icon source, font files
 cli/wodin.mjs         link | render | serve | parse | validate
 design/prototype.html the layout pass this app was built from
-scripts/              build + icon generation
+scripts/              build, icon generation, font fetch
 ```
