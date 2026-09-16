@@ -50,6 +50,13 @@
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
 
+    "exerciseRpe": {
+      "type": "object",
+      "description": "How hard each movement felt, keyed by exercise id, 1–10. Separate from the session-level `rpe`: a workout can average out at 7 while one lift was a 9, and that difference is what tells you which movement to move next time. Only exercises the athlete actually rated appear — an absent key means unrated, never easy.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
+      "additionalProperties": { "type": "number", "minimum": 1, "maximum": 10 }
+    },
+
     "skipped": {
       "type": "array",
       "description": "Exercise ids the athlete marked Skip. Their sets are absent from log.",
