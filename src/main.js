@@ -13,7 +13,7 @@ import { ICON } from './icons.js';
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = '64ae145d';
+const BUILD = '85a13fba';
 const REPO = 'https://github.com/BeachMonkey-AI/WODin';
 
 // Shown on every view. The repo link is the answer to "what is this thing and can
