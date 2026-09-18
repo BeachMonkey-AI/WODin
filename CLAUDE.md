@@ -53,6 +53,14 @@
 - **`sink.mode: "blind"`** exists so an endpoint that knows nothing about CORS still works
   with zero server changes — no-cors POST, no preflight, opaque response. The UI must keep
   saying "delivery not confirmed"; never report success from a response we can't read.
+- **The manifest carries no `orientation` lock.** It briefly had `"orientation":
+  "portrait"`. Installed (standalone) apps honor that lock; a browser tab never
+  does. On a wide/unfolded dual-screen phone that meant the installed PWA was
+  held to a narrow portrait viewport while the same page in a browser tab spanned
+  the full width — so the wide-viewport `--ui-scale` steps in `src/app.css` never
+  matched in the installed app even though they matched in the tab. Don't
+  reintroduce an orientation lock without checking it against that scaling.
+
 - **Never report a send failure we cannot observe.** A cors-mode `fetch` rejects identically
   whether the request never left or it landed and the response merely omitted
   `Access-Control-Allow-Origin` — a very common server-side miss, since people set it on the
