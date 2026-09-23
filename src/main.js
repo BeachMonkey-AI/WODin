@@ -13,8 +13,18 @@ import { ICON } from './icons.js';
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = '85a13fba';
+const BUILD = '4f9f6afc';
 const REPO = 'https://github.com/BeachMonkey-AI/WODin';
+
+// Index 0 = RPE 1. Both RPE dropdowns list 10 down to 1 — the top of the
+// effort scale is the one an athlete reaches for after a hard set, so it
+// shouldn't cost a scroll — and each option carries this anchor so "7"
+// means the same thing to everyone tapping it, not just whoever wrote the plan.
+const RPE_DESC = ['Minimal effort', 'Very light', 'Light', 'Fairly light', 'Moderate',
+  'Somewhat hard', 'Hard', 'Very hard', 'Near max', 'Max effort'];
+const rpeOptions = (label, current) => [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(n =>
+  `<option value="${n}" ${String(current) === String(n) ? 'selected' : ''}>${label} ${n} — ${RPE_DESC[n - 1]}</option>`
+).join('');
 
 // Shown on every view. The repo link is the answer to "what is this thing and can
 // I run my own?", which a workout arriving by link from a stranger's agent ought
@@ -300,12 +310,11 @@ function renderWorkout() {
     <section class="close">
       <div class="close-grid">
         ${field({ id: 'f-duration', val: S.duration || (S.elapsed ? clock(S.elapsed) : ''),
-                  unit: 'hh:mm:ss', ph: 'Duration', mode: 'numeric', cls: 'pill-field' })}
+                  unit: 'hh:mm:ss', ph: 'Duration', mode: 'text', cls: 'pill-field' })}
         <select class="pill-rpe ${sessionRpe === '' ? '' : 'set'}" id="f-rpe"
                 aria-label="Session RPE, 1 to 10">
           <option value="">Session RPE${rpeGhost}</option>
-          ${[1,2,3,4,5,6,7,8,9,10].map(n =>
-            `<option value="${n}" ${String(sessionRpe) === String(n) ? 'selected' : ''}>Session RPE ${n}</option>`).join('')}
+          ${rpeOptions('Session RPE', sessionRpe)}
         </select>
       </div>
       <div class="block">
@@ -339,8 +348,7 @@ function renderEx(ex) {
         <select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${ex.id}"
                 aria-label="How hard ${esc(ex.movement.toLowerCase())} felt, 1 to 10">
           <option value="">RPE</option>
-          ${[1,2,3,4,5,6,7,8,9,10].map(n =>
-            `<option value="${n}" ${String(rpe) === String(n) ? 'selected' : ''}>RPE ${n}</option>`).join('')}
+          ${rpeOptions('RPE', rpe)}
         </select>
         <button class="pill" type="button" data-opennote="${ex.id}" ${noteOpen ? 'hidden' : ''}>+ note</button>
         <button class="pill" type="button" data-add="${ex.id}">+ set</button>
@@ -368,16 +376,16 @@ function renderSet(ex, set, n, reserveDelCol) {
   } else if (kind === 'reps') {
     mid = field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' });
   } else if (kind === 'time') {
-    mid = field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'numeric' });
+    mid = field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'text' });
   } else if (kind === 'carry') {
     mid = field({ id: k + '-load', val: v.load, unit: unitOf('load') })
         + `<span class="times">×</span>`
         + field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' })
         + field({ id: k + '-distance', val: v.distance, unit: dUnit });
   } else if (kind === 'cardio') {
-    mid = field({ id: k + '-pace', val: v.pace, unit: paceUnit(set.pace), ph: '0:00', mode: 'numeric' })
+    mid = field({ id: k + '-pace', val: v.pace, unit: paceUnit(set.pace), ph: '0:00', mode: 'text' })
         + field({ id: k + '-distance', val: v.distance, unit: dUnit })
-        + field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'numeric' });
+        + field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'text' });
   }
 
   // Only added sets can be removed — a prescribed set is part of the plan and stays

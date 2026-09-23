@@ -293,7 +293,7 @@ h2 {
   border: 0; border-radius: 999px;
   background: transparent; color: var(--faint);
   box-shadow: inset 0 0 0 1px var(--line);
-  font: inherit; font-size: 13px;
+  font: inherit; font-size: 11.5px;
   cursor: pointer;
   -webkit-appearance: none; appearance: none;
 }
@@ -335,6 +335,10 @@ h2 {
   padding: 0 14px;
   font-size: 16px;
 }
+/* The 16px above is the select's own closed-state size, load-bearing for the
+   iOS zoom guard above — but the open dropdown's option list isn't a focus
+   target itself, so it can run smaller without bringing that bug back. */
+.close-grid .pill-rpe option { font-size: 14.5px; }
 .field.pill-field input {
   padding: 0 calc(var(--uw, 2ch) + 22px) 0 14px;
   border-radius: 999px;
