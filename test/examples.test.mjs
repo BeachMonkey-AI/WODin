@@ -104,7 +104,8 @@ test('the example set is small: every section is a lesson', () => {
   assert.ok(S.length >= 9 && S.length <= 12, `${S.length} sections`);
 });
 
-const agentMd = readFileSync(new URL('AGENT.md', root), 'utf8');
+// Windows checkouts (core.autocrlf) hand back CRLF; the fences below are matched on \n.
+const agentMd = readFileSync(new URL('AGENT.md', root), 'utf8').replace(/\r\n/g, '\n');
 
 test('AGENT.md references only examples that exist, and none that were dropped', () => {
   const named = [...agentMd.matchAll(/\b(Diane|Helen|Cindy|Nicole|Linda|Barbara|Murph|Angie)\b/g)].map(m => m[1]);
