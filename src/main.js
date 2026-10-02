@@ -25,7 +25,7 @@ import {
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = '390271a9';
+const BUILD = '92e022da';
 const REPO = 'https://github.com/BeachMonkey-AI/WODin';
 
 // Index 0 = RPE 1. Both RPE dropdowns list 10 down to 1 — the top of the
