@@ -216,11 +216,11 @@ which pauses every running clock — writes the time into the box, seconds floor
 
 ### Typing times
 
-Time fields that write their own colons — set and round-movement `duration` and `pace`,
-and the time score — take the digit keypad: `841` becomes `8:41` as it is typed, `12542`
-becomes `1:25:42`, and a pace stops at `m:ss`. They use `inputmode="numeric"`. The session
-duration does not auto-format (the timer fills it, the athlete edits it freely), so it keeps
-`inputmode="text"`, which on Android is the keyboard with a colon.
+Time fields that write their own colons — the session duration, set and round-movement
+`duration` and `pace`, and the time score — take the digit keypad: `841` becomes `8:41`
+as it is typed, `12542` becomes `1:25:42`, and a pace stops at `m:ss`. They use
+`inputmode="numeric"`. The value stays the same `h:mm:ss` / `m:ss` string; the timer
+still fills the session duration, and an already-stored value shows as it was saved.
 
 ### What the result adds
 

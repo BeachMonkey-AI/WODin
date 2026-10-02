@@ -101,9 +101,11 @@
 - **Time inputs: auto-format ⇒ `inputmode="numeric"`, otherwise `"text"`.** 60483d8 moved
   time fields to text so Android shows a colon key. Fields in `AUTO_FORMAT_FIELDS`
   (`duration`, `pace`, `score-time`) insert their own colons via `fmtTimeDigits` /
-  `fmtPaceDigits` and want the digit pad; the session `f-duration` doesn't auto-format and
-  stays text. main.js derives both the mode (`timeMode`) and the formatter
-  (`timeFormatterFor`) from that one list, so don't hard-code `mode` on a time field.
+  `fmtPaceDigits` and want the digit pad - that includes the session `f-duration`
+  (key `duration`; the page timer still fills it with a plain clock string, which the
+  formatter leaves alone). Nothing time-like is left as an exception. main.js derives
+  both the mode (`timeMode`) and the formatter (`timeFormatterFor`) from that one list,
+  so don't hard-code `mode` on a time field.
 - **The section stopwatch is computed from timestamps, never ticks.** `sections[id].timer`
   is `{ running, startedAt, accMs }`, persisted with the log; elapsed is `timerElapsedMs`
   against `Date.now()` on every repaint, so reload / background / phone sleep lose nothing.

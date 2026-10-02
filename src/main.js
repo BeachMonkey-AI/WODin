@@ -370,7 +370,7 @@ function renderWorkout() {
     <section class="close">
       <div class="close-grid${askRpe ? '' : ' one'}">
         ${field({ id: 'f-duration', val: S.duration || (S.elapsed ? clock(S.elapsed) : ''),
-                  unit: 'hh:mm:ss', ph: 'Duration', mode: 'text', cls: 'pill-field' })}
+                  unit: 'hh:mm:ss', ph: 'Duration', mode: timeMode('duration'), cls: 'pill-field' })}
         ${askRpe ? `<select class="pill-rpe ${sessionRpe === '' ? '' : 'set'}" id="f-rpe"
                 aria-label="Session RPE, 1 to 10">
           <option value="">Session RPE${rpeGhost}</option>
@@ -875,8 +875,10 @@ function bind() {
     if (id === 'f-summary')  { S.summary = el.value; return save(); }
     // Duration has to live in state, not just the DOM: any re-render rebuilds
     // this field, and a typed value that only existed in the input was lost the
-    // moment the athlete tapped a pill.
-    if (id === 'f-duration') { S.duration = el.value; return save(); }
+    // moment the athlete tapped a pill. Typed like every other time box: digits
+    // only, colons inserted as it goes ("841" -> "8:41"); the stored string is
+    // the same h:mm:ss / m:ss text as ever.
+    if (id === 'f-duration') { S.duration = keypadTime(el, 'duration'); return save(); }
 
     if (el.dataset && el.dataset.note) { S.notes[el.dataset.note] = el.value; return save(); }
 
