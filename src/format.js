@@ -94,8 +94,9 @@ export function fmtPaceDigits(raw) {
  * commit 60483d8 moved time fields to inputmode="text" because Android's
  * numeric keypad has no colon key, but a field that writes its own colons
  * never needs one, and the digit pad is the faster keyboard at the rack.
- * The session duration (f-duration) does NOT auto-format — the page timer
- * fills it and the athlete edits it freely — so it stays inputmode="text". */
+ * The session duration (f-duration) is one of them, under the key 'duration':
+ * the page timer still fills it with a plain clock string, which the formatter
+ * leaves as it is, and typing in it gets the same digit pad and auto colons. */
 export const AUTO_FORMAT_FIELDS = ['duration', 'pace', 'score-time'];
 export const isAutoFormatField = prop => AUTO_FORMAT_FIELDS.includes(prop);
 
