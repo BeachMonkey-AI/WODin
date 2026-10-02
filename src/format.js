@@ -132,7 +132,7 @@ export const isAmrap = sec => sec?.format?.type === 'amrap';
 
 // Formats whose exercises become rounds when format.rounds says how many. A
 // tabata or EMOM is the same short list done N times, so writing N rounds by
-// hand would be pure repetition. Chippers (for_time + exercises: Angie, Murph)
+// hand would be pure repetition. Chippers (for_time + exercises, e.g. Murph)
 // and intervals stay exercise-based: their sets are the record.
 const DERIVED_FORMATS = ['tabata', 'emom'];
 

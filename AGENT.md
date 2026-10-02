@@ -659,11 +659,13 @@ const url = `https://beachmonkey-ai.github.io/WODin/#w=${frag}`;
 
 No compression available? Use `#wj=` with plain base64url JSON instead. Both are accepted.
 
-A fragment never leaves the browser — GitHub never sees the workout. Typical plan lands
-around 1–1.5 KB of URL. Nobody types it; you send it.
+A fragment never leaves the browser — GitHub never sees the workout. Measured link
+lengths run from about 0.5 KB (the smallest plan) to about 2 KB (the twelve-section
+`format-test.json`). Nobody types it; you send it.
 
 **Alternatives.** Commit `wods/<date>.json` to a deploy and link `?d=<date>`. Or run
-`node cli/wodin.mjs serve wod.json` for a local page on your own machine and LAN.
+`node cli/wodin.mjs serve wod.json` for a local page on your own machine and LAN; it only
+accepts a result if the plan carries `"sink": {"type":"post","url":"/submit"}` (see 3b).
 
 Once opened, the workout is saved on the device and reachable from the app's home screen
 without the link. The page works fully offline after first load — which is the point, since
@@ -690,14 +692,16 @@ STRENGTH
   Curl-bar curl      25×10, 25×15
 
 FINISHER
-  Row 500m           2:00 pace / 500m / 1:58
+  Row                2:00 pace / 500m / 1:58
 
 SKIPPED  Dead hang
 
 Summary: Felt good. Row splits consistent.
 ```
 
-Read it directly, or normalise it: `node cli/wodin.mjs parse result.txt` emits canonical JSON.
+Read it directly. `node cli/wodin.mjs parse result.txt` gives a best-effort summary, not
+canonical result JSON: `log` is keyed by movement name with the raw entry text. When you
+need exact ids, `exerciseRpe` or per-section scores, use the JSON.
 
 ### The JSON — when you want structure
 
@@ -853,7 +857,10 @@ headers are dropped — no-cors forbids them.
 
 If you run on the same machine or LAN as the athlete, `node cli/wodin.mjs serve` hosts the page and
 accepts the POST same-origin — no CORS, no endpoint, no proxy — writing
-`logs/<workoutId>.json` for you to watch.
+`logs/<workoutId>.json` for you to watch (`--out DIR` to change it, default port 5173). `serve`
+never adds a sink itself, so the plan must carry one pointing at it:
+`"sink": {"type":"post","url":"/submit"}`. Without that, the page offers only Share, Copy
+and Download.
 
 ## 4. Then do your job
 
