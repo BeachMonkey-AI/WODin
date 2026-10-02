@@ -1,7 +1,7 @@
 /* App service worker — stale-while-revalidate for the shell, network-first for everything else.
  * CACHE name is bumped by scripts/build.mjs from a content hash on every build.
  */
-const CACHE = 'app-4f9f6afc';
+const CACHE = 'app-4b2d2da8';
 // Relative to this script's own location, so this works unmodified whether it's
 // deployed at / (prod) or /preview/pr-<N>/ — self.location gives that automatically.
 //
@@ -14,6 +14,7 @@ const SHELL = [
   'manifest.webmanifest',
   'src/main.js',
   'src/icons.js',
+  'src/format.js',
   'src/app.css',
   'styles/tokens.css',
   'styles/fonts.css',
