@@ -2,10 +2,11 @@
   "schema": "wodin/wod@1",
   "workoutId": "2026-10-01-format-test",
   "date": "2026-10-01",
-  "title": "FORMAT TEST",
+  "title": "FORMAT TEST — not a real session",
+  "athleteTitle": "WODin format preview",
   "program": "Schema preview · examples A–O",
-  "coach": "WODin",
-  "coachNote": "A fixture, not a session: one block per workout shape in the format/rounds proposal, so every header, round tree, scaling pill and score box can be checked on one page.",
+  "coach": "format-preview (TEST data)",
+  "coachNote": "TEST WORKOUT — not a real session. Example numbers only, not a prescription. No sink: nothing is sent anywhere. One block per workout shape in the format/rounds proposal (A–O), so every header, round tree, scaling pill and score box can be checked on one page.",
   "units": {
     "load": "lb",
     "distance": "m"
@@ -70,7 +71,7 @@
       ]
     },
     {
-      "name": "E · EMOM",
+      "name": "E · EMOM, single movement",
       "type": "strength",
       "format": { "type": "emom", "rounds": 6, "intervalSec": 60, "score": "none" },
       "exercises": [
@@ -82,7 +83,7 @@
       ]
     },
     {
-      "name": "F · EMOM pair",
+      "name": "F · EMOM, alternating pair",
       "type": "conditioning",
       "format": { "type": "emom", "rounds": 10, "intervalSec": 60 },
       "exercises": [
@@ -101,7 +102,7 @@
       ]
     },
     {
-      "name": "G · Diane",
+      "name": "G · For time, per-round reps — Diane",
       "type": "conditioning",
       "format": { "type": "for_time", "score": "time" },
       "optional": [
@@ -122,7 +123,7 @@
       ]
     },
     {
-      "name": "H · Helen",
+      "name": "H · For time, mixed kinds — Helen",
       "type": "conditioning",
       "format": { "type": "for_time", "capSec": 900, "score": "time" },
       "optional": [
@@ -141,7 +142,7 @@
       ]
     },
     {
-      "name": "I · Cindy",
+      "name": "I · AMRAP — Cindy",
       "type": "conditioning",
       "format": { "type": "amrap", "capSec": 1200, "score": "rounds_reps" },
       "rounds": [
@@ -155,7 +156,7 @@
       ]
     },
     {
-      "name": "J · Angie",
+      "name": "J · Chipper — Angie",
       "type": "conditioning",
       "format": { "type": "for_time", "score": "time" },
       "exercises": [
@@ -166,7 +167,7 @@
       ]
     },
     {
-      "name": "K · Barbara",
+      "name": "K · Rounds with rest — Barbara",
       "type": "conditioning",
       "format": { "type": "for_time", "rounds": 5, "restSec": 180, "score": "time" },
       "rounds": [
@@ -181,7 +182,7 @@
       ]
     },
     {
-      "name": "L · Accessory circuit",
+      "name": "L · Circuit",
       "type": "accessory",
       "format": { "type": "circuit", "rounds": 3 },
       "rounds": [
@@ -194,7 +195,7 @@
       ]
     },
     {
-      "name": "M · Linda",
+      "name": "M · Bodyweight-multiple load — Linda",
       "type": "conditioning",
       "format": { "type": "for_time", "score": "time" },
       "rounds": [
@@ -211,7 +212,7 @@
       ]
     },
     {
-      "name": "N · Nicole",
+      "name": "N · Total-reps score — Nicole",
       "type": "conditioning",
       "format": { "type": "amrap", "capSec": 1200, "score": "total_reps" },
       "rounds": [
@@ -224,7 +225,7 @@
       ]
     },
     {
-      "name": "O · Murph",
+      "name": "O · Optional modifier — Murph",
       "type": "conditioning",
       "format": { "type": "for_time", "score": "time" },
       "modifiers": [

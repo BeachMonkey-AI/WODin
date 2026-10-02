@@ -351,6 +351,81 @@ export function togglePill(secState, group, id) {
   return { ...secState, [group]: next };
 }
 
+/* ── page state helpers ──────────────────────────────────────── */
+
+/* Small, immutable edits main.js makes from its event handlers. They live here
+ * so the round check rule is applied in exactly one place and can be tested
+ * without a DOM; main.js only decides when to call them and when to re-render. */
+
+/** Ticks or unticks a whole round of a section's state. Out-of-range is a no-op. */
+export function checkRound(secState, i, done) {
+  if (!secState?.rounds?.[i]) return secState;
+  const rounds = secState.rounds.slice();
+  rounds[i] = setRoundDone(rounds[i], done);
+  return { ...secState, rounds };
+}
+
+/** Ticks or unticks one movement; the round follows via setMovementDone. */
+export function checkMovement(secState, i, j, done) {
+  if (!secState?.rounds?.[i]?.movements?.[j]) return secState;
+  const rounds = secState.rounds.slice();
+  rounds[i] = setMovementDone(rounds[i], j, done);
+  return { ...secState, rounds };
+}
+
+/** Records a typed value for one round movement (load, reps, distance, …). */
+export function setMovementValue(secState, i, j, prop, value) {
+  const m = secState?.rounds?.[i]?.movements?.[j];
+  if (!m) return secState;
+  const rounds = secState.rounds.slice();
+  const movements = rounds[i].movements.slice();
+  movements[j] = { ...m, [prop]: value };
+  rounds[i] = { ...rounds[i], movements };
+  return { ...secState, rounds };
+}
+
+/** Records one part of the score (time, rounds, reps, totalReps). */
+export function setScoreValue(secState, prop, value) {
+  return { ...secState, score: { ...(secState?.score || {}), [prop]: value } };
+}
+
+/**
+ * Whether round i is drawn expanded. An explicit tap (override true/false)
+ * wins; otherwise only the first round not yet done is open, so the page
+ * always lands on the round the athlete is about to do.
+ */
+export function roundIsOpen(roundStates, i, override) {
+  return typeof override === 'boolean' ? override : i === firstOpenRound(roundStates);
+}
+
+/**
+ * Splits "secId:2:1" into ["secId", 2, 1]. Indices are taken from the END,
+ * because a section id comes from the plan and may itself contain a colon.
+ * `count` is how many trailing integers to expect. Null when malformed.
+ */
+export function splitRef(ref, count) {
+  const parts = String(ref ?? '').split(':');
+  if (parts.length < count + 1) return null;
+  const nums = parts.splice(parts.length - count).map(Number);
+  if (nums.some(n => !Number.isInteger(n) || n < 0)) return null;
+  const id = parts.join(':');
+  return id ? [id, ...nums] : null;
+}
+
+/** "Repeat for 20 min" under an AMRAP's template round, or null with no cap. */
+export function repeatCaption(section) {
+  const cap = section?.format?.capSec;
+  if (!isPosNum(cap)) return null;
+  return `Repeat for ${cap % 60 === 0 ? `${cap / 60} min` : fmtClock(cap)}`;
+}
+
+/** A read-only prescription for the AMRAP template: prescriptionText, with
+ *  "reps" spelled out where a bare number would be ambiguous. */
+export function rxText(m, units) {
+  const t = prescriptionText(m, units);
+  return m.kind === 'reps' && /^\d+$/.test(t) ? `${t} reps` : t;
+}
+
 /* ── result ──────────────────────────────────────────────────── */
 
 /** "8:41" or "841" (a numeric keypad has no colon) → "8:41". */

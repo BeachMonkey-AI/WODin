@@ -9,6 +9,15 @@
  */
 
 import { ICON } from './icons.js';
+// Every rule about formats and rounds lives in format.js, shared with the CLI
+// and the tests; this file only draws it and routes events into it.
+import {
+  describeFormat, expandRounds, isRoundsSection, isAmrap, scoreOf, scoreLabel,
+  hasBlockFooter, usesFormatFeatures, formatBwMult, describePartition, roundSummary,
+  fmtSpan, roundDone, seedSectionState, togglePill, checkRound, checkMovement,
+  setMovementValue, setScoreValue, roundIsOpen, splitRef, repeatCaption, rxText,
+  withSections, sectionNotesAndRpe, digestSectionLines
+} from './format.js';
 
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
@@ -186,6 +195,9 @@ function fmtTime(raw) {
 let WOD = null;
 let S = null;
 const openNotes = new Set();
+// "<secId>:<n>" → expanded or not, for rounds the athlete has tapped open or
+// shut. Session-only on purpose: a reload should land on the round to do next.
+const openRounds = new Map();
 let tick = null;
 let pendingRemove = null;   // library entry awaiting its inline confirm
 
@@ -215,15 +227,31 @@ function seedState() {
   return {
     elapsed: 0, running: false, startedAt: null,
     rpe: '', summary: '', duration: '',
-    skipped: [], sets, notes: {}, rpes: {}, added: {}
+    skipped: [], sets, notes: {}, rpes: {}, added: {},
+    sections: seedSections(null)
   };
+}
+
+// Score, scaling pills and round ticks for every section that has any of them,
+// keyed by section id. A log saved before formats existed has no `sections`
+// and simply gets fresh ones.
+function seedSections(saved) {
+  const out = {};
+  (WOD.sections || []).filter(usesFormatFeatures).forEach(sec => {
+    out[sec.id] = seedSectionState(sec, saved && saved[sec.id]);
+  });
+  return out;
 }
 
 function loadState() {
   const fresh = seedState();
   const saved = readJSON(logKey(WOD.workoutId), null);
   if (!saved) return fresh;
-  const merged = { ...fresh, ...saved, sets: { ...fresh.sets, ...(saved.sets || {}) } };
+  const merged = {
+    ...fresh, ...saved,
+    sets: { ...fresh.sets, ...(saved.sets || {}) },
+    sections: seedSections(saved.sections)
+  };
   // An older build stored added sets as a count; carry those over as ids.
   Object.keys(merged.added).forEach(ex => {
     if (typeof merged.added[ex] === 'number') {
@@ -250,15 +278,51 @@ function seedAdded() {
   }));
 }
 
-function field({ id, val, unit, ph, mode, cls }) {
+// `attrs` is pre-escaped markup for data-* hooks; `label` overrides the
+// id-derived aria-label where the id is machine-shaped (round movements, score).
+function field({ id, val, unit, ph, mode, cls, attrs, label }) {
   const uw = Math.max(2, String(unit || '').length) + 'ch';
   return `<label class="field ${cls || ''}" style="--uw:${uw}">
-    <input id="${id}" value="${esc(val ?? '')}" placeholder="${esc(ph ?? '')}"
-           inputmode="${mode || 'decimal'}" autocomplete="off"
-           aria-label="${esc(id.replace(/[.\-]/g, ' '))}">
+    <input id="${esc(id)}" value="${esc(val ?? '')}" placeholder="${esc(ph ?? '')}"
+           inputmode="${mode || 'decimal'}" autocomplete="off" ${attrs || ''}
+           aria-label="${esc(label || id.replace(/[.\-]/g, ' '))}">
     <span class="unit">${esc(unit || '')}</span>
   </label>`;
 }
+
+/* The inputs for one kind of entry, shared by set rows and round movements so
+ * a round's kettlebell swing looks and types exactly like a set of them.
+ * `fid(prop)` names each input; `extra(prop)` adds its data-* hooks. */
+function kindFields(kind, v, { fid, extra = () => '', label = () => '', dUnit, pace, ph = {} }) {
+  const f = (prop, o) => field({ id: fid(prop), val: v[prop], attrs: extra(prop), label: label(prop), ...o });
+  if (kind === 'weight_reps') {
+    const bw = v.load === 'BW';
+    return f('load', { unit: bw ? '' : unitOf('load'), ph: unitOf('load'), cls: bw ? 'bw' : '' })
+      + `<span class="times">×</span>`
+      + f('reps', { unit: 'reps', mode: 'numeric', ph: ph.reps });
+  }
+  if (kind === 'reps') return f('reps', { unit: 'reps', mode: 'numeric', ph: ph.reps });
+  if (kind === 'time') return f('duration', { unit: 'mm:ss', ph: '0:00', mode: 'text' });
+  if (kind === 'carry') {
+    return f('load', { unit: unitOf('load') })
+      + `<span class="times">×</span>`
+      + f('reps', { unit: 'reps', mode: 'numeric', ph: ph.reps })
+      + f('distance', { unit: dUnit });
+  }
+  if (kind === 'cardio') {
+    return f('pace', { unit: paceUnit(pace), ph: '0:00', mode: 'text' })
+      + f('distance', { unit: dUnit })
+      + f('duration', { unit: 'mm:ss', ph: '0:00', mode: 'text' });
+  }
+  return '';
+}
+
+// "Partition as needed" and friends, under a movement name. Empty when unset.
+const partitionHint = p => {
+  const t = describePartition(p);
+  return t ? `<p class="part">${esc(t)}</p>` : '';
+};
+const bwChip = mult => mult == null ? '' : `<span class="bwx">${esc(formatBwMult(mult))}</span>`;
 
 /* ── render: workout ─────────────────────────────────────────── */
 
@@ -297,10 +361,7 @@ function renderWorkout() {
       </button>
     </div>`;
 
-  const body = (WOD.sections || []).map(sec => `
-    <div class="sec-head">${esc(sec.name)}</div>
-    ${(sec.exercises || []).map(renderEx).join('')}
-  `).join('');
+  const body = (WOD.sections || []).map(renderSection).join('');
 
   // Both closing controls carry their own label — the placeholder on one, the
   // empty option on the other — so neither needs a caption above it.
@@ -328,23 +389,216 @@ function renderWorkout() {
   $('app').innerHTML = head + body + close;
 }
 
-function renderEx(ex) {
+/* A section is: its rule, then (only when it has them) the format header and
+ * the scaling pills, then the body — rounds and/or exercises — then (only for
+ * scored or rounds-based blocks) one footer for the whole block. A plain
+ * section draws exactly what it always did. */
+function renderSection(sec) {
+  return `
+    <div class="sec-head">${esc(sec.name)}</div>
+    ${renderFormatHead(sec)}
+    ${renderScalePills(sec)}
+    ${isRoundsSection(sec) ? renderRounds(sec) : ''}
+    ${(sec.exercises || []).map(ex => renderEx(ex, sec)).join('')}
+    ${hasBlockFooter(sec) ? renderBlockFooter(sec) : ''}
+  `;
+}
+
+function renderFormatHead(sec) {
+  const d = describeFormat(sec);
+  if (!d) return '';
+  return `<div class="fmt">
+    <div class="fmt-eyebrow">${esc(d.eyebrow)}</div>
+    ${d.line ? `<p class="fmt-line">${esc(d.line)}</p>` : ''}
+  </div>`;
+}
+
+// optional[] is scaling down, modifiers[] is loading up; they look identical
+// because to the athlete both are "tick what you actually did".
+function renderScalePills(sec) {
+  const st = S.sections[sec.id];
+  const group = (key, caption) => {
+    const list = sec[key] || [];
+    if (!list.length || !st) return '';
+    return `<div class="scale">
+      <span class="scale-cap">${caption}</span>
+      <div class="scale-row">
+        ${list.map(o => {
+          const on = !!st[key][o.id];
+          return `<button class="spill ${on ? 'on' : ''}" type="button" aria-pressed="${on}"
+                          data-pill="${esc(key)}:${esc(o.id)}" data-sec="${esc(sec.id)}">${esc(o.label)}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  };
+  return group('optional', 'Scaling') + group('modifiers', 'Modifiers');
+}
+
+// A tag · cue line, plus the bodyweight-multiple chip, shared by exercises
+// and round movements.
+function cueLine(x, chip = '') {
+  if (!x.tag && !x.cue && !chip) return '';
+  const text = (x.tag ? `<span class="tag">${esc(x.tag)}</span>${x.cue ? ' · ' : ''}` : '') + esc(x.cue || '');
+  return `<p class="cue">${chip}${chip && text ? ' ' : ''}${text}</p>`;
+}
+
+/* ── rounds ── */
+
+function renderRounds(sec) {
+  if (isAmrap(sec)) return renderAmrap(sec);
+
+  const st = S.sections[sec.id];
+  const rounds = expandRounds(sec);
+  const states = st.rounds;
+  const f = sec.format || {};
+  const rest = (f.type === 'for_time' || f.type === 'circuit') && f.restSec > 0
+    ? `<div class="round-rest"><span>Rest ${esc(fmtSpan(f.restSec))}</span></div>` : '';
+
+  const blocks = rounds.map((r, i) => {
+    const rs = states[i] || { movements: [] };
+    const done = roundDone(rs);
+    const open = roundIsOpen(states, i, openRounds.get(sec.id + ':' + r.n));
+    const ref = esc(sec.id) + ':' + i;
+    return `<div class="round ${open ? 'open' : ''} ${done ? 'done' : ''}">
+      <div class="round-head">
+        <button class="round-toggle" type="button" data-round-toggle="${esc(sec.id)}:${r.n}"
+                aria-expanded="${open}">
+          <span class="dot"></span>
+          <span class="round-n">Round ${r.n}</span>
+          <span class="round-of">${r.n} of ${rounds.length}</span>
+        </button>
+        <label class="check">
+          <input type="checkbox" data-round-check="${ref}" ${done ? 'checked' : ''}
+                 aria-label="Round ${r.n} done">
+        </label>
+      </div>
+      ${open
+        ? `<div class="round-body">${r.movements.map((m, j) => renderMovement(sec, i, j, m, rs.movements[j] || {})).join('')}</div>`
+        : `<p class="round-sum">${esc(roundSummary(r, WOD.units))}</p>`}
+    </div>`;
+  });
+
+  return `<div class="rounds">
+    <div class="rounds-cap">Rounds</div>
+    ${blocks.join(rest)}
+  </div>`;
+}
+
+function renderMovement(sec, i, j, m, v) {
+  const ref = `${esc(sec.id)}:${i}:${j}`;
+  const fields = kindFields(m.kind, v, {
+    fid: prop => `rm-${sec.id}-${i}-${j}-${prop}`,
+    extra: prop => `data-rm="${ref}" data-prop="${prop}"`,
+    label: prop => `${m.movement}, round ${i + 1}, ${prop}`,
+    dUnit: m.distanceUnit || unitOf('distance'),
+    pace: m.pace,
+    ph: { reps: m.athleteFills === 'reps' && (m.reps == null || m.reps === '') ? 'max' : '' }
+  });
+  return `<div class="mv ${v.done ? 'done' : ''}">
+    <div class="mv-top">
+      <a class="mv-name" href="${esc(formLink(m))}" target="_blank" rel="noopener">${esc(m.movement)}${ICON.ext}</a>
+      <label class="check sm">
+        <input type="checkbox" data-mv-check="${ref}" ${v.done ? 'checked' : ''}
+               aria-label="${esc(m.movement)}, round ${i + 1}, done">
+      </label>
+    </div>
+    ${cueLine(m, bwChip(m.loadBwMult))}
+    ${partitionHint(m.partition)}
+    <div class="mv-fields k-${esc(m.kind)}">${fields}</div>
+  </div>`;
+}
+
+// AMRAP rounds are open-ended, so there is nothing to tick per round: the plan
+// is shown once as a read-only template and the score box takes the count.
+function renderAmrap(sec) {
+  const cap = repeatCaption(sec);
+  const rows = expandRounds(sec).flatMap(r => r.movements).map(m => `
+    <div class="mv rx">
+      <div class="mv-top">
+        <a class="mv-name" href="${esc(formLink(m))}" target="_blank" rel="noopener">${esc(m.movement)}${ICON.ext}</a>
+        <span class="mv-rx">${esc(rxText(m, WOD.units))}</span>
+      </div>
+      ${cueLine(m, bwChip(m.loadBwMult))}
+      ${partitionHint(m.partition)}
+    </div>`).join('');
+  return `<div class="rounds">
+    <div class="rounds-cap">Each round</div>
+    <div class="round open template"><div class="round-body">${rows}</div></div>
+    ${cap ? `<p class="round-cap">${esc(cap)}</p>` : ''}
+  </div>`;
+}
+
+/* ── block footer: score box, then RPE / note / + set for the whole block ── */
+
+function renderBlockFooter(sec) {
+  const st = S.sections[sec.id];
+  const type = scoreOf(sec);
+  const sc = st ? st.score : {};
+  const scoreField = (prop, unit, mode, ph) => field({
+    id: `score-${sec.id}-${prop}`, val: sc[prop], unit, ph, mode, cls: 'score-field',
+    attrs: `data-score="${esc(sec.id)}" data-prop="${prop}"`,
+    label: `${sec.name} result, ${unit}`
+  });
+
+  const inputs = type === 'time' ? scoreField('time', 'mm:ss', 'text', '0:00')
+    : type === 'rounds_reps' ? scoreField('rounds', 'rounds', 'numeric', '0') + scoreField('reps', 'reps', 'numeric', '0')
+    : type === 'total_reps' ? scoreField('totalReps', 'reps', 'numeric', '0')
+    : '';
+  const box = !type ? '' : `<div class="score">
+    <div class="score-cap">Result · ${esc(scoreLabel(type))}</div>
+    <div class="score-row ${type === 'rounds_reps' ? 'two' : ''}">${inputs}</div>
+  </div>`;
+
+  // "+ set" only makes sense when there is exactly one thing to add a set to.
+  const exs = sec.exercises || [];
+  const oneEx = !isRoundsSection(sec) && exs.length === 1 ? exs[0] : null;
+  const note = S.notes[sec.id] || '';
+  const noteOpen = !!note || openNotes.has(sec.id);
+  const rpe = S.rpes[sec.id] ?? '';
+
+  return `${box}
+    <div class="block-foot">
+      <div class="pills">
+        <select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${esc(sec.id)}"
+                aria-label="How hard ${esc(String(sec.name || 'this block').toLowerCase())} felt, 1 to 10">
+          <option value="">RPE</option>
+          ${rpeOptions('RPE', rpe)}
+        </select>
+        <button class="pill" type="button" data-opennote="${esc(sec.id)}" ${noteOpen ? 'hidden' : ''}>+ note</button>
+        ${oneEx ? `<button class="pill" type="button" data-add="${esc(oneEx.id)}">+ set</button>` : ''}
+      </div>
+      <div class="ex-note" data-noterow="${esc(sec.id)}" ${noteOpen ? '' : 'hidden'}>
+        <textarea id="note-${esc(sec.id)}" data-note="${esc(sec.id)}"
+                  placeholder="How this block went">${esc(note)}</textarea>
+      </div>
+    </div>`;
+}
+
+/* ── exercises ── */
+
+function renderEx(ex, sec) {
   const skipped = isSkipped(ex.id);
   const added = S.added[ex.id] || [];
   const rows = allSets(ex).map((set, i) => renderSet(ex, set, i + 1, added.length > 0));
   const note = S.notes[ex.id] || '';
   const noteOpen = !!note || openNotes.has(ex.id);
   const rpe = S.rpes[ex.id] ?? '';
+  // In a scored or rounds block, RPE and note belong to the block (see
+  // renderBlockFooter); rating each movement of one effort is noise.
+  const ownPills = !(sec && hasBlockFooter(sec));
+  const slot = sec?.format?.type === 'emom' && ex.intervalSlot
+    ? `<span class="slot" aria-label="Interval ${esc(ex.intervalSlot)}">${esc(ex.intervalSlot)}</span>` : '';
 
   return `<div class="ex ${skipped ? 'skipped' : ''}" data-ex="${ex.id}">
     <div class="ex-top">
-      <a class="ex-name" href="${esc(formLink(ex))}" target="_blank" rel="noopener">${esc(ex.movement)}${ICON.ext}</a>
+      ${slot}<a class="ex-name" href="${esc(formLink(ex))}" target="_blank" rel="noopener">${esc(ex.movement)}${ICON.ext}</a>
       <label class="skip"><input type="checkbox" data-skip="${ex.id}" ${skipped ? 'checked' : ''}>Skip</label>
     </div>
     ${(ex.tag || ex.cue) ? `<p class="cue">${ex.tag ? `<span class="tag">${esc(ex.tag)}</span> · ` : ''}${esc(ex.cue || '')}</p>` : ''}
+    ${partitionHint(ex.partition)}
     <div class="sets ${added.length ? 'has-added' : ''}">
       ${rows.join('')}
-      <div class="pills">
+      ${ownPills ? `<div class="pills">
         <select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${ex.id}"
                 aria-label="How hard ${esc(ex.movement.toLowerCase())} felt, 1 to 10">
           <option value="">RPE</option>
@@ -356,7 +610,7 @@ function renderEx(ex) {
       <div class="ex-note" data-noterow="${ex.id}" ${noteOpen ? '' : 'hidden'}>
         <textarea id="note-${ex.id}" data-note="${ex.id}"
                   placeholder="How ${esc(ex.movement.toLowerCase())} went">${esc(note)}</textarea>
-      </div>
+      </div>` : ''}
     </div>
   </div>`;
 }
@@ -367,26 +621,7 @@ function renderSet(ex, set, n, reserveDelCol) {
   const kind = set.kind || ex.kind || 'weight_reps';
   const dUnit = set.distanceUnit || unitOf('distance');
 
-  let mid = '';
-  if (kind === 'weight_reps') {
-    const bw = v.load === 'BW';
-    mid = field({ id: k + '-load', val: v.load, unit: bw ? '' : unitOf('load'), ph: unitOf('load'), cls: bw ? 'bw' : '' })
-        + `<span class="times">×</span>`
-        + field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' });
-  } else if (kind === 'reps') {
-    mid = field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' });
-  } else if (kind === 'time') {
-    mid = field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'text' });
-  } else if (kind === 'carry') {
-    mid = field({ id: k + '-load', val: v.load, unit: unitOf('load') })
-        + `<span class="times">×</span>`
-        + field({ id: k + '-reps', val: v.reps, unit: 'reps', mode: 'numeric' })
-        + field({ id: k + '-distance', val: v.distance, unit: dUnit });
-  } else if (kind === 'cardio') {
-    mid = field({ id: k + '-pace', val: v.pace, unit: paceUnit(set.pace), ph: '0:00', mode: 'text' })
-        + field({ id: k + '-distance', val: v.distance, unit: dUnit })
-        + field({ id: k + '-duration', val: v.duration, unit: 'mm:ss', ph: '0:00', mode: 'text' });
-  }
+  const mid = kindFields(kind, v, { fid: prop => k + '-' + prop, dUnit, pace: set.pace });
 
   // Only added sets can be removed — a prescribed set is part of the plan and stays
   // on the page; Skip is what records that it wasn't done.
@@ -396,7 +631,7 @@ function renderSet(ex, set, n, reserveDelCol) {
       : '<span></span>';
 
   return `<div class="set k-${kind}" data-set="${k}">
-    <span class="set-n ${set._added ? 'added' : ''}">Set ${n}</span>
+    <span class="set-n ${set._added ? 'added' : ''}">Set ${n}${set.loadBwMult != null ? bwChip(set.loadBwMult) : ''}</span>
     ${mid}
     ${del}
   </div>`;
@@ -548,6 +783,19 @@ function pasteLink() {
 
 /* ── events ──────────────────────────────────────────────────── */
 
+// Rewrites a time field as mm:ss while it is typed ("158" → "1:58") and keeps
+// the caret where the athlete left it. Returns the value to store.
+function keypadTime(el) {
+  const before = el.value, pos = el.selectionStart;
+  const val = fmtTime(before);
+  if (val !== before) {
+    el.value = val;
+    const shift = val.length - before.length;
+    el.setSelectionRange(pos + shift, pos + shift);
+  }
+  return val;
+}
+
 // Bound exactly once. #app survives every render — only its innerHTML is replaced —
 // so binding inside render() would stack a listener per render, and one click would
 // then fire every one of them.
@@ -574,20 +822,28 @@ function bind() {
 
     if (el.dataset && el.dataset.note) { S.notes[el.dataset.note] = el.value; return save(); }
 
+    // Round movements and score boxes write into S.sections and never
+    // re-render, so the field being typed in keeps its focus and caret.
+    if (el.dataset && el.dataset.rm) {
+      const ref = splitRef(el.dataset.rm, 2);
+      if (!ref || !S.sections[ref[0]]) return;
+      const prop = el.dataset.prop;
+      const val = prop === 'duration' || prop === 'pace' ? keypadTime(el) : el.value;
+      S.sections[ref[0]] = setMovementValue(S.sections[ref[0]], ref[1], ref[2], prop, val);
+      return save();
+    }
+    if (el.dataset && el.dataset.score) {
+      const sid = el.dataset.score;
+      if (!S.sections[sid]) return;
+      const prop = el.dataset.prop;
+      S.sections[sid] = setScoreValue(S.sections[sid], prop, prop === 'time' ? keypadTime(el) : el.value);
+      return save();
+    }
+
     const m = id.match(/^([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)-(load|reps|distance|duration|pace)$/);
     if (!m) return;
     const [, key, prop] = m;
-    let val = el.value;
-
-    if (prop === 'duration' || prop === 'pace') {
-      const before = val, pos = el.selectionStart;
-      val = fmtTime(val);
-      if (val !== before) {
-        el.value = val;
-        const shift = val.length - before.length;
-        el.setSelectionRange(pos + shift, pos + shift);
-      }
-    }
+    const val = prop === 'duration' || prop === 'pace' ? keypadTime(el) : el.value;
 
     S.sets[key] = S.sets[key] || {};
     S.sets[key][prop] = val;
@@ -601,6 +857,30 @@ function bind() {
       renderWorkout();
       const ta = $('note-' + openNote.dataset.opennote);
       if (ta) ta.focus();
+      return;
+    }
+
+    // The header row expands or collapses; the round's checkbox sits outside
+    // this button, so ticking a round never also toggles it.
+    const rt = e.target.closest('[data-round-toggle]');
+    if (rt) {
+      const ref = splitRef(rt.dataset.roundToggle, 1);
+      const st = ref && S.sections[ref[0]];
+      if (!st) return;
+      const key = ref[0] + ':' + ref[1];
+      openRounds.set(key, !roundIsOpen(st.rounds, ref[1] - 1, openRounds.get(key)));
+      renderWorkout();
+      return;
+    }
+
+    const pill = e.target.closest('[data-pill]');
+    if (pill) {
+      const sid = pill.dataset.sec;
+      const cut = pill.dataset.pill.indexOf(':');
+      const group = pill.dataset.pill.slice(0, cut), id = pill.dataset.pill.slice(cut + 1);
+      if (!S.sections[sid] || (group !== 'optional' && group !== 'modifiers')) return;
+      S.sections[sid] = togglePill(S.sections[sid], group, id);
+      save(); renderWorkout();
       return;
     }
 
@@ -672,13 +952,33 @@ function bind() {
       return;
     }
 
-    const sk = e.target.dataset && e.target.dataset.skip;
+    const ds = e.target.dataset || {};
+    if (ds.roundCheck || ds.mvCheck) return onRoundTick(ds.roundCheck, ds.mvCheck, e.target.checked);
+
+    const sk = ds.skip;
     if (!sk) return;
     S.skipped = e.target.checked
       ? [...new Set([...S.skipped, sk])]
       : S.skipped.filter(x => x !== sk);
     save(); renderWorkout();
   });
+}
+
+// A tick on a round or one of its movements. The round check rule itself is in
+// format.js; what happens here is the view. When a tick finishes a round, any
+// open/shut taps in that block are forgotten so the page moves on to the next
+// round by itself — the athlete's hands are on a bar, not on the screen.
+function onRoundTick(roundRef, mvRef, checked) {
+  const ref = roundRef ? splitRef(roundRef, 1) : splitRef(mvRef, 2);
+  const st = ref && S.sections[ref[0]];
+  if (!st) return;
+  const [sid, i, j] = ref;
+  const wasDone = roundDone(st.rounds[i] || {});
+  S.sections[sid] = roundRef ? checkRound(st, i, checked) : checkMovement(st, i, j, checked);
+  if (!wasDone && roundDone(S.sections[sid].rounds[i] || {})) {
+    for (const k of [...openRounds.keys()]) if (splitRef(k, 1)?.[0] === sid) openRounds.delete(k);
+  }
+  save(); renderWorkout();
 }
 
 /* ── timer ───────────────────────────────────────────────────── */
@@ -733,13 +1033,23 @@ function buildDigest() {
   const width = 18;
   (WOD.sections || []).forEach(sec => {
     const rows = [];
+    // A footer block rates and annotates the block, not its movements, so its
+    // exercise rows carry no RPE or note of their own.
+    const footer = hasBlockFooter(sec);
     (sec.exercises || []).filter(ex => !isSkipped(ex.id)).forEach(ex => {
-      const exRpe = S.rpes[ex.id];
+      const exRpe = !footer && S.rpes[ex.id];
       rows.push('  ' + ex.movement.padEnd(width) + ' ' + allSets(ex).map(s => setValues(ex, s)).join(', ')
         + (exRpe ? '  · RPE ' + exRpe : ''));
-      const note = (S.notes[ex.id] || '').trim();
+      const note = footer ? '' : (S.notes[ex.id] || '').trim();
       if (note) rows.push('  ' + ' '.repeat(width) + ' ↳ ' + note);
     });
+    if (usesFormatFeatures(sec)) {
+      rows.push(...digestSectionLines(sec, S.sections[sec.id], {
+        units: WOD.units,
+        rpe: footer ? S.rpes[sec.id] : null,
+        note: footer ? S.notes[sec.id] : null
+      }));
+    }
     if (!rows.length) return;
     lines.push('', sec.name.toUpperCase(), ...rows);
   });
@@ -797,8 +1107,14 @@ function buildResult() {
     });
   });
 
+  // Footer blocks key their RPE and note by section id in the same two maps.
+  const block = sectionNotesAndRpe(WOD, S.notes, S.rpes);
+  Object.assign(notes, block.notes);
+  Object.assign(exerciseRpe, block.exerciseRpe);
+
   const durStr = ($('f-duration') || {}).value || (S.elapsed ? clock(S.elapsed) : null);
-  return {
+  // `log` stays sets-only; scores, pills and round ticks go under `sections`.
+  return withSections({
     schema: 'wodin/result@1',
     workoutId: WOD.workoutId,
     startedAt: S.startedAt ? new Date(S.startedAt).toISOString() : null,
@@ -811,7 +1127,7 @@ function buildResult() {
     notes,
     exerciseRpe,
     skipped: S.skipped.slice()
-  };
+  }, WOD, S.sections);
 }
 
 /* ── submit sheet ────────────────────────────────────────────── */
@@ -1004,6 +1320,7 @@ async function resolveWod() {
 async function route() {
   clearInterval(tick);
   pendingRemove = null;
+  openRounds.clear();
   const wod = await resolveWod();
 
   if (!wod) { WOD = null; S = null; renderLibrary(); return; }
