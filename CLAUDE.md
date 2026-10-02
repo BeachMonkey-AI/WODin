@@ -67,3 +67,34 @@
   preflight and forget the POST. WODin shipped claiming "Send failed" there, while payloads
   were arriving fine; a real smoke test caught it. Only `navigator.onLine === false` lets us
   say "nothing sent". Everything else that throws is "Sent — delivery not confirmed".
+
+- **The round check rule lives in `src/format.js`, nowhere else.** Round done == all its
+  movements done, and the reverse. `setRoundDone` / `setMovementDone` / `checkRound` /
+  `checkMovement` each return a round with both sides already in sync — main.js only decides
+  when to call them. Don't set `round.done` or a movement's `done` by hand in main.js; that
+  is how the two drift apart.
+- **AMRAP rounds are never expanded or checked.** They are unbounded, so `rounds[]` renders
+  once as a read-only template, `seedRoundState` returns `[]`, and the result has no
+  `rounds` — the score carries the count. `format.rounds` padding skips amrap too.
+- **Footer sections key RPE and notes by section id.** A section with `rounds[]` or a score
+  other than `none` gets one block footer, and its RPE/note go into the existing
+  `exerciseRpe` / `notes` maps under the *section* id (`sec1` … when the plan gave none).
+  Per-exercise pills aren't drawn there. Don't add a separate map for them.
+- **`result.sections` is canonical; the top-level `score` / `optional` / `modifiers` /
+  `rounds` are a mirror** that exists only when exactly one section has an entry. Consumers
+  reading the top level break on a two-scored-section plan — point them at `sections`.
+  `optional` holds only pills that were on; `modifiers` holds every modifier as a bool.
+- **Round movements are never written to `log`.** `log` stays sets-only (`"exId.setId"`) so
+  the complete-not-sparse rule and `asPlanned` keep meaning what they mean. Exercises in a
+  formatted section (Murph) still log their sets there as usual.
+- **`src/format.js` is DOM-free and imported by three things:** main.js, the CLI validator
+  (`validateFormat`, `movementNameWarning`) and the tests. Keep it that way — no DOM, no
+  imports of its own. `wodin render` inlines main.js's `./x.js` imports by regex and dies on
+  anything it can't inline; a new module must work with that inliner **and** be added to the
+  `SHELL` precache list in `public/sw.js`, or the installed app breaks offline.
+- **`wodin serve` serves the source tree, not `dist/`** — no build step, so it shows edits
+  immediately but never proves the build. Opened from another device over LAN it's plain
+  http, which is not a secure context: no service worker, no clipboard write, no Web Share.
+  Those failures there are expected, not bugs; test them on localhost or the Pages preview.
+- **`npm test` is `node --test "test/*.test.mjs"`** — node:test, no deps. The glob is quoted
+  so node expands it rather than the shell, which keeps it working in PowerShell and cmd.
