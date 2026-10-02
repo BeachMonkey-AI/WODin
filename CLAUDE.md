@@ -40,7 +40,7 @@
   output. Don't introduce root-absolute paths; that's the bug app-template exists to avoid.
 - **The URL fragment is the transport.** `#w=` is deflate-raw + base64url, `#wj=` is plain
   base64url JSON. A fragment never reaches a server, so workouts aren't uploaded anywhere.
-  A full session is ~1.6 KB of URL.
+  Measured link lengths run from about 0.5 KB (minimal) to about 2 KB (format-test).
 - **Offline is a requirement, not a nice-to-have.** Gyms have no signal. Nothing in the
   logging path may need the network after first load.
 - **`sink` is public**, so the documented auth pattern is a **per-workout Bearer token** —
@@ -140,4 +140,6 @@
   http, which is not a secure context: no service worker, no clipboard write, no Web Share.
   Those failures there are expected, not bugs; test them on localhost or the Pages preview.
 - **`npm test` is `node --test "test/*.test.mjs"`** — node:test, no deps. The glob is quoted
-  so node expands it rather than the shell, which keeps it working in PowerShell and cmd.
+  so node expands it rather than the shell, which keeps it working in PowerShell and cmd —
+  but node only expands it on Node 21+ (CI uses 22; `engines` says `>=21`). On Node 20 it
+  fails with "Could not find ... test/*.test.mjs".

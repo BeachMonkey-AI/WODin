@@ -4,10 +4,13 @@
   "description": "Hand a structured workout to a human, get back what they actually did. An agent-agnostic protocol plus a phone-first logging PWA.",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=21"
+  },
   "scripts": {
     "gen-icons": "node scripts/gen-icons.mjs",
     "build": "node scripts/build.mjs",
-    "validate": "node cli/wodin.mjs validate examples/routine-2-back-biceps.json examples/minimal.json examples/format-test.json",
+    "validate": "node cli/wodin.mjs validate examples/routine-2-back-biceps.json examples/athlete-1.json examples/athlete-a.json examples/minimal.json examples/format-test.json",
     "test": "node --test \"test/*.test.mjs\"",
     "link": "node cli/wodin.mjs link",
     "serve": "node cli/wodin.mjs serve"

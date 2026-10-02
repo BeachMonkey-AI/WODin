@@ -253,7 +253,8 @@ and not in `log`.
 The workout travels in the **URL fragment**: `#w=` (deflate-raw, base64url) or `#wj=`
 (plain base64url JSON). A fragment is never sent to a server, so the workout isn't uploaded
 anywhere — GitHub Pages serves a static shell that has no idea what it's displaying. A full
-session is ~1.6 KB of URL.
+session is about 0.5 KB (the smallest plan) to about 2 KB (the twelve-section format test)
+of URL.
 
 Opening a link files the workout in the device's library, so it's reachable afterward
 without the link. That matters more than it sounds: an installed PWA launches its manifest
@@ -261,7 +262,7 @@ without the link. That matters more than it sounds: an installed PWA launches it
 The home screen is that library.
 
 Alternatives, same schema: commit `wods/<date>.json` and link `?d=<date>`; or `node cli/wodin.mjs serve`
-for a local page with a real POST.
+for a local page that accepts a POST when the plan's `sink` points at `/submit`.
 
 ## Coming back
 
@@ -274,7 +275,8 @@ Four sinks, one payload:
 | **Copy** | the digest, pasted into any chat |
 | **Download** | desktop; the agent reads the file |
 
-Share and copy always exist, so the loop closes even with zero configuration.
+Copy and download always exist (share needs `navigator.share`, so it is offered only where
+the browser has it), so the loop closes even with zero configuration.
 
 Clipboard and share carry the **digest** rather than JSON — compact, readable by a human,
 and cheaper for a model to parse than the equivalent JSON:
@@ -288,8 +290,9 @@ STRENGTH
                      ↳ Added a little bounce on the last two reps
 ```
 
-`node cli/wodin.mjs parse` converts it back, so the two formats are equivalent rather than one being a
-lossy shortcut. The digest identifies exercises by name; the JSON keeps exact ids.
+`node cli/wodin.mjs parse` turns a digest into a best-effort summary, not canonical result
+JSON: the digest identifies exercises by name, so `log` is keyed by name with the raw entry
+text. The JSON keeps exact ids, `exerciseRpe` and per-section scores.
 
 ## Offline
 
