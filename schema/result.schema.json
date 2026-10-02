@@ -27,8 +27,12 @@
     "durationSec": { "type": ["integer", "null"], "minimum": 0, "description": "Same value in seconds, so consumers need not parse." },
 
     "rpe": {
-      "type": ["number", "null"], "minimum": 1, "maximum": 10,
-      "description": "The athlete's own answer. Null means they left it blank — never the plan's targetRpe, which is only ever shown as a ghost hint."
+      "type": ["number", "null"], "minimum": 1, "maximum": 11,
+      "description": "The athlete's own answer, 1–10. Null means they left it blank — never the plan's targetRpe, which is only ever shown as a ghost hint. When the plan's RPE policy assumes a value instead of asking (an all-benchmark day assumes 11), it is that value with rpeAssumed: true; 11 is valid only then."
+    },
+    "rpeAssumed": {
+      "const": true,
+      "description": "Present only when `rpe` came from the plan's policy (wod.rpe, or every section a benchmark) and the athlete was never asked. An answered RPE never carries it."
     },
 
     "athleteSummary": {
@@ -38,21 +42,21 @@
 
     "log": {
       "type": "object",
-      "description": "Every set that was not skipped, keyed \"<exerciseId>.<setId>\" — including sets done exactly as prescribed, which carry asPlanned: true. A set missing from here was either skipped or belongs to a skipped exercise; absence never means \"done as planned\".",
+      "description": "Every set that was not skipped, keyed \"<exerciseId>.<setId>\" — including sets done exactly as prescribed, which carry asPlanned: true. A set missing from here was either skipped or belongs to a skipped exercise; absence never means \"done as planned\". Sets only: movements inside rounds are logged under `sections`, never here. The one exception to completeness: a tabata or emom whose rounds are derived from its exercises (format.rounds set, no rounds[]) logs no sets here — its exercises are drawn as rounds, and sections[id].rounds is the record.",
       "propertyNames": { "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$" },
       "additionalProperties": { "$ref": "#/$defs/entry" }
     },
 
     "notes": {
       "type": "object",
-      "description": "Athlete notes, keyed by exercise id — one per exercise, never per set. Only exercises with a non-empty note appear.",
+      "description": "Athlete notes, keyed by exercise id — one per exercise, never per set. A block with a footer (a rounds section, or a format with a score) has one note for the whole block, keyed by the section id instead. Only non-empty notes appear.",
       "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
 
     "exerciseRpe": {
       "type": "object",
-      "description": "How hard each movement felt, keyed by exercise id, 1–10. Separate from the session-level `rpe`: a workout can average out at 7 while one lift was a 9, and that difference is what tells you which movement to move next time. Only exercises the athlete actually rated appear — an absent key means unrated, never easy.",
+      "description": "How hard each movement felt, keyed by exercise id, 1–10. Tapped values only: an RPE the plan assumed (a benchmark block) is in sections[id].rpe, never here. Separate from the session-level `rpe`: a workout can average out at 7 while one lift was a 9, and that difference is what tells you which movement to move next time. A block with a footer (a rounds section, or a format with a score) is rated once, keyed by the section id. Only what the athlete actually rated appears — an absent key means unrated, never easy.",
       "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
       "additionalProperties": { "type": "number", "minimum": 1, "maximum": 10 }
     },
@@ -68,10 +72,135 @@
       "type": "string",
       "description": "Optional digest of the plan this was logged against, so an agent can tell whether the plan changed underneath.",
       "examples": ["sha256:ab12cd34"]
+    },
+
+    "sections": {
+      "type": "object",
+      "description": "Per-section results for sections that use formats, rounds (written or derived), scaling options, modifiers or an assumed RPE, keyed by section id (the plan's, or sec1, sec2… assigned by position). Sections that use none of these are absent — `log` already describes them completely. This is the canonical home for score, optional, modifiers and rounds.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
+      "additionalProperties": { "$ref": "#/$defs/sectionResult" }
+    },
+
+    "score": {
+      "$ref": "#/$defs/score",
+      "description": "Convenience mirror: present only when exactly one section has a `sections` entry, copied from it. With two or more, read `sections`."
+    },
+    "optional": {
+      "$ref": "#/$defs/optional",
+      "description": "Convenience mirror of the single `sections` entry's optional. Absent when more than one section has an entry."
+    },
+    "modifiers": {
+      "$ref": "#/$defs/modifiers",
+      "description": "Convenience mirror of the single `sections` entry's modifiers. Absent when more than one section has an entry."
+    },
+    "rounds": {
+      "$ref": "#/$defs/rounds",
+      "description": "Convenience mirror of the single `sections` entry's rounds. Absent when more than one section has an entry. A section's rpe / rpeAssumed are never mirrored — top-level `rpe` is the session's."
     }
   },
 
+  "allOf": [{ "$ref": "#/$defs/answeredRpeMax10" }],
+
   "$defs": {
+    "answeredRpeMax10": {
+      "description": "An answered RPE stays on the 1–10 scale; only an assumed one (rpeAssumed: true) may be 11.",
+      "if": { "required": ["rpeAssumed"], "properties": { "rpeAssumed": { "const": true } } },
+      "then": { "required": ["rpe"] },
+      "else": { "properties": { "rpe": { "maximum": 10 } } }
+    },
+
+    "sectionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "dependentRequired": { "rpe": ["rpeAssumed"], "rpeAssumed": ["rpe"] },
+      "properties": {
+        "score": { "$ref": "#/$defs/score" },
+        "optional": { "$ref": "#/$defs/optional" },
+        "modifiers": { "$ref": "#/$defs/modifiers" },
+        "rounds": { "$ref": "#/$defs/rounds" },
+        "rpe": {
+          "type": "number", "minimum": 1, "maximum": 11,
+          "description": "Present only when the plan assumed this block's RPE (a benchmark assumes 11, or section.rpe was a number) — always with rpeAssumed: true. A block RPE the athlete tapped lives in exerciseRpe under the section id, never here."
+        },
+        "rpeAssumed": { "const": true }
+      }
+    },
+
+    "score": {
+      "description": "The section's score, shaped by the plan's format.score. Null when the section is scored but the athlete left the box blank — distinct from an absent key, which means the section is not scored at all.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object", "required": ["time", "timeSec"], "additionalProperties": false,
+          "properties": {
+            "time": { "type": "string", "examples": ["11:42"] },
+            "timeSec": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object", "required": ["rounds", "reps"], "additionalProperties": false,
+          "properties": {
+            "rounds": { "type": ["number", "string"], "description": "Completed rounds." },
+            "reps": { "type": ["number", "string"], "description": "Reps into the next, unfinished round. 0 when none." }
+          }
+        },
+        {
+          "type": "object", "required": ["totalReps"], "additionalProperties": false,
+          "properties": { "totalReps": { "type": ["number", "string"] } }
+        }
+      ],
+      "examples": [{ "time": "8:41", "timeSec": 521 }, { "rounds": 18, "reps": 7 }, { "totalReps": 74 }]
+    },
+
+    "optional": {
+      "type": "object",
+      "description": "Scaling options the athlete switched on, as { id: true }. Only options that were on appear; an empty object means the section offered options and none were used.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
+      "additionalProperties": { "const": true },
+      "examples": [{ "pike": true }]
+    },
+
+    "modifiers": {
+      "type": "object",
+      "description": "Every modifier the plan offered, true or false. All of them appear, because not wearing the vest is itself the answer.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9_-]+$" },
+      "additionalProperties": { "type": "boolean" },
+      "examples": [{ "vest": false }]
+    },
+
+    "rounds": {
+      "type": "array",
+      "description": "One entry per round performed, in order, matching the plan's rounds expanded (reps and repeat applied). Round done is true exactly when every movement in it is done. Absent for amrap, whose rounds are unbounded — its score carries the count. Round movements are never written to `log`.",
+      "items": {
+        "type": "object",
+        "required": ["done"],
+        "additionalProperties": false,
+        "properties": {
+          "done": { "type": "boolean" },
+          "movements": { "type": "array", "items": { "$ref": "#/$defs/roundMovement" } }
+        }
+      }
+    },
+
+    "roundMovement": {
+      "type": "object",
+      "description": "One movement in a logged round. Fields follow the movement's kind, as a log entry's do.",
+      "required": ["movement", "done"],
+      "additionalProperties": false,
+      "properties": {
+        "movement": { "type": "string" },
+        "done": { "type": "boolean" },
+        "reps": { "type": ["number", "string", "null"] },
+        "load": { "type": ["number", "string", "null"], "description": "The absolute load actually used, in the plan's load unit." },
+        "loadType": { "enum": ["bodyweight"] },
+        "loadBwMult": { "type": "number", "description": "Copied from the plan, so the prescription travels with the actual load." },
+        "distance": { "type": ["number", "string", "null"] },
+        "duration": { "type": ["string", "null"] },
+        "durationSec": { "type": ["integer", "null"], "minimum": 0 },
+        "pace": { "type": ["string", "null"] }
+      }
+    },
+
     "entry": {
       "type": "object",
       "description": "One logged set. Which fields are present follows the exercise's kind.",

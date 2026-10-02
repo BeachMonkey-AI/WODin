@@ -60,6 +60,13 @@ actually needs:
 | `cardio` | `2:00 /500m` · `500 m` · `1:58 mm:ss` |
 | `carry` | `50 lb × 1 reps` · `100 ft` |
 
+Conditioning pieces get an optional second shape: a section `format` (Tabata, EMOM,
+intervals, for time, AMRAP, circuit) with a score box, a `rounds[]` round > movements
+hierarchy (derived automatically for a Tabata or EMOM), scaling pills, and a `benchmark`
+tag that skips asking for RPE on a girl or hero. [`examples/format-test.json`](examples/format-test.json) has
+twelve blocks, one distinct shape each — Tabata, an EMOM pair, Diane, Helen, Cindy, Murph and the rest; `AGENT.md` explains which to use when. Plans that don't use it are
+unchanged.
+
 ## CLI
 
 Zero dependencies — node's own `zlib` and `http`.
@@ -99,6 +106,8 @@ npm install
 npm run gen-icons        # public/icon.svg → PNG set
 npm run build            # → dist/
 npm run serve            # or: node cli/wodin.mjs serve examples/minimal.json
+npm test                 # node:test — format, rounds and result logic
+npm run validate         # every example, including examples/format-test.json
 ```
 
 Deploys to GitHub Pages from `gh-pages`. `main` publishes to `/`; each open PR gets
@@ -110,9 +119,11 @@ at either location with no base-path parameter.
 ```
 AGENT.md              the protocol, written for an agent to read
 schema/               wod + result JSON Schemas
-examples/             a real workout, two contrasting athletes, the smallest valid plan
+examples/             a real workout, two contrasting athletes, the smallest valid plan,
+                      and format-test.json — every format shape on one page
 index.html            app shell
-src/                  main.js, app.css, icons.js
+src/                  main.js, app.css, icons.js, format.js (DOM-free format logic)
+test/                 node:test suites
 styles/               design tokens, self-hosted font faces
 public/               manifest, service worker, icon source, font files
 cli/wodin.mjs         link | render | serve | parse | validate

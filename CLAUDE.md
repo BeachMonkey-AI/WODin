@@ -67,3 +67,75 @@
   preflight and forget the POST. WODin shipped claiming "Send failed" there, while payloads
   were arriving fine; a real smoke test caught it. Only `navigator.onLine === false` lets us
   say "nothing sent". Everything else that throws is "Sent — delivery not confirmed".
+
+- **The round check rule lives in `src/format.js`, nowhere else.** Round done == all its
+  movements done, and the reverse. `setRoundDone` / `setMovementDone` / `checkRound` /
+  `checkMovement` each return a round with both sides already in sync — main.js only decides
+  when to call them. Don't set `round.done` or a movement's `done` by hand in main.js; that
+  is how the two drift apart.
+- **AMRAP rounds are never expanded or checked.** They are unbounded, so `rounds[]` renders
+  once as a read-only template, `seedRoundState` returns `[]`, and the result has no
+  `rounds` — the score carries the count. `format.rounds` padding skips amrap too.
+- **Footer sections key RPE and notes by section id.** A section with `rounds[]` or a score
+  other than `none` gets one block footer, and its RPE/note go into the existing
+  `exerciseRpe` / `notes` maps under the *section* id (RPE only when the section asks) (`sec1` … when the plan gave none).
+  Per-exercise pills aren't drawn there. Don't add a separate map for them.
+- **`result.sections` is canonical; the top-level `score` / `optional` / `modifiers` /
+  `rounds` are a mirror** that exists only when exactly one section has an entry. Consumers
+  reading the top level break on a two-scored-section plan — point them at `sections`.
+  `optional` holds only pills that were on; `modifiers` holds every modifier as a bool.
+- **Go through `roundsOf(section)`, never `section.rounds`.** A tabata/emom with
+  `format.rounds` + `exercises` and no `rounds[]` derives one template round from the
+  exercises' *first* sets (`isDerivedRounds`), padded to N by `expandRounds`. Its exercises
+  are drawn as rounds, not set rows, and write **no** `log` entries — the one exception to
+  complete-not-sparse; `sections[id].rounds` is the record. Chippers and `intervals` are
+  never derived. Round ticks are optional; never validate them for completeness.
+- **RPE policy lives in `sectionRpePolicy` / `sessionRpePolicy`.** `benchmark: girl|hero`
+  assumes 11; `rpe: ask|hide|1–11` overrides it; a session assumes 11 only when every
+  section is a benchmark. Assumed means *no pill* (prefill rule) and `rpe` + `rpeAssumed:
+  true` in the result — never in `exerciseRpe`, never in the top-level mirror. 11 is off the
+  1–10 scale on purpose; result.schema allows it only with `rpeAssumed`. No `rpe` and no
+  `benchmark` anywhere = ask everywhere, exactly the old behaviour. A hidden or assumed
+  RPE control is **not drawn at all** — never rendered-and-prefilled — and that covers the
+  session select, block pills and per-exercise pills (`showExerciseRpe` is `ask` only).
+- **Time inputs: auto-format ⇒ `inputmode="numeric"`, otherwise `"text"`.** 60483d8 moved
+  time fields to text so Android shows a colon key. Fields in `AUTO_FORMAT_FIELDS`
+  (`duration`, `pace`, `score-time`) insert their own colons via `fmtTimeDigits` /
+  `fmtPaceDigits` and want the digit pad; the session `f-duration` doesn't auto-format and
+  stays text. main.js derives both the mode (`timeMode`) and the formatter
+  (`timeFormatterFor`) from that one list, so don't hard-code `mode` on a time field.
+- **The section stopwatch is computed from timestamps, never ticks.** `sections[id].timer`
+  is `{ running, startedAt, accMs }`, persisted with the log; elapsed is `timerElapsedMs`
+  against `Date.now()` on every repaint, so reload / background / phone sleep lose nothing.
+  One `runTick` interval paints the session clock and every running stopwatch and stops
+  itself when nothing runs — call it after any render that might start one. Typing in the
+  time field pauses it and adopts the typed value (`timerSetMs`), updating the buttons in
+  place: no re-render, or focus and caret are lost. `openSheet` pauses all of them so the
+  score is written. The timer never reaches the result.
+- **Movement names carry no modifiers; the modifier goes in `cue`.** `Run` + cue "Outdoors",
+  `Pull-up` + cue "Bodyweight" — never `Outdoor run` / `Bodyweight pull-up`. This replaced an
+  earlier "state the equipment" rename that put modifiers in titles. Equipment that changes
+  the lift (`Barbell deadlift`, `Kettlebell swing`, `Rowing machine row`) is still the name.
+  `movementNameWarning` (shared by exercises and round movements) enforces it with
+  `NAME_MODIFIER` (outdoor/indoor/bodyweight); `test/examples.test.mjs` fails if any shipped
+  example breaks it, and `wodin validate` on the examples must stay warning-free.
+- **`examples/format-test.json` is the teaching set, not a gallery.** Each section teaches one
+  distinct shape and `test/examples.test.mjs` checks every schema addition is still shown by
+  some section, that no two sections share a shape, and that the annotated blocks in
+  `AGENT.md` are verbatim copies of sections. Adding an example means it must teach something
+  no other does; changing one means updating its `AGENT.md` block. Tests find sections by the
+  letter in their name (`byLetter('E')`), so renumbering sections means updating them.
+- **Round movements are never written to `log`.** `log` stays sets-only (`"exId.setId"`) so
+  the complete-not-sparse rule and `asPlanned` keep meaning what they mean. Exercises in a
+  formatted section (Murph) still log their sets there as usual.
+- **`src/format.js` is DOM-free and imported by three things:** main.js, the CLI validator
+  (`validateFormat`, `movementNameWarning`) and the tests. Keep it that way — no DOM, no
+  imports of its own. `wodin render` inlines main.js's `./x.js` imports by regex and dies on
+  anything it can't inline; a new module must work with that inliner **and** be added to the
+  `SHELL` precache list in `public/sw.js`, or the installed app breaks offline.
+- **`wodin serve` serves the source tree, not `dist/`** — no build step, so it shows edits
+  immediately but never proves the build. Opened from another device over LAN it's plain
+  http, which is not a secure context: no service worker, no clipboard write, no Web Share.
+  Those failures there are expected, not bugs; test them on localhost or the Pages preview.
+- **`npm test` is `node --test "test/*.test.mjs"`** — node:test, no deps. The glob is quoted
+  so node expands it rather than the shell, which keeps it working in PowerShell and cmd.

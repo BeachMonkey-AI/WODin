@@ -15,6 +15,7 @@ import { createServer } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateFormat, validatePlanRpe, movementNameWarning } from '../src/format.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DEFAULT_BASE = 'https://beachmonkey-ai.github.io/WODin/';
@@ -51,6 +52,36 @@ function cmdLink(file) {
 
 /* ── render ──────────────────────────────────────────────────── */
 
+// A standalone file has no siblings to import from, so every `import { … } from
+// './x.js'` in main.js is replaced by that module's source. Each module runs in
+// its own function scope and hands back its exports: format.js and main.js both
+// define helpers such as `num`, and two top-level declarations of one name in a
+// module script are a SyntaxError — the whole page would load blank.
+function inlineModules(mainSrc) {
+  const loaded = new Set();
+  const js = mainSrc.replace(
+    /^import\s*\{([^}]*)\}\s*from\s*'\.\/([\w-]+\.js)';?[ \t]*\r?$/gm,
+    (_, names, mod) => {
+      const ns = '__mod_' + mod.replace(/\W/g, '_');
+      const bindings = `const {${names.replace(/\s+as\s+/g, ': ')}} = ${ns};`;
+      if (loaded.has(ns)) return bindings;
+      loaded.add(ns);
+
+      const src = readFileSync(path.join(ROOT, 'src', mod), 'utf8');
+      if (/^\s*import[\s{]/m.test(src)) die(`render: src/${mod} has imports of its own — keep inlined modules dependency-free`);
+      const exported = [...src.matchAll(/^export\s+(?:async\s+)?(?:const|let|var|function\*?|class)\s+([A-Za-z_$][\w$]*)/gm)]
+        .map(m => m[1]);
+      const body = src.replace(/^export\s+/gm, '');
+      return `const ${ns} = (() => {\n${body}\nreturn { ${exported.join(', ')} };\n})();\n${bindings}`;
+    });
+
+  // Anything left is an import this function could not rewrite, and the inline
+  // script has nothing to resolve it against. Fail here, not on the athlete's phone.
+  const stray = js.match(/^\s*(import|export)\b.*$/m);
+  if (stray) die(`render: could not inline "${stray[0].trim()}"`);
+  return js;
+}
+
 function cmdRender(file) {
   const wod = readWod(file);
   const out = flag('-o', `wodin-${wod.workoutId || 'workout'}.html`);
@@ -58,8 +89,7 @@ function cmdRender(file) {
   const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const tokens = readFileSync(path.join(ROOT, 'styles', 'tokens.css'), 'utf8');
   const css = readFileSync(path.join(ROOT, 'src', 'app.css'), 'utf8');
-  const icons = readFileSync(path.join(ROOT, 'src', 'icons.js'), 'utf8');
-  const js = readFileSync(path.join(ROOT, 'src', 'main.js'), 'utf8');
+  const js = inlineModules(readFileSync(path.join(ROOT, 'src', 'main.js'), 'utf8'));
 
   // A standalone file has no directory to resolve ../fonts/ against, so the faces
   // are embedded. It roughly quadruples the file, which is the price of a single
@@ -76,8 +106,10 @@ function cmdRender(file) {
     .replace(/<link rel="stylesheet" href="styles\/fonts\.css"[^>]*>/, `<style>\n${fontCss}\n</style>`)
     .replace(/<link rel="stylesheet" href="styles\/tokens\.css"[^>]*>/, `<style>\n${tokens}\n</style>`)
     .replace(/<link rel="stylesheet" href="src\/app\.css"[^>]*>/, `<style>\n${css}\n</style>`)
+    // A function, not a string: a replacement string would expand any `$&` or
+    // `$'` that happens to appear in the inlined source.
     .replace(/<script type="module" src="src\/main\.js"><\/script>/,
-      `<script type="module">\n${icons.replace(/^export /m, '')}\n${js.replace(/^import .*$/m, '')}\n</script>`)
+      () => `<script type="module">\n${js}\n</script>`)
     // A file:// page has no service worker and no wods/ to fetch; the workout is baked in.
     .replace(/<script>\s*\/\/ Relative path[\s\S]*?<\/script>/, '')
     .replace('</body>', `  <script>location.hash = 'w=${encodeWod(wod)}';</script>\n</body>`);
@@ -180,8 +212,12 @@ function parseDigest(text) {
   const meta = (lines[1] || '').split('·').map(s => s.trim());
   for (const bit of meta) {
     if (/^\d+:\d\d(:\d\d)?$/.test(bit)) { result.duration = bit; result.durationSec = toSec(bit); }
-    const rpe = bit.match(/^RPE\s+([\d.]+)$/i);
-    if (rpe) result.rpe = Number(rpe[1]);
+    // "RPE 11 (assumed)": the plan's policy, not an answer — see rpeAssumed.
+    const rpe = bit.match(/^RPE\s+([\d.]+)(\s+\(assumed\))?$/i);
+    if (rpe) {
+      result.rpe = Number(rpe[1]);
+      if (rpe[2]) result.rpeAssumed = true;
+    }
   }
 
   let section = null, lastMovement = null;
@@ -235,6 +271,7 @@ function cmdValidate(files) {
 
     if (!wod.workoutId) problems.push('missing workoutId');
     if (!Array.isArray(wod.sections) || !wod.sections.length) problems.push('missing sections');
+    problems.push(...validatePlanRpe(wod).problems);
 
     if (wod.sink) {
       if (wod.sink.type === 'post' && !wod.sink.url) problems.push('sink: type "post" needs a url');
@@ -262,14 +299,9 @@ function cmdValidate(files) {
         else {
           // `movement` is searched verbatim for the form-check link and is what any
           // cross-session progress tracking matches on, so it has to be the exercise's
-          // name and nothing else. These two shapes are reliably not that.
-          const paren = ex.movement.match(/\s*\(([^)]*)\)\s*$/);
-          const measure = ex.movement.match(/\s+\d+\s*(m|km|mi|ft|s|sec|min|reps?)$/i);
-          if (paren) {
-            warnings.push(`${ex.movement}: move "(${paren[1]})" into cue or tag — the name is searched verbatim and is not the place for it`);
-          } else if (measure) {
-            warnings.push(`${ex.movement}: the prescription belongs in sets, not the name — search and progress tracking both key on this`);
-          }
+          // name and nothing else. Shared with round movements via src/format.js.
+          const named = movementNameWarning(ex.movement);
+          if (named) warnings.push(named);
         }
         if (!ex.kind) problems.push(`${exWhere} (${ex.movement}): missing kind — the renderer cannot infer it`);
         else if (!KINDS.includes(ex.kind)) problems.push(`${exWhere} (${ex.movement}): kind "${ex.kind}" is not one of ${KINDS.join(', ')}`);
@@ -278,12 +310,19 @@ function cmdValidate(files) {
           if (set.load === 0) problems.push(`${exWhere}.sets[${k}]: load 0 — use "loadType": "bodyweight"`);
         });
       });
+      // format, rounds[], scaling pills and the newer exercise fields. Same
+      // function the page's tests exercise, so the CLI cannot drift from it.
+      const fmt = validateFormat(sec, where);
+      problems.push(...fmt.problems);
+      warnings.push(...fmt.warnings);
     });
 
     if (problems.length) { bad++; console.error(`✗ ${file}`); problems.forEach(p => console.error(`    ${p}`)); }
     else console.log(`✓ ${file}`);
     // Warnings never fail the run — they flag a real risk without blocking anyone.
-    warnings.forEach(w => console.error(`  ⚠ ${w}`));
+    // De-duplicated: a movement repeated across rounds and blocks earns its
+    // advice once, not once per appearance.
+    [...new Set(warnings)].forEach(w => console.error(`  ⚠ ${w}`));
   }
   process.exit(bad ? 1 : 0);
 }

@@ -317,10 +317,234 @@ h2 {
 }
 .ex-note textarea::placeholder { color: var(--ghost); }
 
+/* ─── Formats: header, scaling pills, rounds, score ─────────── */
+
+/* Scaled / modified is a deviation from Rx, not an answer or a completion, so
+   it deliberately does not wear the lime those two mean everywhere else. */
+:root {
+  --scaled:    #d98a2b;
+  --scaled-bg: #2c2013;
+  --scaled-ink:#f0b46a;
+}
+
+.fmt { margin-top: 8px; }
+.fmt-eyebrow {
+  font-family: var(--fd); font-weight: 600; font-size: 12.5px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent);
+}
+.fmt-line { margin: 2px 0 0; font-size: 13.5px; color: var(--dim); }
+
+.scale { margin-top: 12px; }
+.scale-cap, .rounds-cap {
+  display: block;
+  font-family: var(--fd); font-weight: 600; font-size: 11.5px;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--faint);
+}
+.scale-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.spill {
+  min-height: 36px; padding: 0 14px;
+  border: 0; border-radius: 999px;
+  background: var(--well); color: var(--dim);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  font-size: 13.5px; cursor: pointer;
+}
+.spill.on {
+  background: var(--scaled-bg); color: var(--scaled-ink);
+  box-shadow: inset 0 0 0 1.5px var(--scaled);
+}
+
+/* Small chips beside a movement: interval slot (A/B), bodyweight multiple. */
+.slot {
+  flex: none;
+  display: inline-grid; place-items: center;
+  width: 22px; height: 22px; margin-top: 1px;
+  border-radius: 6px;
+  background: var(--well); color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  font-family: var(--fd); font-weight: 700; font-size: 13px;
+}
+.bwx {
+  display: inline-block;
+  padding: 0 6px; border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--accent-mute);
+  color: var(--accent-mute);
+  font-family: var(--fm); font-size: 11px; line-height: 17px;
+  white-space: nowrap; vertical-align: 1px;
+}
+/* Under "Set 1" in the set's own narrow column, so the field grid is untouched. */
+.set-n .bwx {
+  display: block; width: max-content; max-width: 40px; margin-top: 2px; padding: 0 3px;
+  font-family: var(--fd); font-size: 11px; letter-spacing: 0; text-transform: none;
+}
+
+.part { margin: 2px 0 0; font-size: 12.5px; color: var(--faint); font-style: italic; }
+
+/* Rounds are a tree: round header, then its movements indented under a lime
+   rule that starts at the round's dot. A collapsed round is one line. */
+.rounds { margin-top: 14px; }
+.round-head { display: flex; align-items: center; gap: 6px; }
+.round-toggle {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--tap); padding: 0;
+  border: 0; background: transparent;
+  text-align: left; cursor: pointer;
+}
+.dot {
+  flex: none; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--ghost);
+}
+.round.open:not(.done) .dot { background: transparent; box-shadow: inset 0 0 0 2px var(--accent); }
+.round.done .dot { background: var(--accent); }
+.round-n {
+  font-family: var(--fd); font-weight: 700; font-size: 16px;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.round-of {
+  font-family: var(--fd); font-weight: 600; font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint);
+}
+.round.done .round-n { color: var(--dim); }
+
+.round-sum {
+  margin: -6px 0 6px; padding-left: 20px;
+  font-size: 13px; color: var(--faint); line-height: 1.4;
+}
+.round-body {
+  margin: 0 0 8px 4px; padding-left: 15px;
+  border-left: 2px solid var(--accent);
+}
+.round.template .round-body { margin-top: 6px; border-left-color: var(--accent-mute); }
+.round-cap { margin: 2px 0 0 21px; font-size: 13px; color: var(--dim); }
+
+.round-rest {
+  display: flex; align-items: center; gap: 10px;
+  margin: 2px 0 2px 20px;
+  font-family: var(--fm); font-size: 11.5px; color: var(--faint);
+}
+.round-rest::before, .round-rest::after {
+  content: ''; flex: 1; border-top: 1px dashed var(--well-edge);
+}
+.round-rest::before { flex: 0 0 14px; }
+
+.mv { padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.mv:last-child { border-bottom: 0; }
+.mv-top { display: flex; align-items: center; gap: 8px; }
+.mv-name {
+  flex: 1; min-width: 0;
+  font-weight: 600; font-size: 15.5px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--ghost);
+  text-underline-offset: 3px;
+}
+.mv-name:hover { text-decoration-color: var(--accent); }
+.mv-name .ext { display: inline-block; width: 10px; height: 10px; margin-left: 5px; color: var(--ghost); }
+.mv.done .mv-name { color: var(--dim); }
+.mv-rx {
+  flex: none;
+  font-family: var(--fm); font-size: 14px; color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.mv.rx .mv-top { min-height: 28px; }
+
+/* Same field widths as a set row, minus the "Set n" column. A lone reps or
+   time field takes half the row rather than stretching the whole width. */
+.mv-fields { display: grid; align-items: center; gap: 8px; margin-top: 8px; }
+.mv-fields.k-weight_reps { grid-template-columns: 1.25fr 10px 1fr; }
+.mv-fields.k-carry       { grid-template-columns: 1.05fr 9px .82fr 1fr; }
+.mv-fields.k-reps,
+.mv-fields.k-time        { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.mv-fields.k-cardio      { grid-template-columns: 1.15fr .78fr 1.15fr; }
+.mv-fields.k-cardio .field input { padding-left: 9px; padding-right: calc(var(--uw, 2ch) + 14px); }
+.mv-fields.k-cardio .unit { right: 9px; font-size: 11.5px; }
+
+/* Checkboxes draw at 26–30px inside a full 44px hit area; the negative margin
+   gives the extra back so the target doesn't inflate the row. */
+.check {
+  flex: none;
+  display: grid; place-items: center;
+  width: var(--tap); height: var(--tap);
+  margin: -7px -8px -7px 0;
+  cursor: pointer;
+}
+.check input {
+  -webkit-appearance: none; appearance: none;
+  width: 30px; height: 30px; margin: 0;
+  border-radius: 8px;
+  background: var(--well) center / 70% no-repeat;
+  box-shadow: inset 0 0 0 1.5px var(--well-edge);
+  cursor: pointer;
+}
+.check.sm input { width: 26px; height: 26px; border-radius: 7px; }
+.check input:checked {
+  background-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d1011' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  box-shadow: none;
+}
+
+/* The score box closes the block: one wide box, big mono numbers. */
+.score {
+  margin-top: 16px;
+  padding: 11px 14px 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--accent-mute);
+}
+.score-cap {
+  font-family: var(--fd); font-weight: 600; font-size: 12px;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--accent);
+}
+.score-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 8px; }
+.score-row.two { grid-template-columns: 1fr 1fr; }
+.score .field input {
+  min-height: 54px;
+  background: var(--ground);
+  font-family: var(--fm); font-size: 26px; font-weight: 500;
+  letter-spacing: -.01em;
+}
+.score .field .unit { font-size: 12px; }
+
+/* Stopwatch beside a finish-time box: the field keeps the width, the buttons
+   take what they need. Same height as the score field so the row is one bar. */
+.score-row.timed { grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; }
+.sw { display: flex; gap: 8px; }
+.sw-go, .sw-reset {
+  min-height: 54px; min-width: var(--tap);
+  border: 0; border-radius: var(--radius);
+  cursor: pointer;
+}
+.sw-go {
+  min-width: 92px; padding: 0 14px;
+  background: var(--accent); color: var(--on-accent);
+  font-family: var(--fd); font-weight: 700; font-size: 16px;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.sw-go.running {
+  background: transparent; color: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent-mute);
+}
+.sw-reset {
+  display: grid; place-items: center;
+  background: transparent; color: var(--faint);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.sw-reset:hover { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-mute); }
+.sw-reset[hidden] { display: none; }
+.sw-reset svg { width: 18px; height: 18px; }
+
+.block-foot { margin-top: 12px; padding-bottom: 6px; }
+
 /* ─── Footer ───────────────────────────────────────────────── */
 
 .close { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--line); }
 .close-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* No session RPE to ask (assumed or hidden): duration takes the row. */
+.close-grid.one { grid-template-columns: 1fr; }
 .fl { display: block; font-size: 12px; color: var(--faint); margin-bottom: 6px; }
 .fl b { color: var(--dim); font-weight: 500; }
 
