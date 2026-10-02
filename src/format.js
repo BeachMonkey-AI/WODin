@@ -851,15 +851,25 @@ export function digestSectionLines(section, secState, { units, rpe, note } = {})
 
 /* ── validation ──────────────────────────────────────────────── */
 
-/** The existing movement-name check, shared so round movements get the same
- *  advice as exercises. `movement` is searched verbatim for the form-check link
- *  and is what cross-session tracking keys on, so it must be the name alone. */
+// Modifier words that describe HOW or WHERE a movement is done, not WHICH
+// movement it is. They belong in cue (or tag): "Run" + cue "Outdoors". Real
+// equipment that changes the lift (Barbell, Kettlebell, Dumbbell, Rowing
+// machine) is part of the name and is deliberately not listed.
+const NAME_MODIFIER = /\b(body-?weight|outdoors?|indoors?)\b/i;
+
+/** The movement-name check, shared so round movements get the same advice as
+ *  exercises. `movement` is searched verbatim for the form-check link and is
+ *  what cross-session tracking keys on, so it must be the name alone: no
+ *  trailing parenthetical, no measurement, no "Outdoor" / "Bodyweight"
+ *  modifier — the modifier goes in `cue`. */
 export function movementNameWarning(name) {
   if (!name) return null;
   const paren = name.match(/\s*\(([^)]*)\)\s*$/);
   const measure = name.match(/\s+\d+\s*(m|km|mi|ft|s|sec|min|reps?)$/i);
+  const modifier = name.match(NAME_MODIFIER);
   if (paren) return `${name}: move "(${paren[1]})" into cue or tag — the name is searched verbatim and is not the place for it`;
   if (measure) return `${name}: the prescription belongs in sets, not the name — search and progress tracking both key on this`;
+  if (modifier) return `${name}: move "${modifier[0]}" into cue — a modifier is not part of the movement's name (write "Run" with cue "Outdoors", "Pull-up" with cue "Bodyweight")`;
   return null;
 }
 

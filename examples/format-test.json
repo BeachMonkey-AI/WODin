@@ -4,9 +4,9 @@
   "date": "2026-10-01",
   "title": "FORMAT TEST — not a real session",
   "athleteTitle": "WODin format preview",
-  "program": "Schema preview · examples A–O",
+  "program": "Schema examples · A–L",
   "coach": "format-preview (TEST data)",
-  "coachNote": "TEST WORKOUT — not a real session. Example numbers only, not a prescription. No sink: nothing is sent anywhere. One block per workout shape in the format/rounds proposal (A–O), so every header, round tree, scaling pill and score box can be checked on one page.",
+  "coachNote": "TEST WORKOUT — not a real session. Example numbers only, not a prescription. No sink: nothing is sent anywhere. One block per distinct workout shape (A–L), so every header, round tree, scaling pill and score box can be checked on one page. These are also the canonical examples in AGENT.md.",
   "units": {
     "load": "lb",
     "distance": "m"
@@ -19,6 +19,8 @@
         {
           "movement": "Barbell bench press",
           "kind": "weight_reps",
+          "tag": "Work set",
+          "cue": "Bar to mid-chest; stop one rep before form breaks.",
           "sets": [
             { "reps": 5, "load": 135 },
             { "reps": 5, "load": 135 },
@@ -29,23 +31,7 @@
       ]
     },
     {
-      "name": "B · Ladder / wave",
-      "type": "strength",
-      "exercises": [
-        {
-          "movement": "Barbell bench press",
-          "kind": "weight_reps",
-          "sets": [
-            { "reps": 5, "load": 95 },
-            { "reps": 5, "load": 105 },
-            { "reps": 3, "load": 115 },
-            { "reps": 3, "load": 115 }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "C · Intervals",
+      "name": "B · Intervals",
       "type": "conditioning",
       "exercises": [
         {
@@ -59,7 +45,7 @@
       ]
     },
     {
-      "name": "D · Tabata",
+      "name": "C · Tabata",
       "type": "conditioning",
       "format": { "type": "tabata", "rounds": 8, "workSec": 20, "restSec": 10, "score": "none" },
       "exercises": [
@@ -71,19 +57,7 @@
       ]
     },
     {
-      "name": "E · EMOM, single movement",
-      "type": "strength",
-      "format": { "type": "emom", "rounds": 6, "intervalSec": 60, "score": "none" },
-      "exercises": [
-        {
-          "movement": "Barbell push press",
-          "kind": "weight_reps",
-          "sets": [ { "reps": 3, "load": 85 } ]
-        }
-      ]
-    },
-    {
-      "name": "F · EMOM, alternating pair",
+      "name": "D · EMOM, alternating pair",
       "type": "conditioning",
       "format": { "type": "emom", "rounds": 10, "intervalSec": 60 },
       "exercises": [
@@ -94,15 +68,16 @@
           "sets": [ { "reps": 12, "load": 53 } ]
         },
         {
-          "movement": "Bodyweight push-up",
+          "movement": "Push-up",
           "intervalSlot": "B",
           "kind": "reps",
+          "cue": "Bodyweight; chest to the floor.",
           "sets": [ { "reps": 10 } ]
         }
       ]
     },
     {
-      "name": "G · For time, per-round reps — Diane",
+      "name": "E · For time, per-round reps — Diane",
       "type": "conditioning",
       "benchmark": "girl",
       "format": { "type": "for_time", "score": "time" },
@@ -116,7 +91,7 @@
           "reps": 21,
           "movements": [
             { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
-            { "movement": "Bodyweight handstand push-up", "kind": "reps" }
+            { "movement": "Handstand push-up", "kind": "reps", "cue": "Bodyweight." }
           ]
         },
         { "reps": 15 },
@@ -124,83 +99,71 @@
       ]
     },
     {
-      "name": "H · For time, mixed kinds — Helen",
+      "name": "F · For time, mixed kinds — Helen",
       "type": "conditioning",
       "benchmark": "girl",
       "format": { "type": "for_time", "capSec": 900, "score": "time" },
       "optional": [
-        { "id": "banded", "label": "Banded pull-ups" },
-        { "id": "vest", "label": "20 lb vest", "load": 20 }
+        { "id": "banded", "label": "Banded pull-ups" }
       ],
       "rounds": [
         {
           "movements": [
-            { "movement": "Outdoor run", "kind": "cardio", "distance": 400 },
+            { "movement": "Run", "kind": "cardio", "distance": 400, "cue": "Outdoors." },
             { "movement": "Kettlebell swing", "kind": "weight_reps", "reps": 21, "load": 53 },
-            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 12 }
+            { "movement": "Pull-up", "kind": "reps", "reps": 12, "cue": "Bodyweight." }
           ]
         },
         { "repeat": 2 }
       ]
     },
     {
-      "name": "I · AMRAP — Cindy",
-      "type": "conditioning",
-      "benchmark": "girl",
-      "format": { "type": "amrap", "capSec": 1200, "score": "rounds_reps" },
-      "rounds": [
-        {
-          "movements": [
-            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 5 },
-            { "movement": "Bodyweight push-up", "kind": "reps", "reps": 10 },
-            { "movement": "Bodyweight air squat", "kind": "reps", "reps": 15 }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "J · Chipper — Angie",
-      "type": "conditioning",
-      "benchmark": "girl",
-      "format": { "type": "for_time", "score": "time" },
-      "exercises": [
-        { "movement": "Bodyweight pull-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
-        { "movement": "Bodyweight push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
-        { "movement": "Bodyweight sit-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
-        { "movement": "Bodyweight air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] }
-      ]
-    },
-    {
-      "name": "K · Rounds with rest — Barbara",
+      "name": "G · Rounds with rest — Barbara",
       "type": "conditioning",
       "benchmark": "girl",
       "format": { "type": "for_time", "rounds": 5, "restSec": 180, "score": "time" },
       "rounds": [
         {
           "movements": [
-            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 20 },
-            { "movement": "Bodyweight push-up", "kind": "reps", "reps": 30 },
-            { "movement": "Bodyweight sit-up", "kind": "reps", "reps": 40 },
-            { "movement": "Bodyweight air squat", "kind": "reps", "reps": 50 }
+            { "movement": "Pull-up", "kind": "reps", "reps": 20 },
+            { "movement": "Push-up", "kind": "reps", "reps": 30 },
+            { "movement": "Sit-up", "kind": "reps", "reps": 40 },
+            { "movement": "Air squat", "kind": "reps", "reps": 50 }
           ]
         }
       ]
     },
     {
-      "name": "L · Circuit",
-      "type": "accessory",
-      "format": { "type": "circuit", "rounds": 3 },
+      "name": "H · AMRAP — Cindy",
+      "type": "conditioning",
+      "benchmark": "girl",
+      "format": { "type": "amrap", "capSec": 1200, "score": "rounds_reps" },
       "rounds": [
         {
           "movements": [
-            { "movement": "Dumbbell row", "kind": "weight_reps", "reps": 10, "load": 35 },
-            { "movement": "Bodyweight push-up", "kind": "reps", "reps": 10 }
+            { "movement": "Pull-up", "kind": "reps", "reps": 5 },
+            { "movement": "Push-up", "kind": "reps", "reps": 10 },
+            { "movement": "Air squat", "kind": "reps", "reps": 15 }
           ]
         }
       ]
     },
     {
-      "name": "M · Bodyweight-multiple load — Linda",
+      "name": "I · Total-reps score — Nicole",
+      "type": "conditioning",
+      "benchmark": "girl",
+      "format": { "type": "amrap", "capSec": 1200, "score": "total_reps" },
+      "rounds": [
+        {
+          "movements": [
+            { "movement": "Run", "kind": "cardio", "distance": 400, "cue": "Outdoors." },
+            { "movement": "Pull-up", "kind": "reps", "reps": null, "athleteFills": "reps" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "J · Bodyweight-multiple load — Linda",
       "type": "conditioning",
       "benchmark": "girl",
       "format": { "type": "for_time", "score": "time" },
@@ -218,21 +181,7 @@
       ]
     },
     {
-      "name": "N · Total-reps score — Nicole",
-      "type": "conditioning",
-      "benchmark": "girl",
-      "format": { "type": "amrap", "capSec": 1200, "score": "total_reps" },
-      "rounds": [
-        {
-          "movements": [
-            { "movement": "Outdoor run", "kind": "cardio", "distance": 400 },
-            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": null, "athleteFills": "reps" }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "O · Optional modifier — Murph",
+      "name": "K · Chipper with a modifier — Murph",
       "type": "conditioning",
       "benchmark": "hero",
       "format": { "type": "for_time", "score": "time" },
@@ -240,11 +189,24 @@
         { "id": "vest", "label": "20 lb vest", "load": 20, "optional": true }
       ],
       "exercises": [
-        { "movement": "Outdoor run", "kind": "cardio", "sets": [ { "distance": 1609 } ] },
-        { "movement": "Bodyweight pull-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
-        { "movement": "Bodyweight push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 200 } ] },
-        { "movement": "Bodyweight air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 300 } ] },
-        { "movement": "Outdoor run", "kind": "cardio", "sets": [ { "distance": 1609 } ] }
+        { "movement": "Run", "kind": "cardio", "cue": "Outdoors.", "sets": [ { "distance": 1609 } ] },
+        { "movement": "Pull-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+        { "movement": "Push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 200 } ] },
+        { "movement": "Air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 300 } ] },
+        { "movement": "Run", "kind": "cardio", "cue": "Outdoors.", "sets": [ { "distance": 1609 } ] }
+      ]
+    },
+    {
+      "name": "L · Circuit, RPE asked",
+      "type": "accessory",
+      "format": { "type": "circuit", "rounds": 3 },
+      "rounds": [
+        {
+          "movements": [
+            { "movement": "Dumbbell row", "kind": "weight_reps", "reps": 10, "load": 35 },
+            { "movement": "Push-up", "kind": "reps", "reps": 10 }
+          ]
+        }
       ]
     }
   ]

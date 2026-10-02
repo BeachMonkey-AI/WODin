@@ -15,21 +15,20 @@ import {
 const root = new URL('../', import.meta.url);
 const fixture = JSON.parse(readFileSync(new URL('examples/format-test.json', root), 'utf8'));
 const byLetter = l => fixture.sections.find(s => s.name.startsWith(l + ' '));
-const mv = { movement: 'Bodyweight push-up', kind: 'reps', sets: [{ reps: 10 }] };
+const mv = { movement: 'Push-up', kind: 'reps', sets: [{ reps: 10 }] };
 
 /* ── R1+R2: derived rounds for emom / tabata ─────────────────── */
 
-test('tabata, emom and the A/B emom pair derive their rounds from exercises', () => {
-  const D = byLetter('D'), E = byLetter('E'), F = byLetter('F');
-  for (const s of [D, E, F]) assert.ok(isDerivedRounds(s) && isRoundsSection(s), s.name);
+test('tabata and the A/B emom pair derive their rounds from exercises', () => {
+  const D = byLetter('C'), F = byLetter('D');
+  for (const s of [D, F]) assert.ok(isDerivedRounds(s) && isRoundsSection(s), s.name);
   assert.equal(expandRounds(D).length, 8);
-  assert.equal(expandRounds(E).length, 6);
   const f = expandRounds(F);
   assert.equal(f.length, 10);
-  assert.ok(f.every(r => r.movements.map(m => m.movement).join() === 'Kettlebell swing,Bodyweight push-up'));
+  assert.ok(f.every(r => r.movements.map(m => m.movement).join() === 'Kettlebell swing,Push-up'));
   assert.deepEqual(f[0].movements.map(m => m.intervalSlot), ['A', 'B'], 'intervalSlot carries onto the movement');
   assert.deepEqual(roundsOf(D), [{ movements: [{ movement: 'Barbell thruster', kind: 'weight_reps', reps: 5, load: 65 }] }]);
-  assert.equal(roundSummary(f[3]), 'Kettlebell swing 53 × 12 · Bodyweight push-up 10');
+  assert.equal(roundSummary(f[3]), 'Kettlebell swing 53 × 12 · Push-up 10');
   // The header reads as it did before derivation.
   assert.equal(describeFormat(D).eyebrow, 'CONDITIONING · TABATA · 8 ROUNDS');
   assert.equal(describeFormat(D).line, '20s work / 10s rest × 8');
@@ -49,19 +48,19 @@ test('derivation copies the first set, lets set.kind override, keeps exercise id
 });
 
 test('chippers, intervals, AMRAPs and tabata without format.rounds are not derived', () => {
-  for (const l of ['J', 'O']) assert.ok(!isDerivedRounds(byLetter(l)) && !isRoundsSection(byLetter(l)), l);
+  for (const l of ['B', 'K']) assert.ok(!isDerivedRounds(byLetter(l)) && !isRoundsSection(byLetter(l)), l);
   assert.ok(!isDerivedRounds({ format: { type: 'intervals', rounds: 4 }, exercises: [mv] }));
   assert.ok(!isDerivedRounds({ format: { type: 'amrap', rounds: 4 }, exercises: [mv] }));
   assert.ok(!isDerivedRounds({ format: { type: 'tabata', workSec: 20 }, exercises: [mv] }));
   assert.deepEqual(roundsOf({ format: { type: 'tabata', workSec: 20 }, exercises: [mv] }), []);
   // Written rounds[] always win over derivation.
-  const own = { format: { type: 'emom', rounds: 2 }, exercises: [mv], rounds: [{ movements: [{ movement: 'Bodyweight air squat', kind: 'reps', reps: 5 }] }] };
+  const own = { format: { type: 'emom', rounds: 2 }, exercises: [mv], rounds: [{ movements: [{ movement: 'Air squat', kind: 'reps', reps: 5 }] }] };
   assert.ok(!isDerivedRounds(own));
-  assert.equal(expandRounds(own)[1].movements[0].movement, 'Bodyweight air squat');
+  assert.equal(expandRounds(own)[1].movements[0].movement, 'Air squat');
 });
 
 test('the round check rule holds on derived rounds', () => {
-  const F = byLetter('F');
+  const F = byLetter('D');
   let st = seedSectionState(F);
   assert.equal(st.rounds.length, 10);
   st = checkMovement(st, 0, 0, true);
@@ -75,7 +74,7 @@ test('the round check rule holds on derived rounds', () => {
 });
 
 test('derived section result: rounds with done flags, block footer, nothing required', () => {
-  const D = byLetter('D');
+  const D = byLetter('C');
   let st = seedSectionState(D);
   st = checkRound(st, 0, true);
   st = checkRound(st, 1, true);
@@ -93,13 +92,13 @@ test('derived section result: rounds with done flags, block footer, nothing requ
 });
 
 test('derived digest lines are written per round', () => {
-  const E = byLetter('E');
-  const st = checkRound(seedSectionState(E), 0, true);
-  const lines = digestSectionLines(E, st, { rpe: 7 });
-  assert.equal(lines.length, 7);
-  assert.equal(lines[0], '  Round 1  ✓ Barbell push press 85×3');
-  assert.equal(lines[1], '  Round 2  ○ Barbell push press 85×3');
-  assert.equal(lines[6], '  RPE  7');
+  const C = byLetter('C');
+  const st = checkRound(seedSectionState(C), 0, true);
+  const lines = digestSectionLines(C, st, { rpe: 7 });
+  assert.equal(lines.length, 9);
+  assert.equal(lines[0], '  Round 1  ✓ Barbell thruster 65×5');
+  assert.equal(lines[1], '  Round 2  ○ Barbell thruster 65×5');
+  assert.equal(lines[8], '  RPE  7');
 });
 
 test('derivation warnings: multi-set exercises, no format.rounds', () => {
@@ -108,7 +107,7 @@ test('derivation warnings: multi-set exercises, no format.rounds', () => {
   assert.match(w(multi), /only the first set is used for rounds/);
   assert.match(w({ format: { type: 'emom', intervalSec: 60 }, exercises: [mv] }), /emom without rounds — no rounds are drawn/);
   assert.doesNotMatch(w({ format: { type: 'intervals' }, exercises: [mv] }), /without rounds/);
-  assert.doesNotMatch(w(byLetter('F')), /first set|without rounds/);
+  assert.doesNotMatch(w(byLetter('D')), /first set|without rounds/);
 });
 
 /* ── R3: keypad time entry ───────────────────────────────────── */
@@ -132,7 +131,7 @@ test('fmtPaceDigits', () => {
 });
 
 test('score time typed without colons uses the same formatter', () => {
-  const G = byLetter('G');
+  const G = byLetter('E');
   assert.deepEqual(buildScore(G, { time: '12542' }), { time: '1:25:42', timeSec: 5142 });
   assert.deepEqual(buildScore(G, { time: '0841' }), { time: '8:41', timeSec: 521 });
   assert.deepEqual(buildScore(G, { time: '8:41' }), { time: '8:41', timeSec: 521 });
@@ -170,7 +169,7 @@ test('rpe policy table', () => {
   assert.deepEqual(sessionRpePolicy({ rpe: 9, sections: [{}] }), { mode: 'assume', value: 9 });
   assert.deepEqual(sessionRpePolicy(fixture), ask, 'the fixture mixes benchmarks with plain blocks');
 
-  assert.ok(showSectionRpe(byLetter('L')) && !showSectionRpe(byLetter('G')) && !showSectionRpe({ rpe: 'hide' }));
+  assert.ok(showSectionRpe(byLetter('L')) && !showSectionRpe(byLetter('E')) && !showSectionRpe({ rpe: 'hide' }));
   assert.ok(showExerciseRpe({}) && showExerciseRpe({ rpe: 'ask' }));
   assert.ok(!showExerciseRpe({ benchmark: 'girl' }) && !showExerciseRpe({ rpe: 'hide' }) && !showExerciseRpe({ rpe: 7 }));
   assert.ok(showSessionRpe(fixture) && !showSessionRpe({ sections: [{ benchmark: 'hero' }] }));
@@ -188,7 +187,7 @@ test('session rpe result: assumed carries rpeAssumed, answered never does', () =
 });
 
 test('section-assumed rpe lands in sections[id], not exerciseRpe, and is never mirrored', () => {
-  const G = { ...byLetter('G'), id: 'diane' };
+  const G = { ...byLetter('E'), id: 'diane' };
   const wod = { sections: [{ ...byLetter('A'), id: 'sec1' }, G] };
   const res = withSections({ rpe: 7, log: {} }, wod, {});
   assert.equal(res.sections.diane.rpe, 11);
@@ -231,8 +230,8 @@ test('rpe / benchmark validation', () => {
 test('fixture benchmarks are tagged as specified', () => {
   const tags = Object.fromEntries(fixture.sections.map(s => [s.name[0], s.benchmark || null]));
   assert.deepEqual(tags, {
-    A: null, B: null, C: null, D: null, E: null, F: null, G: 'girl', H: 'girl', I: 'girl',
-    J: 'girl', K: 'girl', L: null, M: 'girl', N: 'girl', O: 'hero'
+    A: null, B: null, C: null, D: null, E: 'girl', F: 'girl', G: 'girl',
+    H: 'girl', I: 'girl', J: 'girl', K: 'hero', L: null
   });
 });
 

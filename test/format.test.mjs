@@ -13,7 +13,7 @@ const fixture = JSON.parse(readFileSync(new URL('../examples/format-test.json', 
 const byLetter = l => fixture.sections.find(s => s.name.startsWith(l + ' '));
 
 test('Diane: per-round reps override rep-based movements and give a scheme', () => {
-  const sec = byLetter('G');
+  const sec = byLetter('E');
   const r = expandRounds(sec);
   assert.equal(r.length, 3);
   assert.deepEqual(r.map(x => x.movements.map(m => m.reps)), [[21, 21], [15, 15], [9, 9]]);
@@ -23,36 +23,36 @@ test('Diane: per-round reps override rep-based movements and give a scheme', () 
 });
 
 test('Helen: bare repeat adds n copies, cardio untouched, cap in the line', () => {
-  const sec = byLetter('H');
+  const sec = byLetter('F');
   const r = expandRounds(sec);
   assert.equal(r.length, 3);
   assert.equal(r[2].movements[0].distance, 400);
   const d = describeFormat(sec);
   assert.equal(d.eyebrow, 'CONDITIONING · FOR TIME · 3 ROUNDS');
   assert.equal(d.line, 'Cap 15:00');
-  assert.equal(roundSummary(r[0]), 'Outdoor run 400 m · Kettlebell swing 53 × 21 · Bodyweight pull-up 12');
+  assert.equal(roundSummary(r[0]), 'Run 400 m · Kettlebell swing 53 × 21 · Pull-up 12');
 });
 
 test('a round with reps and repeat is that round plus n copies', () => {
-  const sec = { rounds: [{ reps: 5, repeat: 2, movements: [{ movement: 'Bodyweight push-up', kind: 'reps', reps: 99 }] }] };
+  const sec = { rounds: [{ reps: 5, repeat: 2, movements: [{ movement: 'Push-up', kind: 'reps', reps: 99 }] }] };
   assert.deepEqual(expandRounds(sec).map(r => r.movements[0].reps), [5, 5, 5]);
 });
 
 test('Barbara pads to format.rounds; header shows rest', () => {
-  const sec = byLetter('K');
+  const sec = byLetter('G');
   assert.equal(expandRounds(sec).length, 5);
   assert.equal(describeFormat(sec).line, 'Rest 3:00 between rounds');
 });
 
 test('AMRAP is never padded or split into per-round state', () => {
-  const sec = { ...byLetter('I'), format: { ...byLetter('I').format, rounds: 5 } };
+  const sec = { ...byLetter('H'), format: { ...byLetter('H').format, rounds: 5 } };
   assert.equal(expandRounds(sec).length, 1);
   assert.deepEqual(seedRoundState(sec), []);
-  assert.equal(describeFormat(byLetter('I')).eyebrow, 'CONDITIONING · AMRAP');
+  assert.equal(describeFormat(byLetter('H')).eyebrow, 'CONDITIONING · AMRAP');
 });
 
 test('Linda: scheme over ten rounds and BW multiples', () => {
-  const sec = byLetter('M');
+  const sec = byLetter('J');
   assert.equal(roundScheme(sec), '10-9-8-7-6-5-4-3-2-1');
   assert.equal(formatBwMult(1.5), '1.5× BW');
   assert.equal(formatBwMult(1.0), '1× BW');
@@ -62,8 +62,8 @@ test('Linda: scheme over ten rounds and BW multiples', () => {
 });
 
 test('format lines for tabata and emom pairs', () => {
-  assert.equal(describeFormat(byLetter('D')).line, '20s work / 10s rest × 8');
-  const f = describeFormat(byLetter('F'));
+  assert.equal(describeFormat(byLetter('C')).line, '20s work / 10s rest × 8');
+  const f = describeFormat(byLetter('D'));
   assert.deepEqual(f.parts, ['Every 1:00 for 10 min', 'Alternating A / B each interval']);
   assert.equal(describeFormat(byLetter('A')), null);
 });
@@ -76,7 +76,7 @@ test('partition hints', () => {
 });
 
 test('round check rule holds both ways', () => {
-  const [r] = seedRoundState(byLetter('H'));
+  const [r] = seedRoundState(byLetter('F'));
   assert.equal(roundDone(r), false);
   const all = setRoundDone(r, true);
   assert.ok(all.done && all.movements.every(m => m.done));
@@ -91,7 +91,7 @@ test('round check rule holds both ways', () => {
 });
 
 test('saved round state survives only where it still lines up', () => {
-  const sec = byLetter('G');
+  const sec = byLetter('E');
   const saved = seedRoundState(sec).map(r => setRoundDone(r, true));
   saved[1].movements.pop();
   const merged = seedRoundState(sec, saved);
@@ -99,17 +99,17 @@ test('saved round state survives only where it still lines up', () => {
 });
 
 test('scores: blank is null, keypad digits become a clock', () => {
-  const G = byLetter('G'), I = byLetter('I'), N = byLetter('N');
+  const G = byLetter('E'), I = byLetter('H'), N = byLetter('I');
   assert.equal(buildScore(G, { time: '' }), null);
   assert.deepEqual(buildScore(G, { time: '841' }), { time: '8:41', timeSec: 521 });
   assert.deepEqual(buildScore(I, { rounds: '18', reps: '7' }), { rounds: 18, reps: 7 });
   assert.deepEqual(buildScore(I, { rounds: '5', reps: '' }), { rounds: 5, reps: 0 });
   assert.deepEqual(buildScore(N, { totalReps: '74' }), { totalReps: 74 });
-  assert.equal(buildScore(byLetter('D'), { time: '1:00' }), null, 'score none is never scored');
+  assert.equal(buildScore(byLetter('C'), { time: '1:00' }), null, 'score none is never scored');
 });
 
 test('section result: optional on-only, modifiers all, rounds with movements', () => {
-  const G = byLetter('G');
+  const G = byLetter('E');
   let st = seedSectionState(G);
   st = togglePill(st, 'optional', 'pike');
   st.rounds = st.rounds.map(r => setRoundDone(r, true));
@@ -120,21 +120,21 @@ test('section result: optional on-only, modifiers all, rounds with movements', (
   assert.equal(res.rounds.length, 3);
   assert.deepEqual(res.rounds[2].movements[0], { movement: 'Barbell deadlift', done: true, load: 225, reps: 9 });
 
-  const O = byLetter('O');
+  const O = byLetter('K');
   assert.deepEqual(buildSectionResult(O, seedSectionState(O)).modifiers, { vest: false });
   assert.equal(buildSectionResult(byLetter('A'), null), null);
-  assert.equal(buildSectionResult(byLetter('I'), seedSectionState(byLetter('I'))).rounds, undefined);
+  assert.equal(buildSectionResult(byLetter('H'), seedSectionState(byLetter('H'))).rounds, undefined);
 });
 
 test('withSections mirrors only when exactly one section has an entry', () => {
-  const G = { ...byLetter('G'), id: 'sec7' };
+  const G = { ...byLetter('E'), id: 'sec7' };
   const one = withSections({ log: {} }, { sections: [{ ...byLetter('A'), id: 'sec1' }, G] }, {});
   assert.deepEqual(Object.keys(one.sections), ['sec7']);
   assert.equal(one.score, null);
   assert.deepEqual(one.optional, {});
   assert.equal(one.rounds.length, 3);
 
-  const two = withSections({ log: {} }, { sections: [G, { ...byLetter('H'), id: 'sec8' }] }, {});
+  const two = withSections({ log: {} }, { sections: [G, { ...byLetter('F'), id: 'sec8' }] }, {});
   assert.equal(Object.keys(two.sections).length, 2);
   assert.ok(!('score' in two) && !('rounds' in two));
 
@@ -143,18 +143,18 @@ test('withSections mirrors only when exactly one section has an entry', () => {
 });
 
 test('block notes and RPE key by section id, only for footer sections', () => {
-  // L is the untagged circuit, so its block RPE is asked; G (Diane) is a
+  // L is the untagged circuit, so its block RPE is asked; E (Diane) is a
   // benchmark whose RPE is assumed and never lands in exerciseRpe.
-  const wod = { sections: [{ ...byLetter('A'), id: 'sec1' }, { ...byLetter('L'), id: 'sec12' }, { ...byLetter('G'), id: 'sec7' }] };
+  const wod = { sections: [{ ...byLetter('A'), id: 'sec1' }, { ...byLetter('L'), id: 'sec12' }, { ...byLetter('E'), id: 'sec7' }] };
   const out = sectionNotesAndRpe(wod, { sec1: 'x', sec12: ' grip went ', sec7: 'ok' }, { sec1: 9, sec12: '8', sec7: 9 });
   assert.deepEqual(out, { notes: { sec12: 'grip went', sec7: 'ok' }, exerciseRpe: { sec12: 8 } });
-  assert.ok(hasBlockFooter(byLetter('J')) && hasBlockFooter(byLetter('F')), 'derived emom rounds get the block footer');
-  assert.ok(!hasBlockFooter(byLetter('C')));
-  assert.ok(usesFormatFeatures(byLetter('O')) && usesFormatFeatures(byLetter('D')) && !usesFormatFeatures(byLetter('B')));
+  assert.ok(hasBlockFooter(byLetter('K')) && hasBlockFooter(byLetter('D')), 'derived emom rounds get the block footer');
+  assert.ok(!hasBlockFooter(byLetter('B')));
+  assert.ok(usesFormatFeatures(byLetter('K')) && usesFormatFeatures(byLetter('C')) && !usesFormatFeatures(byLetter('A')));
 });
 
 test('digest lines', () => {
-  const G = byLetter('G');
+  const G = byLetter('E');
   let st = togglePill(seedSectionState(G), 'optional', 'pike');
   st.rounds[0] = setRoundDone(st.rounds[0], true);
   st.rounds[1] = setMovementDone(st.rounds[1], 0, true);
@@ -163,9 +163,9 @@ test('digest lines', () => {
   const lines = digestSectionLines(G, st, { rpe: 9, note: 'ok' });
   assert.deepEqual(lines, [
     '  Scaled  Pike push-ups',
-    '  Round 1  ✓ Barbell deadlift 225×21 · Bodyweight handstand push-up 21',
-    '  Round 2  ✓ Barbell deadlift 225×15 · ○ Bodyweight handstand push-up 15',
-    '  Round 3  ○ Barbell deadlift 225×9 · Bodyweight handstand push-up 9',
+    '  Round 1  ✓ Barbell deadlift 225×21 · Handstand push-up 21',
+    '  Round 2  ✓ Barbell deadlift 225×15 · ○ Handstand push-up 15',
+    '  Round 3  ○ Barbell deadlift 225×9 · Handstand push-up 9',
     '  Score  8:41',
     '  RPE  11 (assumed)',
     '  ↳ ok'
@@ -184,7 +184,7 @@ test('the fixture validates with no problems', () => {
 test('validator problems and warnings', () => {
   const p = sec => validateFormat(sec).problems;
   const w = sec => validateFormat(sec).warnings;
-  const mv = { movement: 'Bodyweight push-up', kind: 'reps', reps: 5 };
+  const mv = { movement: 'Push-up', kind: 'reps', reps: 5 };
 
   assert.match(p({ name: 'x' })[0], /needs exercises or rounds/);
   assert.match(p({ name: 'x', exercises: [], rounds: undefined }).join(), /needs exercises or rounds/);
@@ -204,7 +204,7 @@ test('validator problems and warnings', () => {
   assert.match(p({ exercises: [{ ...mv, sets: [{ loadBwMult: -1 }] }] }).join(), /loadBwMult/);
 
   assert.match(w({ format: { type: 'for_time', rounds: 2 }, rounds: [{ movements: [mv] }, { repeat: 2 }] }).join(), /expands to 3/);
-  assert.ok(!w(byLetter('K')).some(x => /expands to/.test(x)), 'padding up to format.rounds is intended, not a warning');
+  assert.ok(!w(byLetter('G')).some(x => /expands to/.test(x)), 'padding up to format.rounds is intended, not a warning');
   assert.match(w({ format: { type: 'emom' }, exercises: [{ ...mv, sets: [{}] }] }).join(), /emom without intervalSec/);
   assert.match(w({ format: { type: 'tabata' }, exercises: [{ ...mv, sets: [{}] }] }).join(), /tabata without workSec/);
   assert.match(w({ format: { type: 'for_time' }, exercises: [{ ...mv, intervalSlot: 'A', sets: [{}] }] }).join(), /only means something in an emom/);

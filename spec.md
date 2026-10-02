@@ -126,7 +126,7 @@ A list compact enough to write 21-15-9 as three short entries:
 [
   { "reps": 21, "movements": [
     { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
-    { "movement": "Bodyweight handstand push-up", "kind": "reps" } ] },
+    { "movement": "Handstand push-up", "kind": "reps" } ] },
   { "reps": 15 },
   { "reps": 9 }
 ]
@@ -173,9 +173,12 @@ together, so a result can never say a round is done while a movement in it is no
 - `intervalSlot` (exercise) — `"A"` / `"B"` for an EMOM that alternates; meaningless, and
   warned about, anywhere else.
 
-Movement names in these blocks state their equipment — `Kettlebell swing`, `Bodyweight
-pull-up`, `Rowing machine row` — and a formatted block holds the working piece only; warm-up
-ramps go in a warm-up section. Every shape, A to O, is in `examples/format-test.json`.
+Movement names stay plain here too: `Run`, `Pull-up`, `Push-up`, `Air squat`. A modifier such
+as outdoors or bodyweight goes in the movement's `cue`; real equipment that makes it a
+different lift (`Barbell deadlift`, `Kettlebell swing`, `Rowing machine row`) stays in the
+name. A formatted block holds the working piece only; warm-up ramps go in a warm-up section.
+The twelve example sections in `examples/format-test.json` each teach one distinct shape, and
+`AGENT.md` has the decision guide, annotated examples and a do/don't list built on them.
 
 ### One footer per block
 

@@ -128,7 +128,7 @@
           "examples": [[
             { "reps": 21, "movements": [
               { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
-              { "movement": "Bodyweight handstand push-up", "kind": "reps" } ] },
+              { "movement": "Handstand push-up", "kind": "reps" } ] },
             { "reps": 15 }, { "reps": 9 }
           ]]
         },
@@ -265,7 +265,7 @@
         "movement": {
           "type": "string",
           "minLength": 1,
-          "description": "The exercise's canonical name and nothing else — \"Row\", not \"Easy row\" or \"Row 500m\". Two reasons. It is searched verbatim to build the form-check link, and adjectives wreck the results. And it is the movement's identity: anything tracking progress across sessions matches on this, so \"Easy row\" and \"Row 500m\" would look like two unrelated exercises. Session-specific detail goes in `cue` (\"easy pace\", \"8 per leg\"), training intent in `tag` (\"Pump\"), and the prescription in `sets`.",
+          "description": "The exercise's canonical name and nothing else — \"Row\", not \"Easy row\" or \"Row 500m\". Two reasons. It is searched verbatim to build the form-check link, and adjectives wreck the results. And it is the movement's identity: anything tracking progress across sessions matches on this, so \"Easy row\" and \"Row 500m\" would look like two unrelated exercises. Session-specific detail goes in `cue` (\"easy pace\", \"8 per leg\", \"Outdoors\", \"Bodyweight\") — modifiers like outdoor or bodyweight are never part of the name, while equipment that makes it a different lift (Barbell deadlift, Kettlebell swing) stays in the name. Training intent goes in `tag` (\"Pump\"), and the prescription in `sets`.",
           "examples": ["Row", "Barbell bent row", "Farmer carry", "Bulgarian split squat"]
         },
 

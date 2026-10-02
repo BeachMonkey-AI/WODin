@@ -88,7 +88,8 @@ Give what you're prescribing, leave the rest null, and name what the athlete sup
 
 ### Name movements canonically
 
-`movement` is the exercise's name and nothing else. **"Row", not "Easy row" or "Row 500m".**
+`movement` is the exercise's name and nothing else. **"Row", not "Easy row" or "Row 500m";
+"Run", not "Outdoor run"; "Pull-up", not "Bodyweight pull-up".**
 
 This matters twice over:
 
@@ -97,7 +98,8 @@ This matters twice over:
    "Row 500m form" return junk; "Row form" returns rowing technique.
 2. **It is the movement's identity.** Anything tracking progress across sessions matches on
    this string. Call it "Easy row" on Monday and "Row 500m" on Thursday and you have
-   invented two unrelated exercises that can never be compared.
+   invented two unrelated exercises that can never be compared. "Outdoor run" and "Run" are
+   the same trap.
 
 Everything else already has a home — use them rather than decorating the name:
 
@@ -105,16 +107,24 @@ Everything else already has a home — use them rather than decorating the name:
 |---|---|
 | `"Easy row"` | `movement: "Row"`, `cue: "Easy pace — conversational the whole way."` |
 | `"Row 500m"` | `movement: "Row"`, with `distance: 500` in the set |
+| `"Outdoor run"` | `movement: "Run"`, `cue: "Outdoors."` |
+| `"Bodyweight pull-up"` | `movement: "Pull-up"`, `cue: "Bodyweight."` |
 | `"Bench press light"` | `movement: "Bench press"`, `cue: "Light — leave three in the tank."` |
 | `"Dumbbell lateral raise (pump)"` | `movement: "Dumbbell lateral raise"`, `tag: "Pump"` |
 | `"Bulgarian split squat (each leg)"` | `movement: "Bulgarian split squat"`, `cue: "8 per leg."` |
+
+The line is *modifier* versus *equipment*. Where or how a movement is done (outdoors,
+bodyweight, indoors) is a modifier and goes in `cue`. Equipment that makes it a different
+lift is part of the movement and stays: `Barbell deadlift`, `Kettlebell swing`,
+`Dumbbell row`, `Rowing machine row`. `cue` works the same on an exercise and on a round
+movement.
 
 Don't worry about a movement appearing twice in one session. A warm-up row and a finisher
 row both read "Row", but they sit under different section headings with different
 prescriptions and different cues — nobody confuses them.
 
-`wodin validate` warns about the two shapes it can reliably spot: a trailing parenthetical,
-and a measurement in the name.
+`wodin validate` warns about what it can reliably spot: a trailing parenthetical, a
+measurement in the name, and the words `Outdoor`, `Indoor` and `Bodyweight`.
 
 ### Linking to a specific demonstration
 
@@ -189,7 +199,7 @@ movement once, as an exercise with one set — the page builds one round from th
 replace that section's set rows, so its sets are **not** in `log`; `sections[id].rounds` is
 the record. Extra sets are ignored (`wodin validate` warns), and without `format.rounds`
 nothing is derived — the exercises show as ordinary set rows, with a warning. Chippers
-(`for_time` + `exercises`: Angie, Murph) and `intervals` are never derived. Ticking rounds is
+(`for_time` + `exercises`: Murph) and `intervals` are never derived. Ticking rounds is
 optional for the athlete; nothing requires it.
 
 A section that has `rounds[]` (written or derived), or a `score` other than `none`, is rated
@@ -289,128 +299,218 @@ everywhere, exactly as before. `wodin validate` fails on other values, and warns
 `rpe` / `benchmark` sit on a section that isn't a scored or rounds block, or a benchmark has
 no `format.score`.
 
-### Names, and what stays out of a format block
+### Which format for which workout
 
-**State the equipment in the movement name** — `Barbell deadlift`, `Kettlebell swing`,
-`Bodyweight pull-up`, `Rowing machine row`, `Dumbbell row`. In a block of short lines it is
-the only place the athlete learns what to pick up. Put it in the name proper, not a trailing
-parenthetical — `wodin validate` flags a trailing `(…)` on any name, so write `Outdoor run`,
-not `Run` with the place in brackets.
+Pick by the shape of the work, not its name. Every row is a section of
+[`examples/format-test.json`](examples/format-test.json) — the canonical, tested examples
+(`node cli/wodin.mjs serve examples/format-test.json` shows all twelve on one page).
 
-**No warm-up ramps.** A formatted block is the working piece. Ramping sets (45, 65, 85 …)
-belong in their own warm-up section; a Tabata, an EMOM or a for-time block prescribes the
-working load and nothing else.
-
-### The fifteen shapes
-
-| | Shape | Section |
+| The workout is… | Write | Example |
 |---|---|---|
-| A | Standard strength | no format — `exercises` with straight sets |
-| B | Ladder / wave | no format — sets that step up |
-| C | Intervals | no format — `cardio` sets with `rest` and `athleteFills: "duration"` |
-| D | Tabata | `{ "type": "tabata", "rounds": 8, "workSec": 20, "restSec": 10, "score": "none" }` + one exercise → 8 derived rounds |
-| E | EMOM, one movement | `{ "type": "emom", "rounds": 6, "intervalSec": 60, "score": "none" }` + one exercise → 6 derived rounds |
-| F | EMOM, alternating pair | `{ "type": "emom", "rounds": 10, "intervalSec": 60 }` + exercises with `intervalSlot` A / B → 10 derived rounds of the pair |
-| G | Per-round reps (Diane) | `benchmark: "girl"`, `for_time`, score `time`, `{ reps: 21, movements }`, `{ reps: 15 }`, `{ reps: 9 }`, `optional[]` |
-| H | Rounds, mixed kinds (Helen) | `benchmark: "girl"`, `for_time`, `capSec: 900`, one round + `{ repeat: 2 }`, `optional[]` |
-| I | AMRAP (Cindy) | `benchmark: "girl"`, `amrap`, `capSec: 1200`, score `rounds_reps`, one template round |
-| J | Chipper (Angie) | `benchmark: "girl"`, `for_time`, score `time`, `exercises` in order with `partition: "free"` |
-| K | Rounds with rest (Barbara) | `benchmark: "girl"`, `for_time`, `rounds: 5`, `restSec: 180`, one round written |
-| L | Circuit | `circuit`, `rounds: 3`, one round written, unscored, untagged — the RPE pill and note are asked |
-| M | Bodyweight multiple (Linda) | `benchmark: "girl"`, `for_time`, 10 down to 1 via `{ reps }`, movements with `loadBwMult` |
-| N | Total reps (Nicole) | `benchmark: "girl"`, `amrap`, score `total_reps`, a movement with `reps: null, athleteFills: "reps"` |
-| O | Optional modifier (Murph) | `benchmark: "hero"`, `for_time`, `modifiers[]` vest, `exercises` with `partition: "free"` |
+| Sets of a lift: straight sets, ramps, waves | no `format`; `exercises` with `sets[]` | A · Standard strength |
+| Repeats the athlete times themselves (4 × 500 m, 2:00 rest) | no `format`; `cardio` sets with `rest`, `athleteFills: "duration"` | B · Intervals |
+| Tabata | `tabata` + **one** exercise, one set | C · Tabata |
+| EMOM, one movement or an alternating pair | `emom` + exercises; `intervalSlot` `"A"` / `"B"` to alternate | D · EMOM pair |
+| The same movements every round, reps change (21-15-9) | `for_time` + `rounds[]` with `{ reps }` entries | E · Diane |
+| Fixed rounds, mixed kinds (run, swing, pull-up), time cap | `for_time` + `capSec`, one round + `{ repeat }` | F · Helen |
+| Fixed rounds with scheduled rest between them | `for_time` + `rounds` + `restSec`, **one** round written | G · Barbara |
+| As many rounds as possible | `amrap` + `capSec`, one template round, score `rounds_reps` | H · Cindy |
+| AMRAP scored by total reps (the athlete supplies reps) | `amrap`, score `total_reps`, `reps: null, athleteFills: "reps"` | I · Nicole |
+| Barbell load set relative to bodyweight | `loadBwMult` on the movement | J · Linda |
+| A long list done in order (chipper), maybe with an add-on | `for_time` + `exercises` + `partition`; `modifiers[]` | K · Murph |
+| An accessory circuit, not a test | `circuit` + `rounds[]`, no `benchmark` | L · Circuit |
 
-All fifteen live in [`examples/format-test.json`](examples/format-test.json), one section
-each — `node cli/wodin.mjs serve examples/format-test.json` shows every header, pill, round
-tree and score box on one page. Four in full:
+**Exercises or rounds?** A list of movements each done for *sets* (or once, in order, like a
+chipper) is `exercises[]`. A short list of movements *repeated as passes* is `rounds[]`.
+Tabata and EMOM are the exception: write the exercise once and `format.rounds` makes the
+rounds. If you are about to write the same entry twice, one of `{ reps }`, `{ repeat }`,
+`format.rounds` or a derived round already does it.
 
-**Diane** — 21-15-9, three rounds from three entries:
+### One example per format
 
-```json
+Comments are for reading — strip them from real JSON. Each block below is kept identical to
+its section in the examples file by a test, so what you copy is what is tested.
+
+**No format** — strength, with the tag and cue that carry the coaching (A):
+
+```jsonc
 {
-  "id": "diane",
+  "name": "Strength",
+  "type": "strength",
+  "exercises": [{
+    "movement": "Barbell bench press",   // equipment that changes the lift stays in the name
+    "kind": "weight_reps",
+    "tag": "Work set",                   // training intent
+    "cue": "Bar to mid-chest; stop one rep before form breaks.",
+    "sets": [
+      { "reps": 5, "load": 135 }, { "reps": 5, "load": 135 },
+      { "reps": 5, "load": 135 }, { "reps": 5, "load": 135 }
+    ]
+  }]
+}
+```
+
+**No format** — intervals: prescribe distance and pace, the athlete supplies the time (B):
+
+```jsonc
+{
+  "name": "Intervals",
+  "type": "conditioning",
+  "exercises": [{
+    "movement": "Rowing machine row",
+    "kind": "cardio",
+    "sets": [
+      { "distance": 500, "pace": "1:55/500m", "athleteFills": "duration", "rest": "2:00" },
+      { "distance": 500, "pace": "1:55/500m", "athleteFills": "duration", "rest": "2:00" }
+    ]
+  }]
+}
+```
+
+**`tabata`** — one exercise, one set; the page derives the eight rounds (C):
+
+```jsonc
+{
+  "name": "Tabata",
+  "type": "conditioning",
+  "format": { "type": "tabata", "rounds": 8, "workSec": 20, "restSec": 10, "score": "none" },
+  "exercises": [{
+    "movement": "Barbell thruster",
+    "kind": "weight_reps",
+    "sets": [ { "reps": 5, "load": 65 } ]    // only the first set is used
+  }]
+}
+```
+
+**`emom`** — alternating pair: A on odd minutes, B on even; ten rounds are derived (D):
+
+```jsonc
+{
+  "name": "EMOM, alternating pair",
+  "type": "conditioning",
+  "format": { "type": "emom", "rounds": 10, "intervalSec": 60 },
+  "exercises": [
+    { "movement": "Kettlebell swing", "intervalSlot": "A", "kind": "weight_reps",
+      "sets": [ { "reps": 12, "load": 53 } ] },
+    { "movement": "Push-up", "intervalSlot": "B", "kind": "reps",
+      "cue": "Bodyweight; chest to the floor.",     // the modifier lives in the cue
+      "sets": [ { "reps": 10 } ] }
+  ]
+}
+```
+
+**`for_time` + `rounds[]`** — Diane: 21-15-9 from three entries, a benchmark, with scaling pills (E):
+
+```jsonc
+{
   "name": "Diane",
   "type": "conditioning",
-  "benchmark": "girl",
+  "benchmark": "girl",                          // max effort by definition: RPE is not asked
   "format": { "type": "for_time", "score": "time" },
-  "optional": [
+  "optional": [                                 // scaling the athlete may pick
     { "id": "pike", "label": "Pike push-ups" },
+    { "id": "box", "label": "Box HSPU" },
     { "id": "dl185", "label": "185 lb deadlift", "load": 185 }
   ],
   "rounds": [
-    { "reps": 21, "movements": [
+    { "reps": 21, "movements": [                // a round's reps replace every rep-based movement's
       { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
-      { "movement": "Bodyweight handstand push-up", "kind": "reps" }
+      { "movement": "Handstand push-up", "kind": "reps", "cue": "Bodyweight." }
     ] },
-    { "reps": 15 },
+    { "reps": 15 },                             // same movements, 15 reps
     { "reps": 9 }
   ]
 }
 ```
 
-**Helen** — mixed kinds, one round written and repeated twice, with a cap:
+Variations on the same shape — one change each, all in the examples:
 
-```json
+- **Helen (F)** — mixed kinds (a `cardio` run, a `weight_reps` swing, a `reps` pull-up) in
+  one round, then `{ "repeat": 2 }`, with `"capSec": 900` in `format`.
+- **Barbara (G)** — one round written, `"rounds": 5, "restSec": 180` in `format`: five rounds
+  performed with a 3:00 rest divider between them.
+- **Linda (J)** — `"loadBwMult": 1.5` on a movement: the chip shows the ratio, the athlete
+  types the load actually lifted. Ten rounds from `{ "reps": 10 }` … `{ "reps": 1 }`.
+
+**`amrap`** — Cindy: one template round, never expanded; the score carries the count (H):
+
+```jsonc
 {
-  "id": "helen",
-  "name": "Helen",
-  "type": "conditioning",
-  "benchmark": "girl",
-  "format": { "type": "for_time", "capSec": 900, "score": "time" },
-  "optional": [ { "id": "banded", "label": "Banded pull-ups" } ],
-  "rounds": [
-    { "movements": [
-      { "movement": "Outdoor run", "kind": "cardio", "distance": 400 },
-      { "movement": "Kettlebell swing", "kind": "weight_reps", "reps": 21, "load": 53 },
-      { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 12 }
-    ] },
-    { "repeat": 2 }
-  ]
-}
-```
-
-**Cindy** — AMRAP; one template round, never expanded, scored as rounds + reps:
-
-```json
-{
-  "id": "cindy",
   "name": "Cindy",
   "type": "conditioning",
   "benchmark": "girl",
   "format": { "type": "amrap", "capSec": 1200, "score": "rounds_reps" },
-  "rounds": [
-    { "movements": [
-      { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 5 },
-      { "movement": "Bodyweight push-up", "kind": "reps", "reps": 10 },
-      { "movement": "Bodyweight air squat", "kind": "reps", "reps": 15 }
-    ] }
-  ]
+  "rounds": [{ "movements": [
+    { "movement": "Pull-up", "kind": "reps", "reps": 5 },
+    { "movement": "Push-up", "kind": "reps", "reps": 10 },
+    { "movement": "Air squat", "kind": "reps", "reps": 15 }
+  ] }]
 }
 ```
 
-**Murph** — an ordinary exercise list under a scored format, with a modifier:
+For **Nicole (I)** the score is `"total_reps"` and the pull-up is
+`{ "reps": null, "athleteFills": "reps" }` — the athlete supplies the reps each round.
 
-```json
+**Chipper + `modifiers[]`** — Murph: an ordinary exercise list under a scored format (K):
+
+```jsonc
 {
-  "id": "murph",
   "name": "Murph",
   "type": "conditioning",
   "benchmark": "hero",
   "format": { "type": "for_time", "score": "time" },
   "modifiers": [ { "id": "vest", "label": "20 lb vest", "load": 20, "optional": true } ],
   "exercises": [
-    { "movement": "Outdoor run", "kind": "cardio", "sets": [ { "distance": 1609 } ] },
-    { "movement": "Bodyweight pull-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
-    { "movement": "Bodyweight push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 200 } ] },
-    { "movement": "Bodyweight air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 300 } ] },
-    { "movement": "Outdoor run", "kind": "cardio", "sets": [ { "distance": 1609 } ] }
+    { "movement": "Run", "kind": "cardio", "cue": "Outdoors.", "sets": [ { "distance": 1609 } ] },
+    { "movement": "Pull-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+    { "movement": "Push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 200 } ] },
+    { "movement": "Air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 300 } ] },
+    { "movement": "Run", "kind": "cardio", "cue": "Outdoors.", "sets": [ { "distance": 1609 } ] }
   ]
 }
 ```
 
-Murph's sets are still sets: they log under `log` as `"ex1.s1"` exactly as before. Only the
-footer changes — one note for the block, and no RPE pill, since a hero assumes 11.
+**`circuit`** — an accessory circuit: no score, no benchmark, so the block RPE *is* asked (L):
+
+```jsonc
+{
+  "name": "Circuit, RPE asked",
+  "type": "accessory",
+  "format": { "type": "circuit", "rounds": 3 },
+  "rounds": [{ "movements": [
+    { "movement": "Dumbbell row", "kind": "weight_reps", "reps": 10, "load": 35 },
+    { "movement": "Push-up", "kind": "reps", "reps": 10 }
+  ] }]
+}
+```
+
+### Do and don't
+
+- **Do keep the name to the movement; put the modifier in `cue`.** `Run` with cue
+  `"Outdoors"`, `Pull-up` with cue `"Bodyweight"` — not `Outdoor run` or `Bodyweight pull-up`.
+  Real equipment that makes it a different lift *is* the name: `Barbell deadlift`,
+  `Kettlebell swing`, `Dumbbell row`, `Rowing machine row`. `wodin validate` warns on
+  `Outdoor` / `Indoor` / `Bodyweight` in a name, a trailing `(…)`, and a measurement.
+- **Do tag named benchmarks** (`benchmark: "girl"` or `"hero"`) **and give them a
+  `format.score`.** The block RPE is then not asked and the result carries `rpe: 11,
+  rpeAssumed: true`. **Don't** tag your own workout as a benchmark to skip the question — use
+  `rpe: "hide"` or a number. A circuit or accessory block you do want rated stays untagged.
+- **Do use `optional[]` for scaling the athlete may *swap in*** (Banded pull-ups, 185 lb
+  deadlift) **and `modifiers[]` for an add-on to the prescribed work** (the vest). The pills
+  look alike; the result differs — `optional` lists only the pills switched on, `modifiers`
+  lists every modifier as `true` or `false`.
+- **Do pick the score by format:** `time` for `for_time`, `rounds_reps` or `total_reps` for
+  `amrap`, `none` (or absent) for `tabata`, `emom`, `circuit` and plain intervals. **Don't**
+  score an AMRAP by time or a for-time piece by rounds — `wodin validate` warns.
+- **Do write a repeated pass once** — `{ reps }`, `{ repeat }`, `format.rounds`, or a
+  Tabata's single exercise. **Don't** write eight identical rounds, or give a Tabata several
+  sets (only the first counts).
+- **Do set `kind` on every movement,** including round movements, and use
+  `loadType: "bodyweight"` for unweighted work — **don't** write `load: 0`.
+- **Don't put warm-up ramps in a formatted block.** A Tabata, EMOM or for-time block
+  prescribes the working load only; ramps go in their own warm-up section.
+- **Don't depend on round ticks.** Ticking rounds is optional for the athlete; the score and
+  the movements' values are the record.
 
 ### What comes back
 
@@ -439,6 +539,17 @@ A logged round movement reads like a log entry for its kind — `load` (or
 `durationSec` for `cardio`, and so on — plus `movement`, `done`, and `loadBwMult` copied from
 the plan so the prescription travels next to the load actually used.
 
+#### The result, per format
+
+| Section | `log` | `sections[id]` |
+|---|---|---|
+| No format — strength, intervals (A, B) | every set, as always | no entry |
+| `tabata`, `emom` (C, D) | none — derived rounds are not sets | `rounds[]` with `done` flags and each movement; no `score`. Block RPE and note under the section id in `exerciseRpe` / `notes` |
+| `for_time` + `rounds[]` (E, F, G, J) | none | `rounds[]`, `score` `{ time, timeSec }`, `optional`; a benchmark adds `rpe: 11, rpeAssumed: true` |
+| `amrap` (H, I) | none | `score` `{ rounds, reps }` or `{ totalReps }`; **no** `rounds` |
+| `for_time` + `exercises` (K, a chipper) | every set, as always | `score`, `modifiers`; a benchmark adds `rpe: 11, rpeAssumed: true` |
+| `circuit` (L) | none | `rounds[]`; no `score`. The answered block RPE is in `exerciseRpe` under the section id |
+
 More things:
 
 1. **Round movements are never in `log`.** `log` stays sets-only, keyed `"exId.setId"`.
@@ -449,17 +560,17 @@ More things:
    level or per section; an answered RPE never carries it and stays 1–10.
 4. **An AMRAP has no `rounds`** in its result. Its score is the count.
 
-Diane, done in 8:41 with pike push-ups — the only section, and a benchmark, so neither the
-block nor the session RPE was asked:
+Diane (E), done in 8:41 with pike push-ups. It is the only section and a benchmark, so
+neither the block nor the session RPE was asked:
 
-```json
+```jsonc
 {
   "schema": "wodin/result@1",
   "workoutId": "2026-10-02",
   "duration": "14:05", "durationSec": 845,
-  "rpe": 11, "rpeAssumed": true,
+  "rpe": 11, "rpeAssumed": true,                // session: every section is a benchmark
   "athleteSummary": null,
-  "log": {},
+  "log": {},                                    // round movements are never in log
   "notes": { "diane": "Pikes from round 1, deadlifts unbroken." },
   "exerciseRpe": {},
   "skipped": [],
@@ -471,43 +582,45 @@ block nor the session RPE was asked:
       "rounds": [
         { "done": true, "movements": [
           { "movement": "Barbell deadlift", "done": true, "load": 225, "reps": 21 },
-          { "movement": "Bodyweight handstand push-up", "done": true, "reps": 21 } ] },
+          { "movement": "Handstand push-up", "done": true, "reps": 21 } ] },
         { "done": true, "movements": [
           { "movement": "Barbell deadlift", "done": true, "load": 225, "reps": 15 },
-          { "movement": "Bodyweight handstand push-up", "done": true, "reps": 15 } ] },
+          { "movement": "Handstand push-up", "done": true, "reps": 15 } ] },
         { "done": true, "movements": [
           { "movement": "Barbell deadlift", "done": true, "load": 225, "reps": 9 },
-          { "movement": "Bodyweight handstand push-up", "done": true, "reps": 9 } ] }
+          { "movement": "Handstand push-up", "done": true, "reps": 9 } ] }
       ]
     }
-  },
-  "score": { "time": "8:41", "timeSec": 521 },
-  "optional": { "pike": true },
-  "rounds": [
-    { "done": true, "movements": [
-      { "movement": "Barbell deadlift", "done": true, "load": 225, "reps": 21 },
-      { "movement": "Bodyweight handstand push-up", "done": true, "reps": 21 } ] },
-    { "done": true, "movements": [
-      { "movement": "Barbell deadlift", "done": true, "load": 225, "reps": 15 },
-      { "movement": "Bodyweight handstand push-up", "done": true, "reps": 15 } ] },
-    { "done": true, "movements": [
-      { "movement": "Barbell deadlift", "done": true, "load": 225, "reps": 9 },
-      { "movement": "Bodyweight handstand push-up", "done": true, "reps": 9 } ] }
-  ]
+  }
+  // Diane is the only section with an entry, so its score, optional and rounds are also
+  // copied to the top level of the result (the mirror).
 }
 ```
 
-The top-level `score`, `optional` and `rounds` are the mirror — Diane is the only section with
-an entry.
+The other shapes, abbreviated to the `sections` entry:
+
+```jsonc
+// Tabata (C): eight rounds, ticks optional — unticked rounds are "done": false
+"tabata": { "rounds": [
+  { "done": true,  "movements": [ { "movement": "Barbell thruster", "done": true,  "load": 65, "reps": 5 } ] },
+  { "done": false, "movements": [ { "movement": "Barbell thruster", "done": false, "load": 65, "reps": 5 } ] }
+  /* … eight in all */ ] }
+
+// Cindy (H): the score is the count; there are no rounds
+"cindy": { "score": { "rounds": 18, "reps": 7 }, "rpe": 11, "rpeAssumed": true }
+
+// Murph (K): sets are still in log as "ex1.s1" …; modifiers lists the vest either way
+"murph": { "score": { "time": "52:10", "timeSec": 3130 }, "modifiers": { "vest": true }, "rpe": 11, "rpeAssumed": true }
+```
 
 The digest adds readable lines under the section heading:
 
 ```
 DIANE
   Scaled  Pike push-ups
-  Round 1  ✓ Barbell deadlift 225×21 · Bodyweight handstand push-up 21
-  Round 2  ✓ Barbell deadlift 225×15 · Bodyweight handstand push-up 15
-  Round 3  ✓ Barbell deadlift 225×9 · Bodyweight handstand push-up 9
+  Round 1  ✓ Barbell deadlift 225×21 · Handstand push-up 21
+  Round 2  ✓ Barbell deadlift 225×15 · Handstand push-up 15
+  Round 3  ✓ Barbell deadlift 225×9 · Handstand push-up 9
   Score  8:41
   RPE  11 (assumed)
   ↳ Pikes from round 1, deadlifts unbroken.

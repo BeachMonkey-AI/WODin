@@ -112,6 +112,19 @@
   time field pauses it and adopts the typed value (`timerSetMs`), updating the buttons in
   place: no re-render, or focus and caret are lost. `openSheet` pauses all of them so the
   score is written. The timer never reaches the result.
+- **Movement names carry no modifiers; the modifier goes in `cue`.** `Run` + cue "Outdoors",
+  `Pull-up` + cue "Bodyweight" — never `Outdoor run` / `Bodyweight pull-up`. This replaced an
+  earlier "state the equipment" rename that put modifiers in titles. Equipment that changes
+  the lift (`Barbell deadlift`, `Kettlebell swing`, `Rowing machine row`) is still the name.
+  `movementNameWarning` (shared by exercises and round movements) enforces it with
+  `NAME_MODIFIER` (outdoor/indoor/bodyweight); `test/examples.test.mjs` fails if any shipped
+  example breaks it, and `wodin validate` on the examples must stay warning-free.
+- **`examples/format-test.json` is the teaching set, not a gallery.** Each section teaches one
+  distinct shape and `test/examples.test.mjs` checks every schema addition is still shown by
+  some section, that no two sections share a shape, and that the annotated blocks in
+  `AGENT.md` are verbatim copies of sections. Adding an example means it must teach something
+  no other does; changing one means updating its `AGENT.md` block. Tests find sections by the
+  letter in their name (`byLetter('E')`), so renumbering sections means updating them.
 - **Round movements are never written to `log`.** `log` stays sets-only (`"exId.setId"`) so
   the complete-not-sparse rule and `asPlanned` keep meaning what they mean. Exercises in a
   formatted section (Murph) still log their sets there as usual.

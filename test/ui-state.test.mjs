@@ -11,7 +11,7 @@ const fixture = JSON.parse(readFileSync(new URL('../examples/format-test.json', 
 const byLetter = l => fixture.sections.find(s => s.name.startsWith(l + ' '));
 
 test('checkMovement: last tick closes the round, un-ticking one reopens it', () => {
-  const sec = byLetter('H');
+  const sec = byLetter('F');
   let st = seedSectionState(sec);
   st = checkMovement(st, 0, 0, true);
   st = checkMovement(st, 0, 1, true);
@@ -24,7 +24,7 @@ test('checkMovement: last tick closes the round, un-ticking one reopens it', () 
 });
 
 test('checkRound sets every movement, both directions, without touching other rounds', () => {
-  const sec = byLetter('G');
+  const sec = byLetter('E');
   const before = seedSectionState(sec);
   const on = checkRound(before, 1, true);
   assert.ok(on.rounds[1].movements.every(m => m.done));
@@ -35,14 +35,14 @@ test('checkRound sets every movement, both directions, without touching other ro
 });
 
 test('check helpers ignore out-of-range indices', () => {
-  const st = seedSectionState(byLetter('G'));
+  const st = seedSectionState(byLetter('E'));
   assert.equal(checkRound(st, 9, true), st);
   assert.equal(checkMovement(st, 0, 9, true), st);
   assert.equal(setMovementValue(st, 9, 0, 'reps', '5'), st);
 });
 
 test('setMovementValue and setScoreValue land in the result', () => {
-  const sec = byLetter('G');
+  const sec = byLetter('E');
   let st = seedSectionState(sec);
   st = setMovementValue(st, 0, 0, 'load', '185');
   st = setScoreValue(st, 'time', '8:41');
@@ -53,12 +53,12 @@ test('setMovementValue and setScoreValue land in the result', () => {
 });
 
 test('roundIsOpen: first not-done round by default, an explicit tap wins', () => {
-  let st = seedSectionState(byLetter('K')).rounds;
+  let st = seedSectionState(byLetter('G')).rounds;
   assert.equal(roundIsOpen(st, 0), true);
   assert.equal(roundIsOpen(st, 1), false);
   assert.equal(roundIsOpen(st, 1, true), true);
   assert.equal(roundIsOpen(st, 0, false), false);
-  const sec = seedSectionState(byLetter('K'));
+  const sec = seedSectionState(byLetter('G'));
   st = checkRound(sec, 0, true).rounds;
   assert.equal(roundIsOpen(st, 0), false);
   assert.equal(roundIsOpen(st, 1), true);
@@ -74,10 +74,10 @@ test('splitRef takes indices from the end so ids may contain colons', () => {
 });
 
 test('repeatCaption and rxText for the AMRAP template', () => {
-  assert.equal(repeatCaption(byLetter('I')), 'Repeat for 20 min');
+  assert.equal(repeatCaption(byLetter('H')), 'Repeat for 20 min');
   assert.equal(repeatCaption({ format: { type: 'amrap', capSec: 450 } }), 'Repeat for 7:30');
   assert.equal(repeatCaption({ format: { type: 'amrap' } }), null);
-  const [run, pull] = byLetter('N').rounds[0].movements;
+  const [run, pull] = byLetter('I').rounds[0].movements;
   assert.equal(rxText(run), '400 m');
   assert.equal(rxText(pull), 'max reps');
   assert.equal(rxText({ kind: 'reps', reps: 5 }), '5 reps');
@@ -85,12 +85,12 @@ test('repeatCaption and rxText for the AMRAP template', () => {
 });
 
 test('derived emom rounds carry the A / B slot the page draws as a chip', () => {
-  const F = byLetter('F');
+  const F = byLetter('D');
   assert.ok(isDerivedRounds(F));
   const rounds = expandRounds(F);
   assert.equal(rounds.length, 10);
   assert.deepEqual(rounds[0].movements.map(m => m.intervalSlot), ['A', 'B']);
-  assert.ok(!isDerivedRounds(byLetter('J')) && !isDerivedRounds(byLetter('O')), 'chippers keep set rows');
+  assert.ok(!isDerivedRounds(byLetter('B')) && !isDerivedRounds(byLetter('K')), 'chippers and intervals keep set rows');
 });
 
 test('inputmode: numeric exactly for the fields that write their own colons', () => {

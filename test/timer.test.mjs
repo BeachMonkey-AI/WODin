@@ -62,7 +62,7 @@ test('reset zeroes a running timer', () => {
 });
 
 test('a running timer survives a JSON roundtrip (reload)', () => {
-  const sec = byLetter('G');
+  const sec = byLetter('E');
   const st = { ...seedSectionState(sec), timer: timerStart(timerState(), T0, 30_000) };
   const reloaded = seedSectionState(sec, JSON.parse(JSON.stringify(st)));
   assert.deepEqual(reloaded.timer, st.timer);
@@ -70,7 +70,7 @@ test('a running timer survives a JSON roundtrip (reload)', () => {
 });
 
 test('seed is tolerant of saved states without a timer, or with a broken one', () => {
-  const sec = byLetter('G');
+  const sec = byLetter('E');
   assert.deepEqual(seedSectionState(sec).timer, timerState());
   assert.deepEqual(seedSectionState(sec, { score: { time: '8:41' } }).timer, timerState());
   assert.equal(seedSectionState(sec, { score: { time: '8:41' } }).score.time, '8:41');
@@ -81,7 +81,7 @@ test('seed is tolerant of saved states without a timer, or with a broken one', (
 });
 
 test('the timer is UI state only: the result carries score.time, not the timer', () => {
-  const sec = byLetter('G');
+  const sec = byLetter('E');
   const st = { ...seedSectionState(sec), timer: timerPause(timerStart(timerState(), T0), T0 + 521_900) };
   st.score = { ...st.score, time: fmtClock(st.timer.accMs / 1000) };
   const r = buildSectionResult(sec, st);
