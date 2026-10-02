@@ -176,7 +176,7 @@ section
 | `restSec` | Depends on `type`. `tabata` / `intervals`: rest after each work interval. `for_time` / `circuit`: rest after each **round**, drawn as a divider between rounds. |
 | `intervalSec` | `emom` interval length — 60 for a classic EMOM. |
 | `capSec` | Time cap. An AMRAP's duration; a for-time piece's cut-off. |
-| `score` | What the score box asks for: `time`, `rounds_reps`, `total_reps`, or `none`. Absent means `none`: no box. |
+| `score` | What the score box asks for: `time`, `rounds_reps`, `total_reps`, or `none`. Absent means `none`: no box. A `time` box carries a stopwatch for the athlete; the result still has only `score.time` / `timeSec`. |
 
 Every span is in seconds. The page turns the format into a header above the block —
 `CONDITIONING · FOR TIME · 21-15-9`, then one line such as `Cap 15:00`,
@@ -283,7 +283,8 @@ Tag them:
 
 Why 11: it sits off the 1–10 scale, so an assumed max effort can never be mistaken for a
 tapped 10, and `rpeAssumed` marks it besides. An assumed value is never prefilled into a
-control — the pill simply isn't there. A plan with no `rpe` and no `benchmark` asks
+control — the pill simply isn't there, and that includes per-exercise pills in a section
+without a block footer (drawn only when the section asks). A plan with no `rpe` and no `benchmark` asks
 everywhere, exactly as before. `wodin validate` fails on other values, and warns when
 `rpe` / `benchmark` sit on a section that isn't a scored or rounds block, or a benchmark has
 no `format.score`.

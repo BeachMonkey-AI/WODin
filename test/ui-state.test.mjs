@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   seedSectionState, checkRound, checkMovement, setMovementValue, setScoreValue,
-  roundIsOpen, splitRef, repeatCaption, rxText, roundDone, buildSectionResult
+  roundIsOpen, splitRef, repeatCaption, rxText, roundDone, buildSectionResult,
+  isDerivedRounds, expandRounds, isAutoFormatField, timeFormatterFor
 } from '../src/format.js';
 
 const fixture = JSON.parse(readFileSync(new URL('../examples/format-test.json', import.meta.url), 'utf8'));
@@ -81,4 +82,23 @@ test('repeatCaption and rxText for the AMRAP template', () => {
   assert.equal(rxText(pull), 'max reps');
   assert.equal(rxText({ kind: 'reps', reps: 5 }), '5 reps');
   assert.equal(rxText({ kind: 'weight_reps', reps: 21, load: 53 }), '53 × 21');
+});
+
+test('derived emom rounds carry the A / B slot the page draws as a chip', () => {
+  const F = byLetter('F');
+  assert.ok(isDerivedRounds(F));
+  const rounds = expandRounds(F);
+  assert.equal(rounds.length, 10);
+  assert.deepEqual(rounds[0].movements.map(m => m.intervalSlot), ['A', 'B']);
+  assert.ok(!isDerivedRounds(byLetter('J')) && !isDerivedRounds(byLetter('O')), 'chippers keep set rows');
+});
+
+test('inputmode: numeric exactly for the fields that write their own colons', () => {
+  for (const p of ['duration', 'pace', 'score-time']) assert.ok(isAutoFormatField(p), p);
+  for (const p of ['f-duration', 'load', 'reps', 'distance', 'score-rounds', 'score-totalReps']) {
+    assert.ok(!isAutoFormatField(p), p);
+  }
+  assert.equal(timeFormatterFor('duration')('841'), '8:41');
+  assert.equal(timeFormatterFor('score-time')('12542'), '1:25:42');
+  assert.equal(timeFormatterFor('pace')('158'), '1:58');
 });

@@ -16,7 +16,10 @@ import {
   hasBlockFooter, usesFormatFeatures, formatBwMult, describePartition, roundSummary,
   fmtSpan, roundDone, seedSectionState, togglePill, checkRound, checkMovement,
   setMovementValue, setScoreValue, roundIsOpen, splitRef, repeatCaption, rxText,
-  withSections, sectionNotesAndRpe, digestSectionLines
+  withSections, sectionNotesAndRpe, digestSectionLines, isDerivedRounds,
+  fmtClock, parseClock, isAutoFormatField, timeFormatterFor,
+  showSectionRpe, showExerciseRpe, showSessionRpe, sessionRpeResult, sessionRpeText,
+  timerElapsedMs, timerStart, timerPause, timerReset, timerSetMs
 } from './format.js';
 
 // Replaced by scripts/build.mjs with the same content hash the service worker
@@ -167,28 +170,12 @@ function esc(s) {
 const formLink = ex => ex.link ||
   'https://www.youtube.com/results?search_query=' + encodeURIComponent(ex.movement + ' form');
 
-function clock(sec) {
-  const s = Math.max(0, Math.floor(sec));
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
-  const pad = n => String(n).padStart(2, '0');
-  return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`;
-}
+// Clock text ↔ seconds, shared with the result builder in format.js.
+const clock = fmtClock;
+const toSec = parseClock;
 
-function toSec(str) {
-  if (!str) return null;
-  const p = String(str).split(':').map(Number);
-  if (p.some(isNaN)) return null;
-  return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2]
-       : p.length === 2 ? p[0] * 60 + p[1]
-       : p[0];
-}
-
-// "158" → "1:58". Lets a numeric keypad produce mm:ss with no colon key.
-function fmtTime(raw) {
-  const d = String(raw).replace(/\D/g, '').slice(0, 6);
-  if (d.length <= 2) return d;
-  return d.slice(0, -2).replace(/^0+(?=\d)/, '') + ':' + d.slice(-2);
-}
+// A field that writes its own colons wants the digit pad; see AUTO_FORMAT_FIELDS.
+const timeMode = (prop, otherwise) => isAutoFormatField(prop) ? 'numeric' : otherwise;
 
 /* ── app ─────────────────────────────────────────────────────── */
 
@@ -212,6 +199,11 @@ function forget(workoutId) {
 const unitOf = k => (WOD.units && WOD.units[k]) || (k === 'load' ? 'lb' : 'm');
 const isSkipped = id => S.skipped.includes(id);
 const eachExercise = () => (WOD.sections || []).flatMap(s => s.exercises || []);
+// Exercises drawn as set rows — everything but a derived emom / tabata, whose
+// exercises are drawn as rounds and write no log, skipped or digest rows.
+const setExercises = () => (WOD.sections || []).filter(s => !isDerivedRounds(s)).flatMap(s => s.exercises || []);
+const roundExerciseIds = () => new Set((WOD.sections || []).filter(isDerivedRounds).flatMap(s => s.exercises.map(ex => ex.id)));
+const loggedExercises = sec => isDerivedRounds(sec) ? [] : (sec.exercises || []).filter(ex => !isSkipped(ex.id));
 
 function seedState() {
   const sets = {};
@@ -294,7 +286,8 @@ function field({ id, val, unit, ph, mode, cls, attrs, label }) {
  * a round's kettlebell swing looks and types exactly like a set of them.
  * `fid(prop)` names each input; `extra(prop)` adds its data-* hooks. */
 function kindFields(kind, v, { fid, extra = () => '', label = () => '', dUnit, pace, ph = {} }) {
-  const f = (prop, o) => field({ id: fid(prop), val: v[prop], attrs: extra(prop), label: label(prop), ...o });
+  const f = (prop, o) => field({ id: fid(prop), val: v[prop], attrs: extra(prop), label: label(prop),
+    ...o, mode: timeMode(prop, o.mode) });
   if (kind === 'weight_reps') {
     const bw = v.load === 'BW';
     return f('load', { unit: bw ? '' : unitOf('load'), ph: unitOf('load'), cls: bw ? 'bw' : '' })
@@ -302,7 +295,7 @@ function kindFields(kind, v, { fid, extra = () => '', label = () => '', dUnit, p
       + f('reps', { unit: 'reps', mode: 'numeric', ph: ph.reps });
   }
   if (kind === 'reps') return f('reps', { unit: 'reps', mode: 'numeric', ph: ph.reps });
-  if (kind === 'time') return f('duration', { unit: 'mm:ss', ph: '0:00', mode: 'text' });
+  if (kind === 'time') return f('duration', { unit: 'mm:ss', ph: '0:00' });
   if (kind === 'carry') {
     return f('load', { unit: unitOf('load') })
       + `<span class="times">×</span>`
@@ -310,9 +303,9 @@ function kindFields(kind, v, { fid, extra = () => '', label = () => '', dUnit, p
       + f('distance', { unit: dUnit });
   }
   if (kind === 'cardio') {
-    return f('pace', { unit: paceUnit(pace), ph: '0:00', mode: 'text' })
+    return f('pace', { unit: paceUnit(pace), ph: '0:00' })
       + f('distance', { unit: dUnit })
-      + f('duration', { unit: 'mm:ss', ph: '0:00', mode: 'text' });
+      + f('duration', { unit: 'mm:ss', ph: '0:00' });
   }
   return '';
 }
@@ -323,6 +316,9 @@ const partitionHint = p => {
   return t ? `<p class="part">${esc(t)}</p>` : '';
 };
 const bwChip = mult => mult == null ? '' : `<span class="bwx">${esc(formatBwMult(mult))}</span>`;
+// The A / B chip before a movement in an emom; empty everywhere else.
+const slotChip = (sec, x) => sec?.format?.type === 'emom' && x.intervalSlot
+  ? `<span class="slot" aria-label="Interval ${esc(x.intervalSlot)}">${esc(x.intervalSlot)}</span>` : '';
 
 /* ── render: workout ─────────────────────────────────────────── */
 
@@ -367,16 +363,19 @@ function renderWorkout() {
   // empty option on the other — so neither needs a caption above it.
   const sessionRpe = S.rpe ?? '';
   const rpeGhost = WOD.targetRpe ? ` · Rx ${WOD.targetRpe}` : '';
+  // A hidden or assumed session RPE draws no control at all — nothing to
+  // prefill, nothing to answer — and the duration takes the whole row.
+  const askRpe = showSessionRpe(WOD);
   const close = `
     <section class="close">
-      <div class="close-grid">
+      <div class="close-grid${askRpe ? '' : ' one'}">
         ${field({ id: 'f-duration', val: S.duration || (S.elapsed ? clock(S.elapsed) : ''),
                   unit: 'hh:mm:ss', ph: 'Duration', mode: 'text', cls: 'pill-field' })}
-        <select class="pill-rpe ${sessionRpe === '' ? '' : 'set'}" id="f-rpe"
+        ${askRpe ? `<select class="pill-rpe ${sessionRpe === '' ? '' : 'set'}" id="f-rpe"
                 aria-label="Session RPE, 1 to 10">
           <option value="">Session RPE${rpeGhost}</option>
           ${rpeOptions('Session RPE', sessionRpe)}
-        </select>
+        </select>` : ''}
       </div>
       <div class="block">
         <span class="fl">How it went</span>
@@ -394,12 +393,15 @@ function renderWorkout() {
  * scored or rounds-based blocks) one footer for the whole block. A plain
  * section draws exactly what it always did. */
 function renderSection(sec) {
+  // A derived emom / tabata draws its exercises as rounds, so the set rows
+  // would only repeat them; its rounds are the record (see buildResult).
+  const exercises = isDerivedRounds(sec) ? [] : (sec.exercises || []);
   return `
     <div class="sec-head">${esc(sec.name)}</div>
     ${renderFormatHead(sec)}
     ${renderScalePills(sec)}
     ${isRoundsSection(sec) ? renderRounds(sec) : ''}
-    ${(sec.exercises || []).map(ex => renderEx(ex, sec)).join('')}
+    ${exercises.map(ex => renderEx(ex, sec)).join('')}
     ${hasBlockFooter(sec) ? renderBlockFooter(sec) : ''}
   `;
 }
@@ -496,7 +498,7 @@ function renderMovement(sec, i, j, m, v) {
   });
   return `<div class="mv ${v.done ? 'done' : ''}">
     <div class="mv-top">
-      <a class="mv-name" href="${esc(formLink(m))}" target="_blank" rel="noopener">${esc(m.movement)}${ICON.ext}</a>
+      ${slotChip(sec, m)}<a class="mv-name" href="${esc(formLink(m))}" target="_blank" rel="noopener">${esc(m.movement)}${ICON.ext}</a>
       <label class="check sm">
         <input type="checkbox" data-mv-check="${ref}" ${v.done ? 'checked' : ''}
                aria-label="${esc(m.movement)}, round ${i + 1}, done">
@@ -528,25 +530,79 @@ function renderAmrap(sec) {
   </div>`;
 }
 
+/* ── section stopwatch, beside a "time" score box ── */
+
+// What the stopwatch buttons say for a timer state. Shared by the render and
+// by the in-place update after typing, which must not re-render (focus, caret).
+function swView(sec, timer) {
+  const t = timer || {};
+  const elapsed = timerElapsedMs(t, Date.now());
+  const label = t.running ? 'Pause' : elapsed > 0 ? 'Resume' : 'Start';
+  return {
+    label, running: !!t.running, showReset: !!t.running || elapsed > 0,
+    aria: `${label} stopwatch for ${sec.name || 'this block'}`
+  };
+}
+
+function stopwatch(sec) {
+  const st = S.sections[sec.id];
+  if (!st) return '';
+  const v = swView(sec, st.timer);
+  const id = esc(sec.id);
+  return `<div class="sw">
+    <button class="sw-go ${v.running ? 'running' : ''}" id="sw-go-${id}" type="button"
+            data-sw="go" data-sec="${id}" aria-label="${esc(v.aria)}">${v.label}</button>
+    <button class="sw-reset" id="sw-reset-${id}" type="button" data-sw="reset" data-sec="${id}"
+            aria-label="Reset stopwatch for ${esc(sec.name || 'this block')}" ${v.showReset ? '' : 'hidden'}>${ICON.reset}</button>
+  </div>`;
+}
+
+// Brings one section's stopwatch buttons in line with its state without a render.
+function syncStopwatch(sid) {
+  const sec = (WOD.sections || []).find(s => s.id === sid);
+  const go = $('sw-go-' + sid), reset = $('sw-reset-' + sid);
+  if (!sec || !go || !S.sections[sid]) return;
+  const v = swView(sec, S.sections[sid].timer);
+  go.textContent = v.label;
+  go.classList.toggle('running', v.running);
+  go.setAttribute('aria-label', v.aria);
+  if (reset) reset.hidden = !v.showReset;
+}
+
+// Stops one section's stopwatch and writes what it read into the score.
+// Seconds are floored: 8:41.9 is 8:41, the way any stopwatch displays it.
+function pauseSectionTimer(sid, now) {
+  const st = S.sections[sid];
+  if (!st || !st.timer || !st.timer.running) return false;
+  const timer = timerPause(st.timer, now);
+  S.sections[sid] = { ...setScoreValue(st, 'time', clock(timer.accMs / 1000)), timer };
+  return true;
+}
+
 /* ── block footer: score box, then RPE / note / + set for the whole block ── */
 
 function renderBlockFooter(sec) {
   const st = S.sections[sec.id];
   const type = scoreOf(sec);
   const sc = st ? st.score : {};
-  const scoreField = (prop, unit, mode, ph) => field({
-    id: `score-${sec.id}-${prop}`, val: sc[prop], unit, ph, mode, cls: 'score-field',
+  const scoreField = (prop, unit, mode, ph, val = sc[prop]) => field({
+    id: `score-${sec.id}-${prop}`, val, unit, ph, mode: timeMode('score-' + prop, mode), cls: 'score-field',
     attrs: `data-score="${esc(sec.id)}" data-prop="${prop}"`,
     label: `${sec.name} result, ${unit}`
   });
 
-  const inputs = type === 'time' ? scoreField('time', 'mm:ss', 'text', '0:00')
+  // A running stopwatch shows its live time; otherwise the field holds what
+  // was typed or what the last pause wrote.
+  const timer = st && st.timer;
+  const liveTime = timer && timer.running ? clock(timerElapsedMs(timer, Date.now()) / 1000) : sc.time;
+  const inputs = type === 'time' ? scoreField('time', 'mm:ss', 'text', '0:00', liveTime) + stopwatch(sec)
     : type === 'rounds_reps' ? scoreField('rounds', 'rounds', 'numeric', '0') + scoreField('reps', 'reps', 'numeric', '0')
     : type === 'total_reps' ? scoreField('totalReps', 'reps', 'numeric', '0')
     : '';
+  const rowCls = type === 'rounds_reps' ? 'two' : type === 'time' && st ? 'timed' : '';
   const box = !type ? '' : `<div class="score">
     <div class="score-cap">Result · ${esc(scoreLabel(type))}</div>
-    <div class="score-row ${type === 'rounds_reps' ? 'two' : ''}">${inputs}</div>
+    <div class="score-row ${rowCls}">${inputs}</div>
   </div>`;
 
   // "+ set" only makes sense when there is exactly one thing to add a set to.
@@ -559,11 +615,11 @@ function renderBlockFooter(sec) {
   return `${box}
     <div class="block-foot">
       <div class="pills">
-        <select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${esc(sec.id)}"
+        ${showSectionRpe(sec) ? `<select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${esc(sec.id)}"
                 aria-label="How hard ${esc(String(sec.name || 'this block').toLowerCase())} felt, 1 to 10">
           <option value="">RPE</option>
           ${rpeOptions('RPE', rpe)}
-        </select>
+        </select>` : ''}
         <button class="pill" type="button" data-opennote="${esc(sec.id)}" ${noteOpen ? 'hidden' : ''}>+ note</button>
         ${oneEx ? `<button class="pill" type="button" data-add="${esc(oneEx.id)}">+ set</button>` : ''}
       </div>
@@ -586,8 +642,7 @@ function renderEx(ex, sec) {
   // In a scored or rounds block, RPE and note belong to the block (see
   // renderBlockFooter); rating each movement of one effort is noise.
   const ownPills = !(sec && hasBlockFooter(sec));
-  const slot = sec?.format?.type === 'emom' && ex.intervalSlot
-    ? `<span class="slot" aria-label="Interval ${esc(ex.intervalSlot)}">${esc(ex.intervalSlot)}</span>` : '';
+  const slot = slotChip(sec, ex);
 
   return `<div class="ex ${skipped ? 'skipped' : ''}" data-ex="${ex.id}">
     <div class="ex-top">
@@ -599,11 +654,11 @@ function renderEx(ex, sec) {
     <div class="sets ${added.length ? 'has-added' : ''}">
       ${rows.join('')}
       ${ownPills ? `<div class="pills">
-        <select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${ex.id}"
+        ${showExerciseRpe(sec) ? `<select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${ex.id}"
                 aria-label="How hard ${esc(ex.movement.toLowerCase())} felt, 1 to 10">
           <option value="">RPE</option>
           ${rpeOptions('RPE', rpe)}
-        </select>
+        </select>` : ''}
         <button class="pill" type="button" data-opennote="${ex.id}" ${noteOpen ? 'hidden' : ''}>+ note</button>
         <button class="pill" type="button" data-add="${ex.id}">+ set</button>
       </div>
@@ -783,15 +838,18 @@ function pasteLink() {
 
 /* ── events ──────────────────────────────────────────────────── */
 
-// Rewrites a time field as mm:ss while it is typed ("158" → "1:58") and keeps
-// the caret where the athlete left it. Returns the value to store.
-function keypadTime(el) {
-  const before = el.value, pos = el.selectionStart;
-  const val = fmtTime(before);
-  if (val !== before) {
+// Rewrites an auto-format field while it is typed ("841" → "8:41", pace
+// "158" → "1:58") using format.js's formatter for `prop`, and returns the value
+// to store. A reformat moves the caret to the end: keypad entry only ever
+// appends, and a computed mid-string position can land on the wrong side of a
+// colon the formatter just inserted. Fields with no formatter pass through.
+function keypadTime(el, prop) {
+  const fmt = timeFormatterFor(prop);
+  if (!fmt) return el.value;
+  const val = fmt(el.value);
+  if (val !== el.value) {
     el.value = val;
-    const shift = val.length - before.length;
-    el.setSelectionRange(pos + shift, pos + shift);
+    try { el.setSelectionRange(val.length, val.length); } catch { /* not focusable */ }
   }
   return val;
 }
@@ -828,7 +886,7 @@ function bind() {
       const ref = splitRef(el.dataset.rm, 2);
       if (!ref || !S.sections[ref[0]]) return;
       const prop = el.dataset.prop;
-      const val = prop === 'duration' || prop === 'pace' ? keypadTime(el) : el.value;
+      const val = keypadTime(el, prop);
       S.sections[ref[0]] = setMovementValue(S.sections[ref[0]], ref[1], ref[2], prop, val);
       return save();
     }
@@ -836,14 +894,21 @@ function bind() {
       const sid = el.dataset.score;
       if (!S.sections[sid]) return;
       const prop = el.dataset.prop;
-      S.sections[sid] = setScoreValue(S.sections[sid], prop, prop === 'time' ? keypadTime(el) : el.value);
+      const val = keypadTime(el, 'score-' + prop);
+      S.sections[sid] = setScoreValue(S.sections[sid], prop, val);
+      // A typed time beats the stopwatch: it stops (if running) and holds the
+      // typed value, so Start carries on from it. Buttons update in place.
+      if (prop === 'time' && S.sections[sid].timer) {
+        S.sections[sid].timer = timerSetMs(S.sections[sid].timer, (toSec(val) ?? 0) * 1000);
+        syncStopwatch(sid);
+      }
       return save();
     }
 
     const m = id.match(/^([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)-(load|reps|distance|duration|pace)$/);
     if (!m) return;
     const [, key, prop] = m;
-    const val = prop === 'duration' || prop === 'pace' ? keypadTime(el) : el.value;
+    const val = keypadTime(el, prop);
 
     S.sets[key] = S.sets[key] || {};
     S.sets[key][prop] = val;
@@ -872,6 +937,9 @@ function bind() {
       renderWorkout();
       return;
     }
+
+    const sw = e.target.closest('[data-sw]');
+    if (sw) return onStopwatch(sw.dataset.sec, sw.dataset.sw);
 
     const pill = e.target.closest('[data-pill]');
     if (pill) {
@@ -922,7 +990,7 @@ function bind() {
     if (e.target.id === 'toggle') return toggleTimer();
     if (e.target.closest('#reset')) {
       S.running = false; S.elapsed = 0; S.startedAt = null;
-      save(); renderWorkout(); return;
+      save(); renderWorkout(); runTick(); return;
     }
     if (e.target.closest('#shareWod')) return void shareWod();
     if (e.target.id === 'log') return openSheet();
@@ -962,6 +1030,34 @@ function bind() {
       : S.skipped.filter(x => x !== sk);
     save(); renderWorkout();
   });
+
+  // Timers are worked out from timestamps, so a tab coming back from the
+  // background (or a phone waking) only needs a repaint, not a catch-up.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && WOD && S) runTick();
+  });
+}
+
+// Start / Pause / Resume and Reset on a section stopwatch. Start runs from
+// whatever the field shows, so a typed 8:41 then Start carries on from 8:41.
+function onStopwatch(sid, act) {
+  const st = sid && S && S.sections[sid];
+  if (!st) return;
+  const now = Date.now();
+  if (act === 'reset') {
+    S.sections[sid] = { ...setScoreValue(st, 'time', ''), timer: timerReset() };
+  } else if (st.timer && st.timer.running) {
+    pauseSectionTimer(sid, now);
+  } else {
+    const input = $('score-' + sid + '-time');
+    const shown = toSec(input ? input.value : st.score.time) ?? 0;
+    // Resuming a paused stopwatch keeps its sub-second remainder, unless the
+    // field now says something else — then the field wins.
+    const acc = timerElapsedMs(st.timer, now);
+    const fromMs = Math.floor(acc / 1000) === shown ? acc : shown * 1000;
+    S.sections[sid] = { ...st, timer: timerStart(st.timer, now, fromMs) };
+  }
+  save(); renderWorkout(); runTick();
 }
 
 // A tick on a round or one of its movements. The round check rule itself is in
@@ -997,15 +1093,40 @@ function toggleTimer() {
   save(); renderWorkout(); runTick();
 }
 
-function runTick() {
-  clearInterval(tick);
-  if (!S || !S.running) return;
-  tick = setInterval(() => {
+const runningSections = () =>
+  Object.keys((S && S.sections) || {}).filter(sid => S.sections[sid].timer?.running);
+
+// Repaints every running clock from timestamps — nothing here counts ticks,
+// so a late or skipped interval costs nothing. A field the athlete is in is
+// left alone. Returns whether anything is still running.
+function paintClocks() {
+  if (!S || !WOD) return false;
+  const now = Date.now();
+  if (S.running) {
     const el = $('clock');
     if (el) el.textContent = clock(elapsedNow());
     const dur = $('f-duration');
     if (dur && document.activeElement !== dur) dur.value = clock(elapsedNow());
-  }, 1000);
+  }
+  const live = runningSections();
+  live.forEach(sid => {
+    const el = $('score-' + sid + '-time');
+    if (el && document.activeElement !== el) el.value = clock(timerElapsedMs(S.sections[sid].timer, now) / 1000);
+  });
+  return S.running || live.length > 0;
+}
+
+// One interval drives the session clock and every running section stopwatch.
+// Safe to call any time: it restarts cleanly, and stops itself once nothing runs.
+function runTick() {
+  clearInterval(tick);
+  tick = null;
+  if (!paintClocks()) return;
+  // 4 Hz, not 1: every value is recomputed from Date.now(), so the rate only
+  // decides how soon a new second shows (a 1 s tick lags the real second by up to 1 s).
+  tick = setInterval(() => {
+    if (!paintClocks()) { clearInterval(tick); tick = null; }
+  }, 250);
 }
 
 /* ── digest + result ─────────────────────────────────────────── */
@@ -1028,7 +1149,7 @@ function buildDigest() {
   const dur = ($('f-duration') || {}).value || (S.elapsed ? clock(S.elapsed) : '—');
 
   lines.push(`WODin ${WOD.workoutId} · ${WOD.title || WOD.athleteTitle || ''}`.trim());
-  lines.push([dur, S.rpe ? `RPE ${S.rpe}` : null].filter(Boolean).join(' · '));
+  lines.push([dur, sessionRpeText(WOD, S.rpe)].filter(Boolean).join(' · '));
 
   const width = 18;
   (WOD.sections || []).forEach(sec => {
@@ -1036,8 +1157,8 @@ function buildDigest() {
     // A footer block rates and annotates the block, not its movements, so its
     // exercise rows carry no RPE or note of their own.
     const footer = hasBlockFooter(sec);
-    (sec.exercises || []).filter(ex => !isSkipped(ex.id)).forEach(ex => {
-      const exRpe = !footer && S.rpes[ex.id];
+    loggedExercises(sec).forEach(ex => {
+      const exRpe = !footer && showExerciseRpe(sec) && S.rpes[ex.id];
       rows.push('  ' + ex.movement.padEnd(width) + ' ' + allSets(ex).map(s => setValues(ex, s)).join(', ')
         + (exRpe ? '  · RPE ' + exRpe : ''));
       const note = footer ? '' : (S.notes[ex.id] || '').trim();
@@ -1054,7 +1175,7 @@ function buildDigest() {
     lines.push('', sec.name.toUpperCase(), ...rows);
   });
 
-  const skipped = eachExercise().filter(ex => isSkipped(ex.id));
+  const skipped = setExercises().filter(ex => isSkipped(ex.id));
   if (skipped.length) lines.push('', 'SKIPPED  ' + skipped.map(e => e.movement).join(', '));
   if (S.summary.trim()) lines.push('', 'Summary: ' + S.summary.trim());
 
@@ -1078,11 +1199,10 @@ function isAsPlanned(set, v, kind) {
 function buildResult() {
   const log = {}, notes = {}, exerciseRpe = {};
 
-  eachExercise().forEach(ex => {
-    if (isSkipped(ex.id)) return;
+  (WOD.sections || []).forEach(sec => loggedExercises(sec).forEach(ex => {
     const note = (S.notes[ex.id] || '').trim();
     if (note) notes[ex.id] = note;
-    if (S.rpes[ex.id]) exerciseRpe[ex.id] = S.rpes[ex.id];
+    if (S.rpes[ex.id] && showExerciseRpe(sec)) exerciseRpe[ex.id] = S.rpes[ex.id];
 
     allSets(ex).forEach(set => {
       const k = ex.id + '.' + set.id;
@@ -1105,7 +1225,7 @@ function buildResult() {
       entry.asPlanned = isAsPlanned(set, v, kind);
       log[k] = entry;
     });
-  });
+  }));
 
   // Footer blocks key their RPE and note by section id in the same two maps.
   const block = sectionNotesAndRpe(WOD, S.notes, S.rpes);
@@ -1113,6 +1233,7 @@ function buildResult() {
   Object.assign(exerciseRpe, block.exerciseRpe);
 
   const durStr = ($('f-duration') || {}).value || (S.elapsed ? clock(S.elapsed) : null);
+  const roundIds = roundExerciseIds();
   // `log` stays sets-only; scores, pills and round ticks go under `sections`.
   return withSections({
     schema: 'wodin/result@1',
@@ -1121,12 +1242,14 @@ function buildResult() {
     submittedAt: new Date().toISOString(),
     duration: durStr || null,
     durationSec: toSec(durStr),
-    rpe: S.rpe === '' ? null : Number(S.rpe),
+    // Asked: the answer or null, as always. Assumed: the policy's value with
+    // rpeAssumed: true, whatever an old saved log holds. Hidden: null.
+    ...sessionRpeResult(WOD, S.rpe),
     athleteSummary: S.summary.trim() || null,
     log,
     notes,
     exerciseRpe,
-    skipped: S.skipped.slice()
+    skipped: S.skipped.filter(id => !roundIds.has(id))
   }, WOD, S.sections);
 }
 
@@ -1209,10 +1332,17 @@ function openSheet() {
   // sheet was opened early. It also keeps the duration honest — a clock still
   // running behind the sheet would show one number in the preview and send
   // another by the time anything was tapped.
+  // Section stopwatches stop the same way, writing their time into the score.
+  let stopped = false;
   if (S.running) {
     S.elapsed = elapsedNow();
     S.running = false;
     S.startedAt = null;
+    stopped = true;
+  }
+  const now = Date.now();
+  runningSections().forEach(sid => { if (pauseSectionTimer(sid, now)) stopped = true; });
+  if (stopped) {
     save();
     renderWorkout();
     runTick();

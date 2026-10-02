@@ -239,9 +239,9 @@ export function sessionRpePolicy(wod) {
 export const showSectionRpe = sec => sectionRpePolicy(sec).mode === 'ask';
 
 /** Whether per-exercise RPE pills are drawn in a section WITHOUT a block
- *  footer. Only "hide" removes them; an assumed value is recorded for the
- *  section and the exercises can still be rated individually. */
-export const showExerciseRpe = sec => sectionRpePolicy(sec).mode !== 'hide';
+ *  footer: only when the section asks. An assumed section has already said
+ *  how hard it was, so a per-exercise pill would invite a contradiction. */
+export const showExerciseRpe = sec => sectionRpePolicy(sec).mode === 'ask';
 
 /** Whether the session RPE control is drawn. */
 export const showSessionRpe = wod => sessionRpePolicy(wod).mode === 'ask';
@@ -493,16 +493,68 @@ export function setMovementDone(round, index, done) {
 /** Index of the round to show expanded by default: the first not done, or -1. */
 export const firstOpenRound = roundStates => (roundStates || []).findIndex(r => !roundDone(r));
 
+/* ── section stopwatch ───────────────────────────────────────── */
+
+/* The stopwatch beside a "time" score box. It is computed from timestamps,
+ * never from counted ticks: { running, startedAt (epoch ms), accMs } lives in
+ * the persisted section state and elapsed is worked out from `now` whenever it
+ * is needed. A reload, a backgrounded tab or a phone that slept through the
+ * metcon loses nothing, and a throttled setInterval cannot drift it. Every
+ * helper takes `now` so tests can inject it, and returns a new state.
+ * UI state only: the result carries score.time / timeSec, never the timer. */
+
+const msOk = v => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+
+export const timerState = () => ({ running: false, startedAt: null, accMs: 0 });
+
+/** A saved timer, or a fresh one when it is missing or malformed. A "running"
+ *  timer with no usable startedAt cannot be resumed, so it comes back paused. */
+export function normaliseTimer(saved) {
+  if (!saved || typeof saved !== 'object') return timerState();
+  const accMs = msOk(saved.accMs) ? saved.accMs : 0;
+  const running = saved.running === true && msOk(saved.startedAt);
+  return { running, startedAt: running ? saved.startedAt : null, accMs };
+}
+
+/** accMs plus the live stretch since startedAt. Never negative, even if the
+ *  device clock was wound back while it ran. */
+export function timerElapsedMs(t, now) {
+  const s = normaliseTimer(t);
+  return s.accMs + (s.running ? Math.max(0, now - s.startedAt) : 0);
+}
+
+/** Runs from `fromMs` when given (the time in the field), else from accMs.
+ *  Starting a running timer without fromMs changes nothing. */
+export function timerStart(t, now, fromMs) {
+  const s = normaliseTimer(t);
+  if (s.running && !msOk(fromMs)) return s;
+  return { running: true, startedAt: now, accMs: msOk(fromMs) ? fromMs : s.accMs };
+}
+
+/** Folds the live stretch into accMs and stops. */
+export function timerPause(t, now) {
+  return { running: false, startedAt: null, accMs: timerElapsedMs(t, now) };
+}
+
+export const timerReset = () => timerState();
+
+/** A typed time wins over the stopwatch: stopped, and holding exactly that. */
+export function timerSetMs(t, ms) {
+  return { running: false, startedAt: null, accMs: msOk(ms) ? ms : 0 };
+}
+
 /* ── whole-section state ─────────────────────────────────────── */
 
-/** Blank score, every pill off, fresh rounds. Score starts empty — it is a
- *  measurement, and a defaulted score would be indistinguishable from one typed. */
+/** Blank score, every pill off, fresh rounds, a stopped stopwatch. Score
+ *  starts empty — it is a measurement, and a defaulted score would be
+ *  indistinguishable from one typed. */
 export function seedSectionState(section, saved) {
   return {
     score: { time: '', rounds: '', reps: '', totalReps: '', ...(saved?.score || {}) },
     optional: { ...(saved?.optional || {}) },
     modifiers: { ...(saved?.modifiers || {}) },
-    rounds: seedRoundState(section, saved?.rounds)
+    rounds: seedRoundState(section, saved?.rounds),
+    timer: normaliseTimer(saved?.timer)
   };
 }
 
@@ -939,7 +991,7 @@ export function validateFormat(section, where = 'section') {
     problems.push(`${where}.benchmark: "${section.benchmark}" is not one of ${BENCHMARKS.join(', ')}`);
   }
   if ((section.rpe !== undefined || section.benchmark !== undefined) && !hasBlockFooter(section)) {
-    warnings.push(`${where}: rpe / benchmark on a section that is not a scored or rounds block — an assumed value is still recorded under sections, and per-exercise RPE pills are hidden only for "hide"`);
+    warnings.push(`${where}: rpe / benchmark on a section that is not a scored or rounds block — an assumed value is still recorded under sections, and per-exercise RPE pills are hidden`);
   }
   if (section.benchmark !== undefined && !scoreOf(section)) {
     warnings.push(`${where}: benchmark "${section.benchmark}" without format.score — a benchmark is normally scored`);

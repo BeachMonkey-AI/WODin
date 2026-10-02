@@ -95,12 +95,23 @@
   section is a benchmark. Assumed means *no pill* (prefill rule) and `rpe` + `rpeAssumed:
   true` in the result — never in `exerciseRpe`, never in the top-level mirror. 11 is off the
   1–10 scale on purpose; result.schema allows it only with `rpeAssumed`. No `rpe` and no
-  `benchmark` anywhere = ask everywhere, exactly the old behaviour.
+  `benchmark` anywhere = ask everywhere, exactly the old behaviour. A hidden or assumed
+  RPE control is **not drawn at all** — never rendered-and-prefilled — and that covers the
+  session select, block pills and per-exercise pills (`showExerciseRpe` is `ask` only).
 - **Time inputs: auto-format ⇒ `inputmode="numeric"`, otherwise `"text"`.** 60483d8 moved
   time fields to text so Android shows a colon key. Fields in `AUTO_FORMAT_FIELDS`
   (`duration`, `pace`, `score-time`) insert their own colons via `fmtTimeDigits` /
   `fmtPaceDigits` and want the digit pad; the session `f-duration` doesn't auto-format and
-  stays text. Don't flip one without the other.
+  stays text. main.js derives both the mode (`timeMode`) and the formatter
+  (`timeFormatterFor`) from that one list, so don't hard-code `mode` on a time field.
+- **The section stopwatch is computed from timestamps, never ticks.** `sections[id].timer`
+  is `{ running, startedAt, accMs }`, persisted with the log; elapsed is `timerElapsedMs`
+  against `Date.now()` on every repaint, so reload / background / phone sleep lose nothing.
+  One `runTick` interval paints the session clock and every running stopwatch and stops
+  itself when nothing runs — call it after any render that might start one. Typing in the
+  time field pauses it and adopts the typed value (`timerSetMs`), updating the buttons in
+  place: no re-render, or focus and caret are lost. `openSheet` pauses all of them so the
+  score is written. The timer never reaches the result.
 - **Round movements are never written to `log`.** `log` stays sets-only (`"exId.setId"`) so
   the complete-not-sparse rule and `asPlanned` keep meaning what they mean. Exercises in a
   formatted section (Murph) still log their sets there as usual.

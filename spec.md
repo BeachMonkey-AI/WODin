@@ -196,7 +196,20 @@ An assumed RPE is not an answer, so it is never put in a control — the pill is
 absent, in keeping with the prefill rule above. It comes back as `rpe` plus
 `rpeAssumed: true` (top level for the session, `sections[id]` for a block, never
 `exerciseRpe`). 11 is off the 1–10 scale on purpose: even a consumer that ignores
-`rpeAssumed` cannot mistake it for a tapped 10.
+`rpeAssumed` cannot mistake it for a tapped 10. The same goes for a section without a
+block footer: its per-exercise RPE pills are drawn only when the section asks. A hidden
+session RPE takes the select out of the closing row entirely, and duration spans it.
+
+### The stopwatch beside a finish time
+
+A `time` score box carries Start / Pause / Resume and Reset. It is a convenience for
+filling the box, not a second record: the result still carries only `score.time` /
+`timeSec`. Its state (`startedAt` epoch ms + accumulated ms) is saved with the log and
+elapsed is computed from the clock on every repaint, never by counting ticks, so a reload,
+a backgrounded tab or a phone that slept mid-metcon loses nothing and a throttled timer
+cannot drift. Start runs from whatever the field shows; typing in the field stops the
+stopwatch and takes the typed value; Reset clears both. Pausing — or opening Log workout,
+which pauses every running clock — writes the time into the box, seconds floored.
 
 ### Typing times
 

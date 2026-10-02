@@ -171,7 +171,8 @@ test('rpe policy table', () => {
   assert.deepEqual(sessionRpePolicy(fixture), ask, 'the fixture mixes benchmarks with plain blocks');
 
   assert.ok(showSectionRpe(byLetter('L')) && !showSectionRpe(byLetter('G')) && !showSectionRpe({ rpe: 'hide' }));
-  assert.ok(showExerciseRpe({ benchmark: 'girl' }) && !showExerciseRpe({ rpe: 'hide' }));
+  assert.ok(showExerciseRpe({}) && showExerciseRpe({ rpe: 'ask' }));
+  assert.ok(!showExerciseRpe({ benchmark: 'girl' }) && !showExerciseRpe({ rpe: 'hide' }) && !showExerciseRpe({ rpe: 7 }));
   assert.ok(showSessionRpe(fixture) && !showSessionRpe({ sections: [{ benchmark: 'hero' }] }));
 });
 
