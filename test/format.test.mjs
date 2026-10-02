@@ -30,7 +30,7 @@ test('Helen: bare repeat adds n copies, cardio untouched, cap in the line', () =
   const d = describeFormat(sec);
   assert.equal(d.eyebrow, 'CONDITIONING · FOR TIME · 3 ROUNDS');
   assert.equal(d.line, 'Cap 15:00');
-  assert.equal(roundSummary(r[0]), 'Run 400 m · Kettlebell swing 53 × 21 · Pull-up 12');
+  assert.equal(roundSummary(r[0]), 'Outdoor run 400 m · Kettlebell swing 53 × 21 · Bodyweight pull-up 12');
 });
 
 test('a round with reps and repeat is that round plus n copies', () => {
@@ -143,11 +143,14 @@ test('withSections mirrors only when exactly one section has an entry', () => {
 });
 
 test('block notes and RPE key by section id, only for footer sections', () => {
-  const wod = { sections: [{ ...byLetter('A'), id: 'sec1' }, { ...byLetter('G'), id: 'sec7' }] };
-  const out = sectionNotesAndRpe(wod, { sec1: 'x', sec7: ' grip went ' }, { sec1: 9, sec7: '8' });
-  assert.deepEqual(out, { notes: { sec7: 'grip went' }, exerciseRpe: { sec7: 8 } });
-  assert.ok(hasBlockFooter(byLetter('J')) && !hasBlockFooter(byLetter('F')));
-  assert.ok(usesFormatFeatures(byLetter('O')) && !usesFormatFeatures(byLetter('D')));
+  // L is the untagged circuit, so its block RPE is asked; G (Diane) is a
+  // benchmark whose RPE is assumed and never lands in exerciseRpe.
+  const wod = { sections: [{ ...byLetter('A'), id: 'sec1' }, { ...byLetter('L'), id: 'sec12' }, { ...byLetter('G'), id: 'sec7' }] };
+  const out = sectionNotesAndRpe(wod, { sec1: 'x', sec12: ' grip went ', sec7: 'ok' }, { sec1: 9, sec12: '8', sec7: 9 });
+  assert.deepEqual(out, { notes: { sec12: 'grip went', sec7: 'ok' }, exerciseRpe: { sec12: 8 } });
+  assert.ok(hasBlockFooter(byLetter('J')) && hasBlockFooter(byLetter('F')), 'derived emom rounds get the block footer');
+  assert.ok(!hasBlockFooter(byLetter('C')));
+  assert.ok(usesFormatFeatures(byLetter('O')) && usesFormatFeatures(byLetter('D')) && !usesFormatFeatures(byLetter('B')));
 });
 
 test('digest lines', () => {
@@ -156,16 +159,20 @@ test('digest lines', () => {
   st.rounds[0] = setRoundDone(st.rounds[0], true);
   st.rounds[1] = setMovementDone(st.rounds[1], 0, true);
   st.score.time = '8:41';
+  // Diane is a benchmark: the assumed 11 is written as such, and a stray tapped 9 is ignored.
   const lines = digestSectionLines(G, st, { rpe: 9, note: 'ok' });
   assert.deepEqual(lines, [
     '  Scaled  Pike push-ups',
-    '  Round 1  ✓ Barbell deadlift 225×21 · Handstand push-up 21',
-    '  Round 2  ✓ Barbell deadlift 225×15 · ○ Handstand push-up 15',
-    '  Round 3  ○ Barbell deadlift 225×9 · Handstand push-up 9',
+    '  Round 1  ✓ Barbell deadlift 225×21 · Bodyweight handstand push-up 21',
+    '  Round 2  ✓ Barbell deadlift 225×15 · ○ Bodyweight handstand push-up 15',
+    '  Round 3  ○ Barbell deadlift 225×9 · Bodyweight handstand push-up 9',
     '  Score  8:41',
-    '  RPE  9',
+    '  RPE  11 (assumed)',
     '  ↳ ok'
   ]);
+  // Untagged, the tapped value is written as before.
+  const { benchmark, ...plain } = G;
+  assert.ok(digestSectionLines(plain, st, { rpe: 9 }).includes('  RPE  9'));
 });
 
 test('the fixture validates with no problems', () => {

@@ -143,6 +143,14 @@ A list compact enough to write 21-15-9 as three short entries:
 - `amrap` is never expanded. Its rounds are unbounded, so the list is a template, drawn once
   and read-only; the score carries the count.
 
+A `tabata` or `emom` needs no list at all. With `format.rounds` and `exercises` and no
+`rounds[]`, its rounds are **derived**: one round, a movement per exercise taken from that
+exercise's first set (`intervalSlot` kept), padded to `format.rounds` like Barbara. A Tabata
+is one movement done eight times, and writing it eight times would be the plan repeating
+itself. The derived rounds replace the set rows, so those sets are not in `log` — the rounds
+are the record. A chipper (`for_time` over exercises) and `intervals` stay exercise-based:
+there the sets are the record.
+
 A round movement is flat — a round is already one pass, so there are no `sets[]`. It takes a
 set's fields directly, plus `movement`, `kind`, `tag`, `cue`, `link` and `partition`, and
 kinds may mix within a round. `kind` stays mandatory for the same reason it is everywhere
@@ -171,10 +179,32 @@ ramps go in a warm-up section. Every shape, A to O, is in `examples/format-test.
 
 ### One footer per block
 
-A section with `rounds[]`, or a score other than `none`, is one effort, so it is rated and
-annotated once: a score box, then a single RPE and a single note. They go in the same
-`exerciseRpe` and `notes` maps, keyed by the **section id** instead of an exercise id.
-Sections without a scored format keep one RPE and one note per exercise.
+A section with `rounds[]` (written or derived), or a score other than `none`, is one
+effort, so it is rated and annotated once: a score box, then a single RPE and a single note.
+They go in the same `exerciseRpe` and `notes` maps, keyed by the **section id** instead of
+an exercise id. Sections without a scored format keep one RPE and one note per exercise.
+
+### When not to ask for RPE
+
+Asking someone to rate Murph is noise: a girl or a hero is max effort by definition. So a
+section may carry `benchmark: "girl" | "hero"`, and the plan or a section may carry
+`rpe: "ask" | "hide" | 1–11`. `rpe` wins; a benchmark without one assumes 11; otherwise the
+page asks, which is all a legacy plan ever does. The session follows the plan's `rpe`, and
+assumes 11 when every section is a benchmark.
+
+An assumed RPE is not an answer, so it is never put in a control — the pill is simply
+absent, in keeping with the prefill rule above. It comes back as `rpe` plus
+`rpeAssumed: true` (top level for the session, `sections[id]` for a block, never
+`exerciseRpe`). 11 is off the 1–10 scale on purpose: even a consumer that ignores
+`rpeAssumed` cannot mistake it for a tapped 10.
+
+### Typing times
+
+Time fields that write their own colons — set and round-movement `duration` and `pace`,
+and the time score — take the digit keypad: `841` becomes `8:41` as it is typed, `12542`
+becomes `1:25:42`, and a pace stops at `m:ss`. They use `inputmode="numeric"`. The session
+duration does not auto-format (the timer fills it, the athlete edits it freely), so it keeps
+`inputmode="text"`, which on Android is the keyboard with a colon.
 
 ### What the result adds
 
@@ -187,6 +217,7 @@ id, holds one entry per such section:
 | `optional` | `{ id: true }` for the pills switched on, and nothing else. |
 | `modifiers` | `{ id: true \| false }` for every modifier offered. |
 | `rounds` | `[{ done, movements: [{ movement, done, … }] }]`, one per round performed. Absent for `amrap`. |
+| `rpe`, `rpeAssumed` | Only for an assumed block RPE: `11, true` for a benchmark. Never mirrored to the top level, where `rpe` is the session's. |
 
 The asymmetry between `optional` and `modifiers` is deliberate. A scaling option unused is
 the default and needs no record; a vest left off is a choice about the workout itself, so it
@@ -197,8 +228,9 @@ result — the shape a single-WOD reader expects. With two or more, only `sectio
 which is why it is the canonical form.
 
 Round movements live only here. `log` stays sets-only and keyed `"exId.setId"`, so
-everything said above about it — complete, `asPlanned`, absence means skipped — still holds
-without exception.
+everything said above about it — complete, `asPlanned`, absence means skipped — still holds,
+with one exception: a derived tabata / emom's sets are drawn as rounds, so they appear here
+and not in `log`.
 
 ## Transport
 

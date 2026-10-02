@@ -62,7 +62,8 @@ actually needs:
 
 Conditioning pieces get an optional second shape: a section `format` (Tabata, EMOM,
 intervals, for time, AMRAP, circuit) with a score box, a `rounds[]` round > movements
-hierarchy, and scaling pills. [`examples/format-test.json`](examples/format-test.json) has
+hierarchy (derived automatically for a Tabata or EMOM), scaling pills, and a `benchmark`
+tag that skips asking for RPE on a girl or hero. [`examples/format-test.json`](examples/format-test.json) has
 one block per shape — Diane, Helen, Cindy, Murph and the rest. Plans that don't use it are
 unchanged.
 

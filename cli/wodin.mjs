@@ -15,7 +15,7 @@ import { createServer } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateFormat, movementNameWarning } from '../src/format.js';
+import { validateFormat, validatePlanRpe, movementNameWarning } from '../src/format.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DEFAULT_BASE = 'https://beachmonkey-ai.github.io/WODin/';
@@ -212,8 +212,12 @@ function parseDigest(text) {
   const meta = (lines[1] || '').split('·').map(s => s.trim());
   for (const bit of meta) {
     if (/^\d+:\d\d(:\d\d)?$/.test(bit)) { result.duration = bit; result.durationSec = toSec(bit); }
-    const rpe = bit.match(/^RPE\s+([\d.]+)$/i);
-    if (rpe) result.rpe = Number(rpe[1]);
+    // "RPE 11 (assumed)": the plan's policy, not an answer — see rpeAssumed.
+    const rpe = bit.match(/^RPE\s+([\d.]+)(\s+\(assumed\))?$/i);
+    if (rpe) {
+      result.rpe = Number(rpe[1]);
+      if (rpe[2]) result.rpeAssumed = true;
+    }
   }
 
   let section = null, lastMovement = null;
@@ -267,6 +271,7 @@ function cmdValidate(files) {
 
     if (!wod.workoutId) problems.push('missing workoutId');
     if (!Array.isArray(wod.sections) || !wod.sections.length) problems.push('missing sections');
+    problems.push(...validatePlanRpe(wod).problems);
 
     if (wod.sink) {
       if (wod.sink.type === 'post' && !wod.sink.url) problems.push('sink: type "post" needs a url');

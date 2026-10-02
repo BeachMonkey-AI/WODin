@@ -74,6 +74,10 @@ It decides which fields get drawn, and it cannot be inferred — a field the ath
 
 For unweighted work use `"loadType": "bodyweight"`, not `"load": 0`. It renders as `BW`.
 
+Durations and paces on sets and round movements, and a time score, are typed on the digit keypad and colon-formatted as
+typed — `841` is `8:41`, `12542` is `1:25:42`, a pace stops at `m:ss` — so results carry
+them as clean `m:ss` / `h:mm:ss` strings with no colon key involved.
+
 ### Partial prescriptions
 
 Give what you're prescribing, leave the rest null, and name what the athlete supplies:
@@ -178,8 +182,18 @@ Every span is in seconds. The page turns the format into a header above the bloc
 `CONDITIONING · FOR TIME · 21-15-9`, then one line such as `Cap 15:00`,
 `20s work / 10s rest × 8`, `Every 1:00 for 10 min` or `Rest 3:00 between rounds`.
 
-A section that has `rounds[]`, or a `score` other than `none`, is rated and annotated **as
-one block**: score box, then one RPE and one note for the whole block instead of a pair per
+**A `tabata` or `emom` with `format.rounds` and `exercises` derives its rounds.** Write the
+movement once, as an exercise with one set — the page builds one round from the exercises
+(a movement per exercise, from its *first* set, `intervalSlot` kept) and repeats it
+`format.rounds` times. Eight Tabata rounds are one exercise, not eight entries. The rounds
+replace that section's set rows, so its sets are **not** in `log`; `sections[id].rounds` is
+the record. Extra sets are ignored (`wodin validate` warns), and without `format.rounds`
+nothing is derived — the exercises show as ordinary set rows, with a warning. Chippers
+(`for_time` + `exercises`: Angie, Murph) and `intervals` are never derived. Ticking rounds is
+optional for the athlete; nothing requires it.
+
+A section that has `rounds[]` (written or derived), or a `score` other than `none`, is rated
+and annotated **as one block**: score box, then one RPE and one note for the whole block instead of a pair per
 exercise. Rating each movement of a chipper separately is noise. Sections without a scored
 format keep their per-exercise pills.
 
@@ -254,12 +268,33 @@ result: `optional` records only the pills switched on, `modifiers` records every
   A on odd intervals, B on even. Leave it off when every interval is the same movement.
   Outside an emom it means nothing, and `wodin validate` warns.
 
+### RPE: `rpe` and `benchmark`
+
+Girls and heroes are max effort by definition — asking the athlete to rate Murph is noise.
+Tag them:
+
+- **`benchmark`** on a section — `"girl"` or `"hero"`. Its RPE pill is not drawn, and the
+  result records `sections[id].rpe: 11` with `rpeAssumed: true`.
+- **`rpe`** on a section or the plan — `"ask"` (the default), `"hide"` (no pill, nothing
+  recorded), or a number 1–11 (no pill; that value is recorded, `rpeAssumed: true`). It
+  overrides `benchmark`: `"rpe": "ask"` on a benchmark asks after all.
+- **The session RPE** follows the plan's `rpe`; when that is absent and *every* section has
+  a `benchmark`, the session assumes 11 too — there is nothing left to rate.
+
+Why 11: it sits off the 1–10 scale, so an assumed max effort can never be mistaken for a
+tapped 10, and `rpeAssumed` marks it besides. An assumed value is never prefilled into a
+control — the pill simply isn't there. A plan with no `rpe` and no `benchmark` asks
+everywhere, exactly as before. `wodin validate` fails on other values, and warns when
+`rpe` / `benchmark` sit on a section that isn't a scored or rounds block, or a benchmark has
+no `format.score`.
+
 ### Names, and what stays out of a format block
 
 **State the equipment in the movement name** — `Barbell deadlift`, `Kettlebell swing`,
 `Bodyweight pull-up`, `Rowing machine row`, `Dumbbell row`. In a block of short lines it is
 the only place the athlete learns what to pick up. Put it in the name proper, not a trailing
-parenthetical: `wodin validate` still flags `"Pull-up (bodyweight)"`.
+parenthetical — `wodin validate` flags a trailing `(…)` on any name, so write `Outdoor run`,
+not `Run` with the place in brackets.
 
 **No warm-up ramps.** A formatted block is the working piece. Ramping sets (45, 65, 85 …)
 belong in their own warm-up section; a Tabata, an EMOM or a for-time block prescribes the
@@ -272,18 +307,18 @@ working load and nothing else.
 | A | Standard strength | no format — `exercises` with straight sets |
 | B | Ladder / wave | no format — sets that step up |
 | C | Intervals | no format — `cardio` sets with `rest` and `athleteFills: "duration"` |
-| D | Tabata | `{ "type": "tabata", "rounds": 8, "workSec": 20, "restSec": 10, "score": "none" }` + one exercise |
-| E | EMOM, one movement | `{ "type": "emom", "rounds": 6, "intervalSec": 60, "score": "none" }` + one exercise |
-| F | EMOM, alternating pair | `{ "type": "emom", "rounds": 10, "intervalSec": 60 }` + exercises with `intervalSlot` A / B |
-| G | Per-round reps (Diane) | `for_time`, score `time`, `{ reps: 21, movements }`, `{ reps: 15 }`, `{ reps: 9 }`, `optional[]` |
-| H | Rounds, mixed kinds (Helen) | `for_time`, `capSec: 900`, one round + `{ repeat: 2 }`, `optional[]` |
-| I | AMRAP (Cindy) | `amrap`, `capSec: 1200`, score `rounds_reps`, one template round |
-| J | Chipper (Angie) | `for_time`, score `time`, `exercises` in order with `partition: "free"` |
-| K | Rounds with rest (Barbara) | `for_time`, `rounds: 5`, `restSec: 180`, one round written |
-| L | Circuit | `circuit`, `rounds: 3`, one round written, unscored |
-| M | Bodyweight multiple (Linda) | `for_time`, 10 down to 1 via `{ reps }`, movements with `loadBwMult` |
-| N | Total reps (Nicole) | `amrap`, score `total_reps`, a movement with `reps: null, athleteFills: "reps"` |
-| O | Optional modifier (Murph) | `for_time`, `modifiers[]` vest, `exercises` with `partition: "free"` |
+| D | Tabata | `{ "type": "tabata", "rounds": 8, "workSec": 20, "restSec": 10, "score": "none" }` + one exercise → 8 derived rounds |
+| E | EMOM, one movement | `{ "type": "emom", "rounds": 6, "intervalSec": 60, "score": "none" }` + one exercise → 6 derived rounds |
+| F | EMOM, alternating pair | `{ "type": "emom", "rounds": 10, "intervalSec": 60 }` + exercises with `intervalSlot` A / B → 10 derived rounds of the pair |
+| G | Per-round reps (Diane) | `benchmark: "girl"`, `for_time`, score `time`, `{ reps: 21, movements }`, `{ reps: 15 }`, `{ reps: 9 }`, `optional[]` |
+| H | Rounds, mixed kinds (Helen) | `benchmark: "girl"`, `for_time`, `capSec: 900`, one round + `{ repeat: 2 }`, `optional[]` |
+| I | AMRAP (Cindy) | `benchmark: "girl"`, `amrap`, `capSec: 1200`, score `rounds_reps`, one template round |
+| J | Chipper (Angie) | `benchmark: "girl"`, `for_time`, score `time`, `exercises` in order with `partition: "free"` |
+| K | Rounds with rest (Barbara) | `benchmark: "girl"`, `for_time`, `rounds: 5`, `restSec: 180`, one round written |
+| L | Circuit | `circuit`, `rounds: 3`, one round written, unscored, untagged — the RPE pill and note are asked |
+| M | Bodyweight multiple (Linda) | `benchmark: "girl"`, `for_time`, 10 down to 1 via `{ reps }`, movements with `loadBwMult` |
+| N | Total reps (Nicole) | `benchmark: "girl"`, `amrap`, score `total_reps`, a movement with `reps: null, athleteFills: "reps"` |
+| O | Optional modifier (Murph) | `benchmark: "hero"`, `for_time`, `modifiers[]` vest, `exercises` with `partition: "free"` |
 
 All fifteen live in [`examples/format-test.json`](examples/format-test.json), one section
 each — `node cli/wodin.mjs serve examples/format-test.json` shows every header, pill, round
@@ -296,6 +331,7 @@ tree and score box on one page. Four in full:
   "id": "diane",
   "name": "Diane",
   "type": "conditioning",
+  "benchmark": "girl",
   "format": { "type": "for_time", "score": "time" },
   "optional": [
     { "id": "pike", "label": "Pike push-ups" },
@@ -319,6 +355,7 @@ tree and score box on one page. Four in full:
   "id": "helen",
   "name": "Helen",
   "type": "conditioning",
+  "benchmark": "girl",
   "format": { "type": "for_time", "capSec": 900, "score": "time" },
   "optional": [ { "id": "banded", "label": "Banded pull-ups" } ],
   "rounds": [
@@ -339,6 +376,7 @@ tree and score box on one page. Four in full:
   "id": "cindy",
   "name": "Cindy",
   "type": "conditioning",
+  "benchmark": "girl",
   "format": { "type": "amrap", "capSec": 1200, "score": "rounds_reps" },
   "rounds": [
     { "movements": [
@@ -357,6 +395,7 @@ tree and score box on one page. Four in full:
   "id": "murph",
   "name": "Murph",
   "type": "conditioning",
+  "benchmark": "hero",
   "format": { "type": "for_time", "score": "time" },
   "modifiers": [ { "id": "vest", "label": "20 lb vest", "load": 20, "optional": true } ],
   "exercises": [
@@ -370,19 +409,21 @@ tree and score box on one page. Four in full:
 ```
 
 Murph's sets are still sets: they log under `log` as `"ex1.s1"` exactly as before. Only the
-footer changes — one RPE and one note for the block.
+footer changes — one note for the block, and no RPE pill, since a hero assumes 11.
 
 ### What comes back
 
 The result grows only for sections that use these features. Nothing above changes.
 
 - **`sections`** — keyed by section id (yours, or `sec1`, `sec2` … by position). One entry
-  per section with `rounds[]`, a scored format, `optional[]` or `modifiers[]`; none for any
-  other section, which `log` already describes. This is the canonical form.
+  per section with `rounds[]` (written or derived), a scored format, `optional[]`,
+  `modifiers[]` or an assumed RPE; none for any other section, which `log` already
+  describes. This is the canonical form.
 - **Top-level mirror** — when **exactly one** section has an entry, its `score`, `optional`,
   `modifiers` and `rounds` are also copied to the top level of the result, because that is
   the shape a single-WOD consumer expects. With two or more there is no mirror. If you want
-  one code path, always read `sections`.
+  one code path, always read `sections`. A section's `rpe` is never mirrored — top-level
+  `rpe` is the session's.
 
 | Key | Shape |
 |---|---|
@@ -390,35 +431,41 @@ The result grows only for sections that use these features. Nothing above change
 | `optional` | `{ "pike": true }` — only the pills switched on. `{}` means offered and none used. |
 | `modifiers` | `{ "vest": false }` — every modifier, `true` or `false`. |
 | `rounds` | One entry per round performed, after expansion: `{ "done", "movements": [ … ] }`. Absent for AMRAP. |
+| `rpe`, `rpeAssumed` | `11`, `true` — only when the plan assumed the block's RPE (`benchmark`, or a numeric `rpe`). Never in `exerciseRpe`, which holds only what the athlete tapped. |
 
 A logged round movement reads like a log entry for its kind — `load` (or
 `loadType: "bodyweight"`) and `reps` for `weight_reps`, `distance`, `pace`, `duration` and
 `durationSec` for `cardio`, and so on — plus `movement`, `done`, and `loadBwMult` copied from
 the plan so the prescription travels next to the load actually used.
 
-Three more things:
+More things:
 
 1. **Round movements are never in `log`.** `log` stays sets-only, keyed `"exId.setId"`.
+   A derived tabata / emom logs no sets at all — its rounds are the record.
 2. **Block RPE and note are keyed by section id** in the same `exerciseRpe` and `notes` maps
-   exercises use — `"exerciseRpe": { "diane": 9 }`.
-3. **An AMRAP has no `rounds`** in its result. Its score is the count.
+   exercises use — `"exerciseRpe": { "circuit": 7 }` — when the block asks for an RPE.
+3. **An assumed RPE says so.** `rpeAssumed: true` sits next to every assumed `rpe`, top
+   level or per section; an answered RPE never carries it and stays 1–10.
+4. **An AMRAP has no `rounds`** in its result. Its score is the count.
 
-Diane, done in 8:41 with pike push-ups:
+Diane, done in 8:41 with pike push-ups — the only section, and a benchmark, so neither the
+block nor the session RPE was asked:
 
 ```json
 {
   "schema": "wodin/result@1",
   "workoutId": "2026-10-02",
   "duration": "14:05", "durationSec": 845,
-  "rpe": 9,
+  "rpe": 11, "rpeAssumed": true,
   "athleteSummary": null,
   "log": {},
   "notes": { "diane": "Pikes from round 1, deadlifts unbroken." },
-  "exerciseRpe": { "diane": 9 },
+  "exerciseRpe": {},
   "skipped": [],
   "sections": {
     "diane": {
       "score": { "time": "8:41", "timeSec": 521 },
+      "rpe": 11, "rpeAssumed": true,
       "optional": { "pike": true },
       "rounds": [
         { "done": true, "movements": [
@@ -461,9 +508,12 @@ DIANE
   Round 2  ✓ Barbell deadlift 225×15 · Bodyweight handstand push-up 15
   Round 3  ✓ Barbell deadlift 225×9 · Bodyweight handstand push-up 9
   Score  8:41
-  RPE  9
+  RPE  11 (assumed)
   ↳ Pikes from round 1, deadlifts unbroken.
 ```
+
+The session line reads `14:05 · RPE 11 (assumed)` the same way; `wodin parse` turns that
+back into `rpe: 11, rpeAssumed: true`.
 
 A partly done round marks each movement `✓` or `○`, so the gap shows in a chat. `wodin parse`
 keeps these lines as raw text (`"Round 1"`, `"Score"`), not as `sections` — ask for the JSON
@@ -563,6 +613,7 @@ Conforms to [`schema/result.schema.json`](schema/result.schema.json).
    prescribed. Those carry `asPlanned: true`. A set missing from `log` was skipped — absence
    never means compliance. Filter `asPlanned: false` to find where the session diverged.
 2. **`rpe: null` and `athleteSummary: null` mean unanswered**, not zero and not agreement.
+   `rpe: 11` with `rpeAssumed: true` means *not asked* — your plan's policy, not their answer.
 3. **`notes` is keyed by exercise**, one per movement. There are no per-set notes.
 4. **`exerciseRpe` is how hard each movement felt**, 1–10, keyed by exercise. This is the
    signal for what to change next session: the session `rpe` can be 7 while one lift was a 9.

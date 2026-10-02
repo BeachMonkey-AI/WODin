@@ -78,12 +78,29 @@
   `rounds` — the score carries the count. `format.rounds` padding skips amrap too.
 - **Footer sections key RPE and notes by section id.** A section with `rounds[]` or a score
   other than `none` gets one block footer, and its RPE/note go into the existing
-  `exerciseRpe` / `notes` maps under the *section* id (`sec1` … when the plan gave none).
+  `exerciseRpe` / `notes` maps under the *section* id (RPE only when the section asks) (`sec1` … when the plan gave none).
   Per-exercise pills aren't drawn there. Don't add a separate map for them.
 - **`result.sections` is canonical; the top-level `score` / `optional` / `modifiers` /
   `rounds` are a mirror** that exists only when exactly one section has an entry. Consumers
   reading the top level break on a two-scored-section plan — point them at `sections`.
   `optional` holds only pills that were on; `modifiers` holds every modifier as a bool.
+- **Go through `roundsOf(section)`, never `section.rounds`.** A tabata/emom with
+  `format.rounds` + `exercises` and no `rounds[]` derives one template round from the
+  exercises' *first* sets (`isDerivedRounds`), padded to N by `expandRounds`. Its exercises
+  are drawn as rounds, not set rows, and write **no** `log` entries — the one exception to
+  complete-not-sparse; `sections[id].rounds` is the record. Chippers and `intervals` are
+  never derived. Round ticks are optional; never validate them for completeness.
+- **RPE policy lives in `sectionRpePolicy` / `sessionRpePolicy`.** `benchmark: girl|hero`
+  assumes 11; `rpe: ask|hide|1–11` overrides it; a session assumes 11 only when every
+  section is a benchmark. Assumed means *no pill* (prefill rule) and `rpe` + `rpeAssumed:
+  true` in the result — never in `exerciseRpe`, never in the top-level mirror. 11 is off the
+  1–10 scale on purpose; result.schema allows it only with `rpeAssumed`. No `rpe` and no
+  `benchmark` anywhere = ask everywhere, exactly the old behaviour.
+- **Time inputs: auto-format ⇒ `inputmode="numeric"`, otherwise `"text"`.** 60483d8 moved
+  time fields to text so Android shows a colon key. Fields in `AUTO_FORMAT_FIELDS`
+  (`duration`, `pace`, `score-time`) insert their own colons via `fmtTimeDigits` /
+  `fmtPaceDigits` and want the digit pad; the session `f-duration` doesn't auto-format and
+  stays text. Don't flip one without the other.
 - **Round movements are never written to `log`.** `log` stays sets-only (`"exId.setId"`) so
   the complete-not-sparse rule and `asPlanned` keep meaning what they mean. Exercises in a
   formatted section (Murph) still log their sets there as usual.

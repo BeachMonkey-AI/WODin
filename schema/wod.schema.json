@@ -34,6 +34,10 @@
       "type": "number", "minimum": 1, "maximum": 10,
       "description": "Prescribed effort. Shown as a ghost hint (\"Rx 7\") on the blank session-RPE field; never prefilled as an answer."
     },
+    "rpe": {
+      "$ref": "#/$defs/rpeSetting",
+      "description": "Whether to ask for the session RPE. Absent: ask — unless every section has a `benchmark`, in which case 11 is assumed, because a day of girls and heroes is max effort with nothing left to rate. See $defs/rpeSetting."
+    },
 
     "coach": {
       "type": "string",
@@ -107,6 +111,14 @@
           "default": "other"
         },
         "format": { "$ref": "#/$defs/format" },
+        "benchmark": {
+          "enum": ["girl", "hero"],
+          "description": "Marks a named benchmark (Diane, Murph). Girls and heroes are max effort by definition, so asking for an RPE is noise: the block's RPE pill is not drawn and the result records rpe 11 with rpeAssumed: true under sections[id]. Override with `rpe`."
+        },
+        "rpe": {
+          "$ref": "#/$defs/rpeSetting",
+          "description": "Whether to ask for this block's RPE. Absent: ask, or assume 11 when `benchmark` is set. An assumed value is recorded as sections[id].rpe with rpeAssumed: true, never in exerciseRpe. \"hide\" records nothing."
+        },
         "exercises": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/exercise" } },
         "rounds": {
           "type": "array",
@@ -116,7 +128,7 @@
           "examples": [[
             { "reps": 21, "movements": [
               { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
-              { "movement": "Handstand push-up", "kind": "reps" } ] },
+              { "movement": "Bodyweight handstand push-up", "kind": "reps" } ] },
             { "reps": 15 }, { "reps": 9 }
           ]]
         },
@@ -145,7 +157,7 @@
           "enum": ["tabata", "emom", "intervals", "for_time", "amrap", "circuit"],
           "description": "tabata/intervals: fixed work and rest efforts. emom: one effort at the start of every interval. for_time: finish the work as fast as possible. amrap: as many rounds as possible before the cap. circuit: rounds of movements back to back, unscored by default."
         },
-        "rounds": { "type": "integer", "minimum": 1, "description": "How many rounds or intervals. With a rounds[] list shorter than this, the last round repeats up to the count." },
+        "rounds": { "type": "integer", "minimum": 1, "description": "How many rounds or intervals. With a rounds[] list shorter than this, the last round repeats up to the count. A tabata or emom with exercises and no rounds[] derives its rounds: one movement per exercise, from that exercise's first set, repeated this many times — so N rounds are never written by hand. The rounds then replace the exercises' set rows, and the result records them under sections[id].rounds instead of log." },
         "workSec": { "type": "number", "exclusiveMinimum": 0, "description": "Work per effort, seconds (tabata, intervals)." },
         "restSec": { "type": "number", "exclusiveMinimum": 0, "description": "tabata/intervals: rest after each work interval. for_time/circuit: rest after each round." },
         "intervalSec": { "type": "number", "exclusiveMinimum": 0, "description": "Interval length for emom, seconds — 60 for a classic EMOM." },
@@ -321,6 +333,14 @@
           "description": "Not used in a plan. Athlete notes live on the exercise and only exist in a result. Present here only so a round-tripped document does not fail validation."
         }
       }
+    },
+
+    "rpeSetting": {
+      "description": "\"ask\": draw the RPE pill and record only what is tapped (the default). \"hide\": no pill, nothing recorded. A number 1–11: no pill; that value is recorded with rpeAssumed: true. 11 sits beyond the 1–10 scale on purpose, so an assumed max effort can never be confused with a tapped value. An assumed value is never prefilled into a control.",
+      "oneOf": [
+        { "enum": ["ask", "hide"] },
+        { "type": "number", "minimum": 1, "maximum": 11 }
+      ]
     },
 
     "kind": {

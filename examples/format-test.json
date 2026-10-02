@@ -104,6 +104,7 @@
     {
       "name": "G · For time, per-round reps — Diane",
       "type": "conditioning",
+      "benchmark": "girl",
       "format": { "type": "for_time", "score": "time" },
       "optional": [
         { "id": "pike", "label": "Pike push-ups" },
@@ -115,7 +116,7 @@
           "reps": 21,
           "movements": [
             { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
-            { "movement": "Handstand push-up", "kind": "reps" }
+            { "movement": "Bodyweight handstand push-up", "kind": "reps" }
           ]
         },
         { "reps": 15 },
@@ -125,6 +126,7 @@
     {
       "name": "H · For time, mixed kinds — Helen",
       "type": "conditioning",
+      "benchmark": "girl",
       "format": { "type": "for_time", "capSec": 900, "score": "time" },
       "optional": [
         { "id": "banded", "label": "Banded pull-ups" },
@@ -133,9 +135,9 @@
       "rounds": [
         {
           "movements": [
-            { "movement": "Run (outdoors)", "kind": "cardio", "distance": 400 },
+            { "movement": "Outdoor run", "kind": "cardio", "distance": 400 },
             { "movement": "Kettlebell swing", "kind": "weight_reps", "reps": 21, "load": 53 },
-            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": 12 }
+            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 12 }
           ]
         },
         { "repeat": 2 }
@@ -144,11 +146,12 @@
     {
       "name": "I · AMRAP — Cindy",
       "type": "conditioning",
+      "benchmark": "girl",
       "format": { "type": "amrap", "capSec": 1200, "score": "rounds_reps" },
       "rounds": [
         {
           "movements": [
-            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": 5 },
+            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 5 },
             { "movement": "Bodyweight push-up", "kind": "reps", "reps": 10 },
             { "movement": "Bodyweight air squat", "kind": "reps", "reps": 15 }
           ]
@@ -158,9 +161,10 @@
     {
       "name": "J · Chipper — Angie",
       "type": "conditioning",
+      "benchmark": "girl",
       "format": { "type": "for_time", "score": "time" },
       "exercises": [
-        { "movement": "Pull-up (bodyweight)", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+        { "movement": "Bodyweight pull-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
         { "movement": "Bodyweight push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
         { "movement": "Bodyweight sit-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
         { "movement": "Bodyweight air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] }
@@ -169,11 +173,12 @@
     {
       "name": "K · Rounds with rest — Barbara",
       "type": "conditioning",
+      "benchmark": "girl",
       "format": { "type": "for_time", "rounds": 5, "restSec": 180, "score": "time" },
       "rounds": [
         {
           "movements": [
-            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": 20 },
+            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": 20 },
             { "movement": "Bodyweight push-up", "kind": "reps", "reps": 30 },
             { "movement": "Bodyweight sit-up", "kind": "reps", "reps": 40 },
             { "movement": "Bodyweight air squat", "kind": "reps", "reps": 50 }
@@ -197,6 +202,7 @@
     {
       "name": "M · Bodyweight-multiple load — Linda",
       "type": "conditioning",
+      "benchmark": "girl",
       "format": { "type": "for_time", "score": "time" },
       "rounds": [
         {
@@ -214,12 +220,13 @@
     {
       "name": "N · Total-reps score — Nicole",
       "type": "conditioning",
+      "benchmark": "girl",
       "format": { "type": "amrap", "capSec": 1200, "score": "total_reps" },
       "rounds": [
         {
           "movements": [
-            { "movement": "Run (outdoors)", "kind": "cardio", "distance": 400 },
-            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": null, "athleteFills": "reps" }
+            { "movement": "Outdoor run", "kind": "cardio", "distance": 400 },
+            { "movement": "Bodyweight pull-up", "kind": "reps", "reps": null, "athleteFills": "reps" }
           ]
         }
       ]
@@ -227,16 +234,17 @@
     {
       "name": "O · Optional modifier — Murph",
       "type": "conditioning",
+      "benchmark": "hero",
       "format": { "type": "for_time", "score": "time" },
       "modifiers": [
         { "id": "vest", "label": "20 lb vest", "load": 20, "optional": true }
       ],
       "exercises": [
-        { "movement": "Run (outdoors)", "kind": "cardio", "sets": [ { "distance": 1609 } ] },
-        { "movement": "Pull-up (bodyweight)", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+        { "movement": "Outdoor run", "kind": "cardio", "sets": [ { "distance": 1609 } ] },
+        { "movement": "Bodyweight pull-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
         { "movement": "Bodyweight push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 200 } ] },
         { "movement": "Bodyweight air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 300 } ] },
-        { "movement": "Run (outdoors)", "kind": "cardio", "sets": [ { "distance": 1609 } ] }
+        { "movement": "Outdoor run", "kind": "cardio", "sets": [ { "distance": 1609 } ] }
       ]
     }
   ]

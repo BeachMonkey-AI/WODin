@@ -59,6 +59,50 @@ export function parseClock(str) {
        : p[0];
 }
 
+/* ── keypad time entry ───────────────────────────────────────── */
+
+// Leading zeros only pad the leading group: "0841" is 8:41, but a bare "05"
+// is still being typed and stays put. Never below `min` digits, so "000"
+// is "0:00", not ":00".
+const trimZeros = (d, min) => d.replace(new RegExp(`^0+(?=\\d{${min}})`), '');
+
+/**
+ * Digits as typed on a numeric keypad → a clock, while they are typed:
+ * "841" → "8:41", "1254" → "12:54", "12542" → "1:25:42". Non-digits are
+ * dropped first, so a colon typed on a keyboard that has one is harmless.
+ * Capped at six digits (h:mm:ss, hours up to 99). Pure; main.js applies it on
+ * input and buildScore applies it to a score typed without colons.
+ */
+export function fmtTimeDigits(raw) {
+  let d = String(raw ?? '').replace(/\D/g, '').slice(0, 6);
+  if (d.length <= 2) return d;
+  d = trimZeros(d, 3);
+  if (d.length <= 4) return d.slice(0, -2) + ':' + d.slice(-2);
+  return d.slice(0, -4) + ':' + d.slice(-4, -2) + ':' + d.slice(-2);
+}
+
+/** Same for a pace — m:ss only, four digits at most, since a pace has no hours. */
+export function fmtPaceDigits(raw) {
+  let d = String(raw ?? '').replace(/\D/g, '').slice(0, 4);
+  if (d.length <= 2) return d;
+  d = trimZeros(d, 3);
+  return d.slice(0, -2) + ':' + d.slice(-2);
+}
+
+/* Which fields insert their own colons, keyed by the field's data-prop
+ * ("score-time" is the score box's time). These take inputmode="numeric":
+ * commit 60483d8 moved time fields to inputmode="text" because Android's
+ * numeric keypad has no colon key, but a field that writes its own colons
+ * never needs one, and the digit pad is the faster keyboard at the rack.
+ * The session duration (f-duration) does NOT auto-format — the page timer
+ * fills it and the athlete edits it freely — so it stays inputmode="text". */
+export const AUTO_FORMAT_FIELDS = ['duration', 'pace', 'score-time'];
+export const isAutoFormatField = prop => AUTO_FORMAT_FIELDS.includes(prop);
+
+/** The formatter for an auto-format field, or null when the field has none. */
+export const timeFormatterFor = prop =>
+  prop === 'pace' ? fmtPaceDigits : isAutoFormatField(prop) ? fmtTimeDigits : null;
+
 /** A rest or work span as people say it: 20 → "20s", 180 → "3:00". */
 export function fmtSpan(sec) {
   return sec < 60 ? `${sec}s` : fmtClock(sec);
@@ -83,8 +127,48 @@ export const scoreLabel = score => SCORE_LABEL[score] || null;
 
 /* ── what kind of section is this? ───────────────────────────── */
 
-export const isRoundsSection = sec => Array.isArray(sec?.rounds) && sec.rounds.length > 0;
 export const isAmrap = sec => sec?.format?.type === 'amrap';
+
+// Formats whose exercises become rounds when format.rounds says how many. A
+// tabata or EMOM is the same short list done N times, so writing N rounds by
+// hand would be pure repetition. Chippers (for_time + exercises: Angie, Murph)
+// and intervals stay exercise-based: their sets are the record.
+const DERIVED_FORMATS = ['tabata', 'emom'];
+
+// Round-movement fields copied from an exercise's first set.
+const SET_FIELDS = ['reps', 'load', 'loadType', 'loadBwMult', 'distance', 'distanceUnit', 'duration', 'pace', 'athleteFills'];
+const EXERCISE_FIELDS = ['tag', 'cue', 'link', 'partition', 'intervalSlot'];
+
+/** True when the section's rounds are synthesized from its exercises: an emom
+ *  or tabata with a positive format.rounds, exercises, and no rounds[] of its own. */
+export function isDerivedRounds(sec) {
+  return !!sec && !(Array.isArray(sec.rounds) && sec.rounds.length) &&
+    DERIVED_FORMATS.includes(sec.format?.type) && isPosInt(sec.format?.rounds) &&
+    Array.isArray(sec.exercises) && sec.exercises.length > 0;
+}
+
+/**
+ * The section's effective rounds[]: its own when written, otherwise — for a
+ * derived emom / tabata — ONE template round with a movement per exercise,
+ * taken from that exercise's first set. expandRounds' format.rounds padding
+ * then makes it N rounds, so "8 rounds of thrusters" is one exercise, not
+ * eight round entries. Empty for everything else.
+ */
+export function roundsOf(sec) {
+  if (Array.isArray(sec?.rounds) && sec.rounds.length) return sec.rounds;
+  if (!isDerivedRounds(sec)) return [];
+  const movements = sec.exercises.filter(ex => ex && typeof ex === 'object').map(ex => {
+    const set = (Array.isArray(ex.sets) && ex.sets[0]) || {};
+    const m = { movement: ex.movement, kind: set.kind || ex.kind };
+    if (ex.id) m.id = ex.id;
+    for (const k of SET_FIELDS) if (set[k] !== undefined) m[k] = set[k];
+    for (const k of EXERCISE_FIELDS) if (ex[k] !== undefined) m[k] = ex[k];
+    return m;
+  });
+  return movements.length ? [{ movements }] : [];
+}
+
+export const isRoundsSection = sec => roundsOf(sec).length > 0;
 
 /** The section's score type, or null when nothing is scored. */
 export function scoreOf(sec) {
@@ -94,13 +178,89 @@ export function scoreOf(sec) {
 
 /** Rounds-based or scored sections get one footer for the whole block — score
  *  box, then RPE / note keyed by the SECTION id — instead of per-exercise pills.
- *  A for-time chipper is one effort; rating each movement of it is noise. */
+ *  A for-time chipper is one effort; rating each movement of it is noise.
+ *  Derived emom / tabata rounds count: they are rounds sections. */
 export const hasBlockFooter = sec => isRoundsSection(sec) || !!scoreOf(sec);
 
-/** Whether the result needs a `sections[id]` entry for this section. */
+/** Whether the result needs a `sections[id]` entry for this section. An
+ *  assumed RPE needs one too — that entry is where it is recorded. */
 export const usesFormatFeatures = sec =>
   isRoundsSection(sec) || !!scoreOf(sec) ||
-  !!(sec?.optional && sec.optional.length) || !!(sec?.modifiers && sec.modifiers.length);
+  !!(sec?.optional && sec.optional.length) || !!(sec?.modifiers && sec.modifiers.length) ||
+  sectionRpePolicy(sec).mode === 'assume';
+
+/* ── RPE policy ──────────────────────────────────────────────── */
+
+/* Whether to ask the athlete for an RPE, and what to record when not asking.
+ *   ask              draw the pill; record only what is tapped (today's behaviour)
+ *   hide             no pill, nothing recorded
+ *   assume <value>   no pill; record <value> with rpeAssumed: true
+ * Girls and heroes are max effort by definition, so asking is noise: a
+ * benchmark section assumes 11. 11 sits beyond the 1–10 scale on purpose — it
+ * can never be mistaken for a tapped value — and rpeAssumed marks it besides.
+ * An assumed value is never prefilled into a control (the prefill rule): the
+ * pill is simply not drawn. Legacy plans set none of this and ask everywhere. */
+
+export const BENCHMARKS = ['girl', 'hero'];
+export const ASSUMED_BENCHMARK_RPE = 11;
+
+const ASK = Object.freeze({ mode: 'ask' });
+
+/** One `rpe` setting → a policy, or null when unset or not a valid setting
+ *  (the validator reports invalid ones; the page falls back to asking). */
+export function rpePolicy(setting) {
+  if (setting === 'ask') return ASK;
+  if (setting === 'hide') return { mode: 'hide' };
+  if (typeof setting === 'number' && Number.isFinite(setting) && setting >= 1 && setting <= 11) {
+    return { mode: 'assume', value: setting };
+  }
+  return null;
+}
+
+/** section.rpe wins; else a girl / hero benchmark assumes 11; else ask. */
+export function sectionRpePolicy(sec) {
+  return rpePolicy(sec?.rpe)
+    || (BENCHMARKS.includes(sec?.benchmark) ? { mode: 'assume', value: ASSUMED_BENCHMARK_RPE } : ASK);
+}
+
+/** wod.rpe wins; else a day made only of benchmarks assumes 11 — there is
+ *  nothing left for the athlete to rate; else ask. */
+export function sessionRpePolicy(wod) {
+  const own = rpePolicy(wod?.rpe);
+  if (own) return own;
+  const secs = wod?.sections;
+  if (Array.isArray(secs) && secs.length && secs.every(s => BENCHMARKS.includes(s?.benchmark))) {
+    return { mode: 'assume', value: ASSUMED_BENCHMARK_RPE };
+  }
+  return ASK;
+}
+
+/** Whether the section's block RPE pill is drawn: only when asking. */
+export const showSectionRpe = sec => sectionRpePolicy(sec).mode === 'ask';
+
+/** Whether per-exercise RPE pills are drawn in a section WITHOUT a block
+ *  footer. Only "hide" removes them; an assumed value is recorded for the
+ *  section and the exercises can still be rated individually. */
+export const showExerciseRpe = sec => sectionRpePolicy(sec).mode !== 'hide';
+
+/** Whether the session RPE control is drawn. */
+export const showSessionRpe = wod => sessionRpePolicy(wod).mode === 'ask';
+
+/** The result's session `rpe` (+ `rpeAssumed`). `answered` is the control's
+ *  raw value; an athlete-answered RPE never carries rpeAssumed. */
+export function sessionRpeResult(wod, answered) {
+  const p = sessionRpePolicy(wod);
+  if (p.mode === 'assume') return { rpe: p.value, rpeAssumed: true };
+  if (p.mode === 'hide' || blank(answered)) return { rpe: null };
+  return { rpe: Number(answered) };
+}
+
+/** The digest's session RPE fragment: "RPE 8", "RPE 11 (assumed)", or null. */
+export function sessionRpeText(wod, answered) {
+  const r = sessionRpeResult(wod, answered);
+  if (r.rpe === null) return null;
+  return `RPE ${r.rpe}${r.rpeAssumed ? ' (assumed)' : ''}`;
+}
 
 /** True when an EMOM pairs A and B movements, so the header can say so. */
 export function hasAlternatingSlots(sec) {
@@ -139,14 +299,16 @@ function concreteRound(movements, reps) {
  * rounds are open-ended, so what comes back is the "each round" template.
  *
  * An opening entry with no movements has nothing to copy and is dropped here;
- * validateFormat reports it.
+ * validateFormat reports it. A derived emom / tabata (see roundsOf) arrives
+ * here as one template round and is padded like Barbara.
  */
 export function expandRounds(section) {
-  if (!isRoundsSection(section)) return [];
+  const rounds = roundsOf(section);
+  if (!rounds.length) return [];
   const out = [];
   let prev = null;
 
-  for (const entry of section.rounds) {
+  for (const entry of rounds) {
     if (!entry || typeof entry !== 'object') continue;
     const hasMoves = Array.isArray(entry.movements) && entry.movements.length > 0;
     const hasReps = !blank(entry.reps);
@@ -233,8 +395,8 @@ export function describeFormat(section) {
 
 /* ── movement text ───────────────────────────────────────────── */
 
-// Drops a trailing "(outdoors)" / "(bodyweight)" — the name keeps it for search,
-// but a one-line round summary has no room for it.
+// Drops a trailing parenthetical such as "(alt. legs)" — validate warns about
+// those, but a one-line round summary has no room for one that slips through.
 const shortName = name => String(name || '').replace(/\s*\([^)]*\)\s*$/, '');
 
 /** The prescription for one round movement, as the collapsed-round summary shows
@@ -432,8 +594,7 @@ export function rxText(m, units) {
 function normaliseClock(raw) {
   const s = String(raw ?? '').trim();
   if (!s || s.includes(':')) return s;
-  const d = s.replace(/\D/g, '');
-  return d.length <= 2 ? d : d.slice(0, -2).replace(/^0+(?=\d)/, '') + ':' + d.slice(-2);
+  return fmtTimeDigits(s);
 }
 
 /**
@@ -487,6 +648,13 @@ function movementResult(m, v) {
  * `optional` lists only the pills switched on; `modifiers` lists every modifier
  * as a boolean, because "ran Murph without the vest" is itself the answer.
  * Round movements live here and never in `log`, which stays sets-only.
+ *
+ * Derived emom / tabata sections (isDerivedRounds) emit NO "exId.setId" log
+ * entries: the rounds replace the set rows on the page, so the rounds here are
+ * the record. main.js skips their exercises when building `log`.
+ *
+ * An assumed section RPE is recorded here as rpe + rpeAssumed: true, never in
+ * `exerciseRpe`, which stays "what the athlete rated".
  */
 export function buildSectionResult(section, secState) {
   if (!usesFormatFeatures(section)) return null;
@@ -494,6 +662,9 @@ export function buildSectionResult(section, secState) {
   const out = {};
 
   if (scoreOf(section)) out.score = buildScore(section, st.score);
+
+  const rpe = sectionRpePolicy(section);
+  if (rpe.mode === 'assume') { out.rpe = rpe.value; out.rpeAssumed = true; }
 
   if (section.optional && section.optional.length) {
     out.optional = {};
@@ -519,7 +690,8 @@ export function buildSectionResult(section, secState) {
  * Adds `sections` to a result built by main.js, plus the convenience mirror:
  * when exactly one section has an entry, its score / optional / modifiers /
  * rounds are also copied to the top level. That is the shape most single-WOD
- * consumers expect; `sections` stays the canonical, unambiguous form.
+ * consumers expect; `sections` stays the canonical, unambiguous form. A
+ * section's rpe / rpeAssumed are never mirrored: top-level `rpe` is the session's.
  * `states` is keyed by section id. Returns a new result; the input is untouched.
  */
 export function withSections(result, wod, states) {
@@ -543,13 +715,15 @@ export function withSections(result, wod, states) {
 }
 
 /** Block notes and RPE: footer sections key them by section id in the same
- *  `notes` / `exerciseRpe` maps exercises use. Only non-empty values appear. */
+ *  `notes` / `exerciseRpe` maps exercises use. Only non-empty values appear,
+ *  and an RPE only where the section asks for one — an assumed value goes to
+ *  sections[id], a hidden one nowhere. */
 export function sectionNotesAndRpe(wod, notes, rpes) {
   const outNotes = {}, outRpe = {};
   (wod?.sections || []).filter(hasBlockFooter).forEach(sec => {
     const note = String(notes?.[sec.id] || '').trim();
     if (note) outNotes[sec.id] = note;
-    if (rpes?.[sec.id]) outRpe[sec.id] = Number(rpes[sec.id]);
+    if (rpes?.[sec.id] && showSectionRpe(sec)) outRpe[sec.id] = Number(rpes[sec.id]);
   });
   return { notes: outNotes, exerciseRpe: outRpe };
 }
@@ -585,9 +759,9 @@ export function scoreText(section, score) {
  * exercise rows:
  *   "  Scaled  Pike push-ups"
  *   "  With  20 lb vest"
- *   "  Round 1  ✓ Barbell deadlift 225×21 · Handstand push-up 21"
+ *   "  Round 1  ✓ Barbell deadlift 225×21 · Bodyweight handstand push-up 21"
  *   "  Score  8:41"
- *   "  RPE  8"   "  ↳ note"
+ *   "  RPE  8"   "  RPE  11 (assumed)"   "  ↳ note"
  * A partly done round marks each movement, so the gap is visible in a chat.
  */
 export function digestSectionLines(section, secState, { units, rpe, note } = {}) {
@@ -613,7 +787,11 @@ export function digestSectionLines(section, secState, { units, rpe, note } = {})
   }
 
   if (scoreOf(section)) lines.push('  Score  ' + (scoreText(section, st.score) || '—'));
-  if (rpe) lines.push('  RPE  ' + rpe);
+  // The section's policy decides, not the caller: an assumed value is written
+  // as such, and a hidden or assumed section ignores any stray tapped value.
+  const policy = sectionRpePolicy(section);
+  if (policy.mode === 'assume') lines.push(`  RPE  ${policy.value} (assumed)`);
+  else if (policy.mode === 'ask' && rpe) lines.push('  RPE  ' + rpe);
   const n = String(note || '').trim();
   if (n) lines.push('  ↳ ' + n);
   return lines;
@@ -649,6 +827,18 @@ function checkPills(list, key, where, problems) {
     if (!o.label) problems.push(`${at}: missing label`);
     if (o.load !== undefined && !(typeof o.load === 'number' && o.load >= 0)) problems.push(`${at}: load must be a non-negative number`);
   });
+}
+
+// A problem string for a bad plan- or section-level `rpe`, or null.
+function checkRpeSetting(v, at) {
+  if (v === undefined || rpePolicy(v)) return null;
+  return `${at}: ${JSON.stringify(v)} is not "ask", "hide" or a number from 1 to 11`;
+}
+
+/** The plan-level RPE check, for the CLI: only `wod.rpe` itself. */
+export function validatePlanRpe(wod) {
+  const p = checkRpeSetting(wod?.rpe, 'rpe');
+  return { problems: p ? [p] : [], warnings: [] };
 }
 
 function checkLoad(obj, at, problems) {
@@ -730,6 +920,30 @@ export function validateFormat(section, where = 'section') {
 
   checkPills(section.optional, 'optional', where, problems);
   checkPills(section.modifiers, 'modifiers', where, problems);
+
+  if (DERIVED_FORMATS.includes(f?.type) && hasExercises && !hasRoundsKey) {
+    if (!isPosInt(f.rounds)) {
+      warnings.push(`${where}.format: ${f.type} without rounds — no rounds are drawn, the exercises show as ordinary set rows`);
+    } else {
+      section.exercises.forEach((ex, j) => {
+        if (ex && Array.isArray(ex.sets) && ex.sets.length > 1) {
+          warnings.push(`${where}.exercises[${j}] (${ex.movement}): ${ex.sets.length} sets in a ${f.type} — only the first set is used for rounds`);
+        }
+      });
+    }
+  }
+
+  const rpeProblem = checkRpeSetting(section.rpe, `${where}.rpe`);
+  if (rpeProblem) problems.push(rpeProblem);
+  if (section.benchmark !== undefined && !BENCHMARKS.includes(section.benchmark)) {
+    problems.push(`${where}.benchmark: "${section.benchmark}" is not one of ${BENCHMARKS.join(', ')}`);
+  }
+  if ((section.rpe !== undefined || section.benchmark !== undefined) && !hasBlockFooter(section)) {
+    warnings.push(`${where}: rpe / benchmark on a section that is not a scored or rounds block — an assumed value is still recorded under sections, and per-exercise RPE pills are hidden only for "hide"`);
+  }
+  if (section.benchmark !== undefined && !scoreOf(section)) {
+    warnings.push(`${where}: benchmark "${section.benchmark}" without format.score — a benchmark is normally scored`);
+  }
 
   (section.exercises || []).forEach((ex, j) => {
     if (!ex || typeof ex !== 'object') return;
