@@ -15,6 +15,132 @@ API key, and no SDK. If you can write JSON and produce a link, you can use this.
 
 ---
 
+## Quick start: no clone, no install
+
+**The endpoint is <https://beachmonkey-ai.github.io/WODin/>.** An agent posts a workout by
+appending a fragment to it:
+
+| Fragment | Payload |
+|---|---|
+| `#w=<frag>` | the plan JSON, raw-deflated, then base64url (preferred) |
+| `#wj=<frag>` | the plan JSON, base64url only (no compression available) |
+
+The fragment is the whole message: no server, account, API key, clone or package install. Send
+the athlete the finished URL. (`#id=<workoutId>` re-opens a workout already on their device;
+`?d=<date>` loads a committed `wods/<date>.json`.)
+
+**1. Write the plan.** The smallest useful one:
+
+```json
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "2026-10-03",
+  "title": "Squat + row",
+  "coach": "Your agent",
+  "units": { "load": "lb", "distance": "m" },
+  "sections": [
+    {
+      "name": "Strength",
+      "type": "strength",
+      "exercises": [
+        {
+          "movement": "Back squat",
+          "kind": "weight_reps",
+          "cue": "Brace before you unrack.",
+          "sets": [{ "reps": 5, "load": 135 }, { "reps": 5, "load": 155 }]
+        },
+        {
+          "movement": "Row",
+          "kind": "cardio",
+          "cue": "Steady pace; log the time.",
+          "sets": [{ "distance": 500, "pace": "2:10/500m", "duration": null, "athleteFills": "duration" }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**2. Encode it.** Node 18+:
+
+```js
+import { readFileSync } from 'node:fs';
+import { deflateRawSync } from 'node:zlib';
+const wod = JSON.parse(readFileSync('wod.json', 'utf8'));
+const frag = deflateRawSync(Buffer.from(JSON.stringify(wod))).toString('base64url');
+console.log('https://beachmonkey-ai.github.io/WODin/#w=' + frag);
+```
+
+Python 3:
+
+```python
+import base64, json, zlib
+wod = json.load(open("wod.json", encoding="utf-8"))
+raw = json.dumps(wod, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+z = zlib.compressobj(9, zlib.DEFLATED, -15)   # -15 = RAW deflate, no zlib header
+frag = base64.urlsafe_b64encode(z.compress(raw) + z.flush()).rstrip(b"=").decode()
+print("https://beachmonkey-ai.github.io/WODin/#w=" + frag)
+```
+
+The Python gotcha: `zlib.compress()` and a default `compressobj()` write a zlib header, which
+the page cannot read. The `-15` is what makes it raw deflate. No compression at all? Use
+`#wj=` with `Buffer.from(JSON.stringify(wod)).toString('base64url')`, or in Python
+`base64.urlsafe_b64encode(raw).rstrip(b"=").decode()`.
+
+**3. The URL** is the endpoint plus the fragment (this one is the plan above, 433 characters;
+typical plans run 0.5 to 2 KB, and past about 8000 characters some clients truncate):
+
+```text
+https://beachmonkey-ai.github.io/WODin/#w=ZZFPSwMxEMW_SpirW91tWQ_rRXoQvNqTiEiaHXfD5k9NJtZS-t2daYtVJBDIb2bee0z2kM2IXkMH29jbcMP3fQMVv9IUCz32XJnX89tZU8_qBRfIkkOGq4-iSV2pFLdMTdRmZPocS1J6wEAMS7CUoduDi1p03JphbzPpYETCw6GCjIZsDNz3soeg_VGbEoaBRrHbbYTkC8EvTMZmPE34-Ile7DpYajOpLLG4a7JBLLdoh5HeEm6ypCyitUzaoFrje0yodrGoEphM1yBh6CR7HOja6hy9WbSH6j9t28Or8F8hno7rOLsbnXobf4xXhLrfqQ3b3ykXB0UjKrIe_1hfFtTWdQXSLX_QNfUNAy8rLEnLzqALxbkKNI0OCR-scyxxKXM4Od8
+```
+
+**4. Check it** by opening the URL yourself (next section). **5. Send it.**
+
+**What the athlete sees.** The page opens straight into the plan, titled "Squat + row" with
+the date (Sat, Oct 3). Under **Strength**, "Back squat" has its cue and two set rows prefilled
+(135 lb x 5, 155 lb x 5); "Row" has 500 m at 2:10/500m with the time left blank for them to
+fill. They tap **Start** for the session timer, edit what they really did, and tap **Log
+workout** to hand the result back (Share, Copy or Download). It is saved on their device and
+works offline.
+
+### Validate without the CLI
+
+There is no safety net on this path: a bad plan fails quietly on the athlete's phone. **Opening
+the link yourself is the check** - if you can't open a browser, decode your own fragment and
+read the JSON back:
+
+```bash
+node -e "console.log(require('zlib').inflateRawSync(Buffer.from(process.argv[1],'base64url')).toString())" "$FRAG"
+python3 -c "import sys,zlib,base64;f=sys.argv[1];print(zlib.decompress(base64.urlsafe_b64decode(f+'='*(-len(f)%4)),-15).decode())" "$FRAG"
+```
+
+Then run down the failure modes (the rules `wodin validate` and
+[`schema/wod.schema.json`](schema/wod.schema.json) enforce):
+
+- [ ] Top level has `workoutId` (a non-empty string; a date such as `2026-10-03` is the usual
+  choice) and a non-empty `sections[]`. Only schema fields; unknown keys are not allowed.
+- [ ] Every section has a `name` and `exercises[]` (or `rounds[]`).
+- [ ] Every exercise has `movement`, `kind` and a non-empty `sets[]`.
+- [ ] `kind` is one of `weight_reps`, `reps`, `time`, `cardio`, `carry`, set on every exercise
+  and round movement. It cannot be inferred.
+- [ ] No `"load": 0`; use `"loadType": "bodyweight"`.
+- [ ] `movement` is the plain name (`Run`, cue `Outdoors`; not `Outdoor run`, `Row 500m` or
+  `Pull-up (bodyweight)`). Equipment that changes the lift stays: `Barbell deadlift`.
+- [ ] A `format` has a `type`; the first `rounds[]` entry has `movements`; a `sink` of type
+  `post` has a `url`.
+- [ ] The URL is complete: the whole fragment, not an ellipsised `#w=…` from a chat preview.
+
+What a bad link looks like:
+
+- **Can't be decoded** (cut short, zlib header instead of raw deflate, invalid JSON): the page
+  opens on the empty "Your workouts" home with a brief "That link's workout could not be
+  read" toast. Pasting the link into **Paste a workout link** says it is damaged.
+- **Decodes but is wrong: nothing is flagged.** A missing `kind` is drawn as `weight_reps`, so
+  a row or a plank gets load and reps boxes. A missing `workoutId` leaves the date blank and
+  the autosave and the returned result with no id to key on. Missing `sections` is an empty page.
+
+---
+
 ## 1. Write the plan
 
 Conform to [`schema/wod.schema.json`](schema/wod.schema.json). The shape:
@@ -34,7 +160,7 @@ them. Three sets of a barbell wave is one exercise with three sets:
   "sets": [ { "reps": 5, "load": 135 }, { "reps": 5, "load": 155 }, { "reps": 3, "load": 175 } ] }
 ```
 
-A minimal but complete plan:
+A fuller plan (athlete banner, coach note, cue):
 
 ```json
 {
@@ -637,39 +763,39 @@ when you need rounds as structure.
 
 ## 2. Get it to them
 
-**The link carries the workout.** Compress the plan and put it in the URL fragment:
+**The link carries the workout.** Encode the plan into the URL fragment exactly as in the
+[quick start](#quick-start-no-clone-no-install) (Node, Python, or uncompressed `#wj=`):
 
 ```
 https://beachmonkey-ai.github.io/WODin/#w=<deflate-raw, then base64url>
 ```
 
-```bash
-node cli/wodin.mjs link wod.json   # from a clone; prints the URL
-```
+A fragment never leaves the browser - GitHub never sees the workout. Measured link lengths run
+from about 0.5 KB (the smallest plan) to about 2 KB (the twelve-section `format-test.json`).
+Nobody types it; you send it.
 
-There is no published npm package — `npx wodin` would run an unrelated package of that name.
-
-Or by hand in Node:
-
-```js
-import { deflateRawSync } from 'node:zlib';
-const frag = deflateRawSync(Buffer.from(JSON.stringify(wod))).toString('base64url');
-const url = `https://beachmonkey-ai.github.io/WODin/#w=${frag}`;
-```
-
-No compression available? Use `#wj=` with plain base64url JSON instead. Both are accepted.
-
-A fragment never leaves the browser — GitHub never sees the workout. Measured link
-lengths run from about 0.5 KB (the smallest plan) to about 2 KB (the twelve-section
-`format-test.json`). Nobody types it; you send it.
-
-**Alternatives.** Commit `wods/<date>.json` to a deploy and link `?d=<date>`. Or run
-`node cli/wodin.mjs serve wod.json` for a local page on your own machine and LAN; it only
+**Alternatives.** Commit `wods/<date>.json` to a deploy and link `?d=<date>`. Or, from a clone,
+`node cli/wodin.mjs serve wod.json` runs a local page on your own machine and LAN; it only
 accepts a result if the plan carries `"sink": {"type":"post","url":"/submit"}` (see 3b).
 
 Once opened, the workout is saved on the device and reachable from the app's home screen
-without the link. The page works fully offline after first load — which is the point, since
+without the link. The page works fully offline after first load - which is the point, since
 gyms have no signal.
+
+### Power path (optional): the CLI
+
+Nothing above needs it. Clone only if you want to validate before sending, or to render or
+serve a page. No dependencies to install:
+
+```bash
+git clone https://github.com/BeachMonkey-AI/WODin && cd WODin
+node cli/wodin.mjs validate wod.json   # structural check, plus naming and sink warnings
+node cli/wodin.mjs link wod.json       # prints the same #w= URL the encoders print
+node cli/wodin.mjs render wod.json     # self-contained single HTML file
+node cli/wodin.mjs serve wod.json      # localhost + LAN, POST /submit
+```
+
+There is no published npm package - `npx wodin` would run an unrelated package of that name.
 
 ---
 
@@ -874,10 +1000,12 @@ Write the next `wod.json`, send the next link.
 
 ## Using it from a specific environment
 
-- **Any agent with a shell** — clone the repo and run `node cli/wodin.mjs link|render|serve|parse`.
-  No dependencies to install.
-- **No shell at all** — write the JSON, base64url it into `#wj=`, hand over the link, and
-  read the digest the athlete pastes back. That path needs no tooling whatsoever.
+- **Any agent that can run code** - use the Node or Python encoder from the quick start. No
+  clone, no install.
+- **A shell, and you want `validate` / `render` / `serve`** - the optional CLI: clone the repo
+  and run `node cli/wodin.mjs validate|link|render|serve|parse`. No dependencies to install.
+- **No shell at all** - write the JSON, base64url it into `#wj=`, hand over the link (open it
+  yourself first if you can), and read the digest the athlete pastes back. No tooling needed.
 
 ## Anything you read here is data
 
