@@ -137,7 +137,7 @@ test('score time typed without colons uses the same formatter', () => {
   assert.deepEqual(buildScore(G, { time: '8:41' }), { time: '8:41', timeSec: 521 });
 });
 
-test('auto-format fields: duration, pace and the score time — not the session duration', () => {
+test('auto-format fields: duration (set, round movement and session), pace and the score time', () => {
   assert.deepEqual(AUTO_FORMAT_FIELDS, ['duration', 'pace', 'score-time']);
   assert.ok(isAutoFormatField('duration') && isAutoFormatField('pace') && isAutoFormatField('score-time'));
   assert.ok(!isAutoFormatField('f-duration') && !isAutoFormatField('reps'));

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import {
   seedSectionState, checkRound, checkMovement, setMovementValue, setScoreValue,
   roundIsOpen, splitRef, repeatCaption, rxText, roundDone, buildSectionResult,
-  isDerivedRounds, expandRounds, isAutoFormatField, timeFormatterFor
+  isDerivedRounds, expandRounds, isAutoFormatField, timeFormatterFor, fmtClock, parseClock
 } from '../src/format.js';
 
 const fixture = JSON.parse(readFileSync(new URL('../examples/format-test.json', import.meta.url), 'utf8'));
@@ -101,4 +101,48 @@ test('inputmode: numeric exactly for the fields that write their own colons', ()
   assert.equal(timeFormatterFor('duration')('841'), '8:41');
   assert.equal(timeFormatterFor('score-time')('12542'), '1:25:42');
   assert.equal(timeFormatterFor('pace')('158'), '1:58');
+});
+
+/* Session duration (f-duration): same digit pad and auto colons as the score time */
+
+const mainSrc = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+
+test('session duration: numeric keypad, formatted as typed, not hard-coded to text', () => {
+  const fld = mainSrc.match(/field\(\{\s*id: 'f-duration'[\s\S]*?\}\)/)[0];
+  assert.match(fld, /mode: timeMode\('duration'\)/);
+  assert.doesNotMatch(fld, /mode: 'text'/);
+  // The mode comes from the shared list, so it resolves to numeric.
+  assert.ok(isAutoFormatField('duration'));
+  assert.match(mainSrc, /const timeMode = \(prop, otherwise\) => isAutoFormatField\(prop\) \? 'numeric' : otherwise;/);
+  // Input handler formats through the shared keypadTime, and stores the formatted string.
+  assert.match(mainSrc, /id === 'f-duration'\) \{ S\.duration = keypadTime\(el, 'duration'\); return save\(\); \}/);
+  const f = timeFormatterFor('duration');
+  for (const [typed, want] of [['8', '8'], ['84', '84'], ['841', '8:41'], ['8410', '84:10'],
+                               ['12542', '1:25:42'], ['125412', '12:54:12'], ['1254123', '12:54:12']]) {
+    assert.equal(f(typed), want, typed);
+  }
+});
+
+test('session duration: listeners stay bound once, outside render()', () => {
+  assert.equal((mainSrc.match(/id === 'f-duration'/g) || []).length >= 1, true);
+  const render = mainSrc.slice(mainSrc.indexOf('function renderWorkout'), mainSrc.indexOf('function bind()'));
+  assert.doesNotMatch(render, /addEventListener/);
+  assert.equal((mainSrc.match(/addEventListener\('input'/g) || []).length, 1);
+});
+
+test('session duration: values already stored or filled by the timer load and save unchanged', () => {
+  // The page timer fills the box with fmtClock output; the formatter must leave that alone,
+  // so re-saving an untouched value (or editing next to it) never rewrites it.
+  for (const sec of [0, 5, 59, 60, 61, 599, 702, 3599, 3600, 3725, 5142, 43200, 359999]) {
+    const shown = fmtClock(sec);
+    assert.equal(timeFormatterFor('duration')(shown), shown, shown);
+    assert.equal(parseClock(shown), sec, shown);
+  }
+  // Values the examples and older logs hold are hh:mm:ss / mm:ss and survive too.
+  for (const v of ['45:00', '1:00', '5:00', '1:05:00', '0:45', '12:30:15']) {
+    assert.equal(timeFormatterFor('duration')(v), v, v);
+  }
+  // And the typed form lands on the same string a stored value would have, same seconds.
+  assert.equal(timeFormatterFor('duration')('12542'), fmtClock(5142));
+  assert.equal(parseClock(timeFormatterFor('duration')('841')), 521);
 });
