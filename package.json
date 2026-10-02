@@ -7,7 +7,8 @@
   "scripts": {
     "gen-icons": "node scripts/gen-icons.mjs",
     "build": "node scripts/build.mjs",
-    "validate": "node cli/wodin.mjs validate examples/routine-2-back-biceps.json examples/minimal.json",
+    "validate": "node cli/wodin.mjs validate examples/routine-2-back-biceps.json examples/minimal.json examples/format-test.json",
+    "test": "node --test \"test/*.test.mjs\"",
     "link": "node cli/wodin.mjs link",
     "serve": "node cli/wodin.mjs serve"
   },

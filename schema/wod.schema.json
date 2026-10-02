@@ -92,7 +92,12 @@
   "$defs": {
     "section": {
       "type": "object",
-      "required": ["name", "exercises"],
+      "description": "A block of the workout. Holds exercises (movements with sets), rounds (a round > movements hierarchy), or both. Its id keys the block's note and RPE in the result when the block has a footer — see format.",
+      "required": ["name"],
+      "anyOf": [
+        { "required": ["exercises"] },
+        { "required": ["rounds"] }
+      ],
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
@@ -101,8 +106,140 @@
           "enum": ["warmup", "activation", "strength", "accessory", "conditioning", "carry", "finisher", "cooldown", "other"],
           "default": "other"
         },
-        "exercises": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/exercise" } }
+        "format": { "$ref": "#/$defs/format" },
+        "exercises": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/exercise" } },
+        "rounds": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Rounds as a hierarchy: round > movements. Compact on purpose — an entry with `movements` starts a new round; an entry without them reuses the previous round's movements. `reps` on a round replaces the reps of every rep-based movement in it (reps, weight_reps, carry), so 21-15-9 is three short entries. `repeat: n` adds n more copies — of the previous round when the entry has neither movements nor reps, otherwise of the entry itself. The first entry must have movements. When format.rounds is larger than what this expands to, the last round is copied up to it (except amrap, whose rounds are an open-ended template). Round movements are logged in result.sections, never in result.log.",
+          "items": { "$ref": "#/$defs/round" },
+          "examples": [[
+            { "reps": 21, "movements": [
+              { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
+              { "movement": "Handstand push-up", "kind": "reps" } ] },
+            { "reps": 15 }, { "reps": 9 }
+          ]]
+        },
+        "optional": {
+          "type": "array",
+          "description": "Scaling options, drawn as toggle pills at the top of the block. The athlete taps the ones they used; the result records them in `optional` as { id: true }.",
+          "items": { "$ref": "#/$defs/scalingOption" },
+          "examples": [[ { "id": "pike", "label": "Pike push-ups" }, { "id": "dl185", "label": "185 lb deadlift", "load": 185 } ]]
+        },
+        "modifiers": {
+          "type": "array",
+          "description": "Optional add-ons such as a weight vest. Drawn exactly like `optional` pills but recorded separately: result `modifiers` lists every modifier as true or false, because doing it without the vest is itself an answer.",
+          "items": { "$ref": "#/$defs/modifier" },
+          "examples": [[ { "id": "vest", "label": "20 lb vest", "load": 20, "optional": true } ]]
+        }
       }
+    },
+
+    "format": {
+      "type": "object",
+      "description": "How the section is run and scored. Drives the header above the block (\"CONDITIONING · FOR TIME · 21-15-9\", \"Cap 15:00\") and, when score is anything but none, a score box after it. A section with rounds, or a score other than none, gets one block footer — score, then RPE and note keyed by the section id — instead of per-exercise pills.",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": ["tabata", "emom", "intervals", "for_time", "amrap", "circuit"],
+          "description": "tabata/intervals: fixed work and rest efforts. emom: one effort at the start of every interval. for_time: finish the work as fast as possible. amrap: as many rounds as possible before the cap. circuit: rounds of movements back to back, unscored by default."
+        },
+        "rounds": { "type": "integer", "minimum": 1, "description": "How many rounds or intervals. With a rounds[] list shorter than this, the last round repeats up to the count." },
+        "workSec": { "type": "number", "exclusiveMinimum": 0, "description": "Work per effort, seconds (tabata, intervals)." },
+        "restSec": { "type": "number", "exclusiveMinimum": 0, "description": "tabata/intervals: rest after each work interval. for_time/circuit: rest after each round." },
+        "intervalSec": { "type": "number", "exclusiveMinimum": 0, "description": "Interval length for emom, seconds — 60 for a classic EMOM." },
+        "capSec": { "type": "number", "exclusiveMinimum": 0, "description": "Time cap, seconds. The AMRAP's duration; the cut-off on a for_time piece." },
+        "score": {
+          "enum": ["time", "rounds_reps", "total_reps", "none"],
+          "description": "What the score box asks for. time: a finish time. rounds_reps: completed rounds plus extra reps (AMRAP). total_reps: one rep count. none or absent: no score box."
+        }
+      },
+      "examples": [
+        { "type": "for_time", "capSec": 900, "score": "time" },
+        { "type": "tabata", "rounds": 8, "workSec": 20, "restSec": 10, "score": "none" },
+        { "type": "emom", "rounds": 10, "intervalSec": 60 },
+        { "type": "amrap", "capSec": 1200, "score": "rounds_reps" }
+      ]
+    },
+
+    "round": {
+      "type": "object",
+      "description": "One entry in a section's rounds list. See section.rounds for how entries expand.",
+      "additionalProperties": false,
+      "properties": {
+        "reps": { "type": ["integer", "null"], "minimum": 1, "description": "Reps for every rep-based movement in this round; cardio and time movements are untouched." },
+        "repeat": { "type": "integer", "minimum": 1, "description": "Add this many more copies." },
+        "movements": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/roundMovement" } }
+      }
+    },
+
+    "roundMovement": {
+      "type": "object",
+      "description": "One movement inside a round. Flat — a round is already one pass, so there is no sets[]. The fields mean what they mean on a set; kind picks the layout, and a round may mix kinds (a run, then swings, then pull-ups).",
+      "required": ["movement", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "movement": { "type": "string", "minLength": 1, "description": "Canonical name, same rules as exercise.movement." },
+        "kind": { "$ref": "#/$defs/kind" },
+        "reps": { "type": ["integer", "null"], "minimum": 0 },
+        "load": { "type": ["number", "null"], "minimum": 0 },
+        "loadType": { "enum": ["bodyweight"] },
+        "loadBwMult": { "$ref": "#/$defs/loadBwMult" },
+        "distance": { "type": ["number", "null"], "minimum": 0 },
+        "distanceUnit": { "type": "string" },
+        "duration": { "type": ["string", "null"], "description": "mm:ss or h:mm:ss." },
+        "pace": { "type": ["string", "null"] },
+        "athleteFills": { "type": "string", "examples": ["reps", "duration"] },
+        "tag": { "type": "string" },
+        "cue": { "type": "string" },
+        "link": { "type": "string", "format": "uri" },
+        "partition": { "$ref": "#/$defs/partition" }
+      }
+    },
+
+    "scalingOption": {
+      "type": "object",
+      "required": ["id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1, "description": "The pill's text, e.g. \"Banded pull-ups\"." },
+        "load": { "type": "number", "minimum": 0, "description": "The load this option implies, in units.load, for a scaled weight." }
+      }
+    },
+
+    "modifier": {
+      "type": "object",
+      "required": ["id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "load": { "type": "number", "minimum": 0 },
+        "optional": { "const": true, "description": "Always true today: a modifier is offered, never imposed." }
+      }
+    },
+
+    "partition": {
+      "description": "How the athlete may break up the reps. free: any way they like. unbroken: in one go. { max: n }: no more than n per set. Shown as a hint under the movement name.",
+      "oneOf": [
+        { "enum": ["free", "unbroken"] },
+        {
+          "type": "object",
+          "required": ["max"],
+          "additionalProperties": false,
+          "properties": { "max": { "type": "integer", "minimum": 1 } }
+        }
+      ]
+    },
+
+    "loadBwMult": {
+      "type": ["number", "null"],
+      "exclusiveMinimum": 0,
+      "description": "Load as a multiple of bodyweight — 1.5 means 1.5× BW. Shown as a chip; the load field stays open for the absolute number actually lifted, which the plan cannot know.",
+      "examples": [1.5, 1, 0.75]
     },
 
     "exercise": {
@@ -139,6 +276,12 @@
           "examples": ["https://www.youtube.com/watch?v=JCXUYuzwNrM", "https://exrx.net/WeightExercises/BackGeneral/BBBentOverRow"]
         },
 
+        "partition": { "$ref": "#/$defs/partition" },
+        "intervalSlot": {
+          "enum": ["A", "B"],
+          "description": "For an emom that alternates movements: A runs on odd intervals, B on even ones. Drawn as a chip before the name. Leave it off when every interval is the same movement."
+        },
+
         "sets": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/set" } }
       }
     },
@@ -157,6 +300,7 @@
           "enum": ["bodyweight"],
           "description": "Use instead of load:0 for unweighted work. Renders as \"BW\"."
         },
+        "loadBwMult": { "$ref": "#/$defs/loadBwMult" },
         "tempo": { "type": ["string", "null"], "examples": ["3-1-1-0"] },
         "rest": { "type": ["string", "null"], "examples": ["90s", "2:00"] },
 

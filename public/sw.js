@@ -14,6 +14,7 @@ const SHELL = [
   'manifest.webmanifest',
   'src/main.js',
   'src/icons.js',
+  'src/format.js',
   'src/app.css',
   'styles/tokens.css',
   'styles/fonts.css',

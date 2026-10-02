@@ -1,0 +1,242 @@
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "2026-10-01-format-test",
+  "date": "2026-10-01",
+  "title": "FORMAT TEST",
+  "program": "Schema preview · examples A–O",
+  "coach": "WODin",
+  "coachNote": "A fixture, not a session: one block per workout shape in the format/rounds proposal, so every header, round tree, scaling pill and score box can be checked on one page.",
+  "units": {
+    "load": "lb",
+    "distance": "m"
+  },
+  "sections": [
+    {
+      "name": "A · Standard strength",
+      "type": "strength",
+      "exercises": [
+        {
+          "movement": "Barbell bench press",
+          "kind": "weight_reps",
+          "sets": [
+            { "reps": 5, "load": 135 },
+            { "reps": 5, "load": 135 },
+            { "reps": 5, "load": 135 },
+            { "reps": 5, "load": 135 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "B · Ladder / wave",
+      "type": "strength",
+      "exercises": [
+        {
+          "movement": "Barbell bench press",
+          "kind": "weight_reps",
+          "sets": [
+            { "reps": 5, "load": 95 },
+            { "reps": 5, "load": 105 },
+            { "reps": 3, "load": 115 },
+            { "reps": 3, "load": 115 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "C · Intervals",
+      "type": "conditioning",
+      "exercises": [
+        {
+          "movement": "Rowing machine row",
+          "kind": "cardio",
+          "sets": [
+            { "distance": 500, "pace": "1:55/500m", "athleteFills": "duration", "rest": "2:00" },
+            { "distance": 500, "pace": "1:55/500m", "athleteFills": "duration", "rest": "2:00" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "D · Tabata",
+      "type": "conditioning",
+      "format": { "type": "tabata", "rounds": 8, "workSec": 20, "restSec": 10, "score": "none" },
+      "exercises": [
+        {
+          "movement": "Barbell thruster",
+          "kind": "weight_reps",
+          "sets": [ { "reps": 5, "load": 65 } ]
+        }
+      ]
+    },
+    {
+      "name": "E · EMOM",
+      "type": "strength",
+      "format": { "type": "emom", "rounds": 6, "intervalSec": 60, "score": "none" },
+      "exercises": [
+        {
+          "movement": "Barbell push press",
+          "kind": "weight_reps",
+          "sets": [ { "reps": 3, "load": 85 } ]
+        }
+      ]
+    },
+    {
+      "name": "F · EMOM pair",
+      "type": "conditioning",
+      "format": { "type": "emom", "rounds": 10, "intervalSec": 60 },
+      "exercises": [
+        {
+          "movement": "Kettlebell swing",
+          "intervalSlot": "A",
+          "kind": "weight_reps",
+          "sets": [ { "reps": 12, "load": 53 } ]
+        },
+        {
+          "movement": "Bodyweight push-up",
+          "intervalSlot": "B",
+          "kind": "reps",
+          "sets": [ { "reps": 10 } ]
+        }
+      ]
+    },
+    {
+      "name": "G · Diane",
+      "type": "conditioning",
+      "format": { "type": "for_time", "score": "time" },
+      "optional": [
+        { "id": "pike", "label": "Pike push-ups" },
+        { "id": "box", "label": "Box HSPU" },
+        { "id": "dl185", "label": "185 lb deadlift", "load": 185 }
+      ],
+      "rounds": [
+        {
+          "reps": 21,
+          "movements": [
+            { "movement": "Barbell deadlift", "kind": "weight_reps", "load": 225 },
+            { "movement": "Handstand push-up", "kind": "reps" }
+          ]
+        },
+        { "reps": 15 },
+        { "reps": 9 }
+      ]
+    },
+    {
+      "name": "H · Helen",
+      "type": "conditioning",
+      "format": { "type": "for_time", "capSec": 900, "score": "time" },
+      "optional": [
+        { "id": "banded", "label": "Banded pull-ups" },
+        { "id": "vest", "label": "20 lb vest", "load": 20 }
+      ],
+      "rounds": [
+        {
+          "movements": [
+            { "movement": "Run (outdoors)", "kind": "cardio", "distance": 400 },
+            { "movement": "Kettlebell swing", "kind": "weight_reps", "reps": 21, "load": 53 },
+            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": 12 }
+          ]
+        },
+        { "repeat": 2 }
+      ]
+    },
+    {
+      "name": "I · Cindy",
+      "type": "conditioning",
+      "format": { "type": "amrap", "capSec": 1200, "score": "rounds_reps" },
+      "rounds": [
+        {
+          "movements": [
+            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": 5 },
+            { "movement": "Bodyweight push-up", "kind": "reps", "reps": 10 },
+            { "movement": "Bodyweight air squat", "kind": "reps", "reps": 15 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "J · Angie",
+      "type": "conditioning",
+      "format": { "type": "for_time", "score": "time" },
+      "exercises": [
+        { "movement": "Pull-up (bodyweight)", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+        { "movement": "Bodyweight push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+        { "movement": "Bodyweight sit-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+        { "movement": "Bodyweight air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] }
+      ]
+    },
+    {
+      "name": "K · Barbara",
+      "type": "conditioning",
+      "format": { "type": "for_time", "rounds": 5, "restSec": 180, "score": "time" },
+      "rounds": [
+        {
+          "movements": [
+            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": 20 },
+            { "movement": "Bodyweight push-up", "kind": "reps", "reps": 30 },
+            { "movement": "Bodyweight sit-up", "kind": "reps", "reps": 40 },
+            { "movement": "Bodyweight air squat", "kind": "reps", "reps": 50 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "L · Accessory circuit",
+      "type": "accessory",
+      "format": { "type": "circuit", "rounds": 3 },
+      "rounds": [
+        {
+          "movements": [
+            { "movement": "Dumbbell row", "kind": "weight_reps", "reps": 10, "load": 35 },
+            { "movement": "Bodyweight push-up", "kind": "reps", "reps": 10 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "M · Linda",
+      "type": "conditioning",
+      "format": { "type": "for_time", "score": "time" },
+      "rounds": [
+        {
+          "reps": 10,
+          "movements": [
+            { "movement": "Barbell deadlift", "kind": "weight_reps", "loadBwMult": 1.5 },
+            { "movement": "Barbell bench press", "kind": "weight_reps", "loadBwMult": 1.0 },
+            { "movement": "Barbell squat clean", "kind": "weight_reps", "loadBwMult": 0.75 }
+          ]
+        },
+        { "reps": 9 }, { "reps": 8 }, { "reps": 7 }, { "reps": 6 },
+        { "reps": 5 }, { "reps": 4 }, { "reps": 3 }, { "reps": 2 }, { "reps": 1 }
+      ]
+    },
+    {
+      "name": "N · Nicole",
+      "type": "conditioning",
+      "format": { "type": "amrap", "capSec": 1200, "score": "total_reps" },
+      "rounds": [
+        {
+          "movements": [
+            { "movement": "Run (outdoors)", "kind": "cardio", "distance": 400 },
+            { "movement": "Pull-up (bodyweight)", "kind": "reps", "reps": null, "athleteFills": "reps" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "O · Murph",
+      "type": "conditioning",
+      "format": { "type": "for_time", "score": "time" },
+      "modifiers": [
+        { "id": "vest", "label": "20 lb vest", "load": 20, "optional": true }
+      ],
+      "exercises": [
+        { "movement": "Run (outdoors)", "kind": "cardio", "sets": [ { "distance": 1609 } ] },
+        { "movement": "Pull-up (bodyweight)", "kind": "reps", "partition": "free", "sets": [ { "reps": 100 } ] },
+        { "movement": "Bodyweight push-up", "kind": "reps", "partition": "free", "sets": [ { "reps": 200 } ] },
+        { "movement": "Bodyweight air squat", "kind": "reps", "partition": "free", "sets": [ { "reps": 300 } ] },
+        { "movement": "Run (outdoors)", "kind": "cardio", "sets": [ { "distance": 1609 } ] }
+      ]
+    }
+  ]
+}
