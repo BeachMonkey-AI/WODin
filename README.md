@@ -8,7 +8,133 @@ happened and tap **Log workout**. By default they hand the result back with **Sh
 (a compact text digest) or **Download** (the full result JSON). Add a `sink` to the plan and
 the page grows a **Send to coach** button that POSTs the result JSON straight to your agent.
 
-🏋️ **[beachmonkey-ai.github.io/WODin](https://beachmonkey-ai.github.io/WODin/)**
+Agents: the quick start below is everything you need; [`AGENT.md`](AGENT.md) is the full protocol.
+
+## Quick start: no clone, no install
+
+**The endpoint is <https://beachmonkey-ai.github.io/WODin/>.** An agent posts a workout by
+appending a fragment to it:
+
+| Fragment | Payload |
+|---|---|
+| `#w=<frag>` | the plan JSON, raw-deflated, then base64url (preferred) |
+| `#wj=<frag>` | the plan JSON, base64url only (no compression available) |
+
+The fragment is the whole message: no server, account, API key, clone or package install. Send
+the athlete the finished URL. (`#id=<workoutId>` re-opens a workout already on their device;
+`?d=<date>` loads a committed `wods/<date>.json`.)
+
+**1. Write the plan.** The smallest useful one:
+
+```json
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "2026-10-03",
+  "title": "Squat + row",
+  "coach": "Your agent",
+  "units": { "load": "lb", "distance": "m" },
+  "sections": [
+    {
+      "name": "Strength",
+      "type": "strength",
+      "exercises": [
+        {
+          "movement": "Back squat",
+          "kind": "weight_reps",
+          "cue": "Brace before you unrack.",
+          "sets": [{ "reps": 5, "load": 135 }, { "reps": 5, "load": 155 }]
+        },
+        {
+          "movement": "Row",
+          "kind": "cardio",
+          "cue": "Steady pace; log the time.",
+          "sets": [{ "distance": 500, "pace": "2:10/500m", "duration": null, "athleteFills": "duration" }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**2. Encode it.** Node 18+:
+
+```js
+import { readFileSync } from 'node:fs';
+import { deflateRawSync } from 'node:zlib';
+const wod = JSON.parse(readFileSync('wod.json', 'utf8'));
+const frag = deflateRawSync(Buffer.from(JSON.stringify(wod))).toString('base64url');
+console.log('https://beachmonkey-ai.github.io/WODin/#w=' + frag);
+```
+
+Python 3:
+
+```python
+import base64, json, zlib
+wod = json.load(open("wod.json", encoding="utf-8"))
+raw = json.dumps(wod, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+z = zlib.compressobj(9, zlib.DEFLATED, -15)   # -15 = RAW deflate, no zlib header
+frag = base64.urlsafe_b64encode(z.compress(raw) + z.flush()).rstrip(b"=").decode()
+print("https://beachmonkey-ai.github.io/WODin/#w=" + frag)
+```
+
+The Python gotcha: `zlib.compress()` and a default `compressobj()` write a zlib header, which
+the page cannot read. The `-15` is what makes it raw deflate. No compression at all? Use
+`#wj=` with `Buffer.from(JSON.stringify(wod)).toString('base64url')`, or in Python
+`base64.urlsafe_b64encode(raw).rstrip(b"=").decode()`.
+
+**3. The URL** is the endpoint plus the fragment (this one is the plan above, 433 characters;
+typical plans run 0.5 to 2 KB, and past about 8000 characters some clients truncate):
+
+```text
+https://beachmonkey-ai.github.io/WODin/#w=ZZFPSwMxEMW_SpirW91tWQ_rRXoQvNqTiEiaHXfD5k9NJtZS-t2daYtVJBDIb2bee0z2kM2IXkMH29jbcMP3fQMVv9IUCz32XJnX89tZU8_qBRfIkkOGq4-iSV2pFLdMTdRmZPocS1J6wEAMS7CUoduDi1p03JphbzPpYETCw6GCjIZsDNz3soeg_VGbEoaBRrHbbYTkC8EvTMZmPE34-Ile7DpYajOpLLG4a7JBLLdoh5HeEm6ypCyitUzaoFrje0yodrGoEphM1yBh6CR7HOja6hy9WbSH6j9t28Or8F8hno7rOLsbnXobf4xXhLrfqQ3b3ykXB0UjKrIe_1hfFtTWdQXSLX_QNfUNAy8rLEnLzqALxbkKNI0OCR-scyxxKXM4Od8
+```
+
+**4. Check it** by opening the URL yourself (next section). **5. Send it.**
+
+**What the athlete sees.** The page opens straight into the plan, titled "Squat + row" with
+the date (Sat, Oct 3). Under **Strength**, "Back squat" has its cue and two set rows prefilled
+(135 lb x 5, 155 lb x 5); "Row" has 500 m at 2:10/500m with the time left blank for them to
+fill. They tap **Start** for the session timer, edit what they really did, and tap **Log
+workout** to hand the result back (Share, Copy or Download). It is saved on their device and
+works offline.
+
+### Validate without the CLI
+
+There is no safety net on this path: a bad plan fails quietly on the athlete's phone. **Opening
+the link yourself is the check** - if you can't open a browser, decode your own fragment and
+read the JSON back:
+
+```bash
+node -e "console.log(require('zlib').inflateRawSync(Buffer.from(process.argv[1],'base64url')).toString())" "$FRAG"
+python3 -c "import sys,zlib,base64;f=sys.argv[1];print(zlib.decompress(base64.urlsafe_b64decode(f+'='*(-len(f)%4)),-15).decode())" "$FRAG"
+```
+
+Then run down the failure modes (the rules `wodin validate` and
+[`schema/wod.schema.json`](schema/wod.schema.json) enforce):
+
+- [ ] Top level has `workoutId` (a non-empty string; a date such as `2026-10-03` is the usual
+  choice) and a non-empty `sections[]`. Only schema fields; unknown keys are not allowed.
+- [ ] Every section has a `name` and `exercises[]` (or `rounds[]`).
+- [ ] Every exercise has `movement`, `kind` and a non-empty `sets[]`.
+- [ ] `kind` is one of `weight_reps`, `reps`, `time`, `cardio`, `carry`, set on every exercise
+  and round movement. It cannot be inferred.
+- [ ] No `"load": 0`; use `"loadType": "bodyweight"`.
+- [ ] `movement` is the plain name (`Run`, cue `Outdoors`; not `Outdoor run`, `Row 500m` or
+  `Pull-up (bodyweight)`). Equipment that changes the lift stays: `Barbell deadlift`.
+- [ ] A `format` has a `type`; the first `rounds[]` entry has `movements`; a `sink` of type
+  `post` has a `url`.
+- [ ] The URL is complete: the whole fragment, not an ellipsised `#w=…` from a chat preview.
+
+What a bad link looks like:
+
+- **Can't be decoded** (cut short, zlib header instead of raw deflate, invalid JSON): the page
+  opens on the empty "Your workouts" home with a brief "That link's workout could not be
+  read" toast. Pasting the link into **Paste a workout link** says it is damaged.
+- **Decodes but is wrong: nothing is flagged.** A missing `kind` is drawn as `weight_reps`, so
+  a row or a plank gets load and reps boxes. A missing `workoutId` leaves the date blank and
+  the autosave and the returned result with no id to key on. Missing `sections` is an empty page.
+
+## How it works
 
 ```
   agent writes                 athlete uses                     agent reads
@@ -21,6 +147,10 @@ No server. No account. No API key. The workout travels in the URL fragment, so i
 sent to a server (if you add a `sink`, its URL and headers travel in the link too). The page
 keeps working with no signal, which matters because gyms don't have any.
 
+Opening a link files the workout in a library on the device (the last 50) and the app's home
+screen is that library, so an installed app doesn't open to nothing. Progress autosaves to
+`localStorage` per `workoutId`.
+
 ## Why it exists
 
 This started as Google Apps Script talking to a Sheet. That worked, but it welded the idea
@@ -28,29 +158,37 @@ to one runtime: an agent that isn't Apps Script couldn't generate a page, and an
 wasn't the author's couldn't read a result. WODin is the same idea with the protocol pulled
 out of the plumbing, so OpenClaw, GrokBot, Claude or anything else can drive it.
 
-## Use it in 30 seconds
+## Power path (optional): the CLI
 
-Requirements: Node 22 (CI uses 22; `npm test` needs Node 21+ to expand its glob). `npm install`
-is only needed for icon generation and the build (`sharp`); the CLI, `serve`, `test` and
-`validate` need no installed packages.
+You never need a clone to use WODin. Clone only to validate before you send, render a
+standalone file, or serve a page on your LAN. The CLI has no npm dependencies (node's own
+`zlib` and `http`) but reads this repo's `src/`, `styles/`, `public/` and `index.html`, so
+run it from a clone. Requirements: Node 22 (CI uses 22; `npm test` needs Node 21+ to expand
+its glob). `npm install` is only needed for icon generation and the build (`sharp`).
 
 ```bash
 git clone https://github.com/BeachMonkey-AI/WODin && cd WODin
-node cli/wodin.mjs link examples/routine-2-back-biceps.json
-#  https://beachmonkey-ai.github.io/WODin/#w=zZbNbuM2EMdf...
+node cli/wodin.mjs validate wod.json ...           # structural check, plus naming and sink warnings
+node cli/wodin.mjs link     wod.json [--base URL]   # the same #w= URL the encoders above print
+node cli/wodin.mjs render   wod.json [-o out.html]  # self-contained single file, no service worker
+node cli/wodin.mjs serve    [wod.json] [--port N] [--out DIR]  # localhost + LAN, POST /submit → logs/
+node cli/wodin.mjs parse    <file|->               # JSON passes through; a digest → best-effort summary
 ```
 
-Send that link. That's the whole integration.
+There is no published npm package, and `npx wodin` would fetch an unrelated package of that
+name owned by someone else.
 
-The link is `…/WODin/#w=<deflate-raw + base64url JSON>`. `#wj=<base64url JSON>` is the
-uncompressed form, for an agent with no compression available. Typical links run from about
-0.5 KB (the smallest plan) to about 2 KB (`examples/format-test.json`, twelve sections);
-`link` warns past 8000 characters. Alternatives: commit `wods/<date>.json` and link `?d=<date>`,
-and `#id=<workoutId>` re-opens a workout already in the device's library.
+`parse` passes JSON through unchanged. A text digest becomes a best-effort summary (`log` keyed
+by movement name with the raw entry text), not canonical result JSON. Use the JSON payload
+when you need exact ids, `exerciseRpe` or per-section scores.
 
-Opening a link files the workout in a library on the device (the last 50) and the app's home
-screen is that library, so an installed app doesn't open to nothing. Progress autosaves to
-`localStorage` per `workoutId`.
+`serve` hosts the page from the source tree (no build) on localhost and the LAN (default port
+5173) and accepts `POST /submit`, writing `logs/<workoutId>.json` (`--out DIR` to change it; a
+resubmit overwrites). The page only shows **Send to coach** if the plan has a sink pointing at
+it, e.g. `"sink": {"type": "post", "url": "/submit"}`; otherwise use Share, Copy or Download.
+Plain-http LAN access has no service worker, clipboard or Web Share - test those on localhost
+or a Pages preview. It's the tightest loop when the agent and the athlete share a machine or
+wifi network.
 
 ## Getting the result back
 
@@ -138,34 +276,6 @@ the lift stays (`Barbell deadlift`). `wodin validate` warns on violations.
 - RPE dropdowns list 10 down to 1, each with an effort anchor.
 - `coach` shows as attribution under the coach note, and the footer links the repo and shows
   the build hash.
-
-## CLI
-
-The CLI has no npm dependencies - node's own `zlib` and `http` - but it reads this repo's
-`src/`, `styles/`, `public/` and `index.html`, so run it from a clone.
-
-```bash
-node cli/wodin.mjs link     wod.json [--base URL]   # shareable #w= URL - the phone path
-node cli/wodin.mjs render   wod.json [-o out.html]  # self-contained single file, no service worker
-node cli/wodin.mjs serve    [wod.json] [--port N] [--out DIR]  # localhost + LAN, POST /submit → logs/
-node cli/wodin.mjs parse    <file|->               # JSON passes through; a digest → best-effort summary
-node cli/wodin.mjs validate wod.json ...           # structural check, plus naming and sink warnings
-```
-
-There is no published npm package, and `npx wodin` would fetch an unrelated package of that
-name owned by someone else.
-
-`parse` passes JSON through unchanged. A text digest becomes a best-effort summary (`log` keyed
-by movement name with the raw entry text), not canonical result JSON. Use the JSON payload
-when you need exact ids, `exerciseRpe` or per-section scores.
-
-`serve` hosts the page from the source tree (no build) on localhost and the LAN (default port
-5173) and accepts `POST /submit`, writing `logs/<workoutId>.json` (`--out DIR` to change it; a
-resubmit overwrites). The page only shows **Send to coach** if the plan has a sink pointing at
-it, e.g. `"sink": {"type": "post", "url": "/submit"}`; otherwise use Share, Copy or Download.
-Plain-http LAN access has no service worker, clipboard or Web Share - test those on localhost
-or a Pages preview. It's the tightest loop when the agent and the athlete share a machine or
-wifi network.
 
 ## Three design decisions worth knowing
 
