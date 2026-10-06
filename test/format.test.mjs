@@ -6,7 +6,7 @@ import {
   seedRoundState, setRoundDone, setMovementDone, roundDone, firstOpenRound,
   seedSectionState, togglePill, buildScore, buildSectionResult, withSections,
   sectionNotesAndRpe, roundSummary, digestSectionLines, validateFormat,
-  hasBlockFooter, usesFormatFeatures
+  hasBlockFooter, usesFormatFeatures, sendLabels
 } from '../src/format.js';
 
 const fixture = JSON.parse(readFileSync(new URL('../examples/format-test.json', import.meta.url), 'utf8'));
@@ -173,6 +173,14 @@ test('digest lines', () => {
   // Untagged, the tapped value is written as before.
   const { benchmark, ...plain } = G;
   assert.ok(digestSectionLines(plain, st, { rpe: 9 }).includes('  RPE  9'));
+});
+
+test('send labels follow the plan coach name', () => {
+  assert.deepEqual(sendLabels(undefined), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels(null), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels(''), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels('   '), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels('  Fuse  '), { button: 'Send to Fuse', title: 'Send to Fuse' });
 });
 
 test('the fixture validates with no problems', () => {

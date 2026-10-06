@@ -881,6 +881,11 @@ infrastructure, works everywhere. If you'd rather it arrive on its own, add a `s
 Submit then grows a primary **Send to coach** button that POSTs the result JSON. Share and
 Copy stay as fallbacks, so a failed send is never a dead end.
 
+The plan's top-level `coach` string, trimmed, optionally renames that button and the sheet
+title. `"coach": "Fuse"` makes both **Send to Fuse**. With no `coach`, or only whitespace,
+the button stays **Send to coach** and the sheet title stays **Send to your coach**. The
+name is the same `coach` already shown as the attribution.
+
 ### Authenticating: mint a token per workout
 
 Plenty of agent hosts — GrokBot among them — expect `Authorization: Bearer`. That works:

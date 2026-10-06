@@ -904,6 +904,16 @@ export function validatePlanRpe(wod) {
   return { problems: p ? [p] : [], warnings: [] };
 }
 
+/** Submit-sheet copy. A trimmed plan `coach` renames the button and the title
+ *  ("Fuse" → "Send to Fuse"). Missing, non-string, or whitespace-only keeps
+ *  the two defaults — the button and the title are not the same string. */
+export function sendLabels(coach) {
+  const name = typeof coach === 'string' ? coach.trim() : '';
+  if (!name) return { button: 'Send to coach', title: 'Send to your coach' };
+  const label = `Send to ${name}`;
+  return { button: label, title: label };
+}
+
 function checkLoad(obj, at, problems) {
   if (obj.load === 0) problems.push(`${at}: load 0 — use "loadType": "bodyweight"`);
   if (obj.loadBwMult !== undefined && obj.loadBwMult !== null && !isPosNum(obj.loadBwMult)) {
