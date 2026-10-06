@@ -130,6 +130,48 @@ test('session duration: listeners stay bound once, outside render()', () => {
   assert.equal((mainSrc.match(/addEventListener\('input'/g) || []).length, 1);
 });
 
+/* An unreadable #w= / #wj= / #id= hash stays on the library, not only in a toast. */
+
+test('unreadable hash: sticky library banner, dismiss clears the hash, a workout clears it', () => {
+  assert.match(mainSrc, /let libraryHashError = null/);
+  assert.match(mainSrc, /The link in the address bar could not be read — it was likely cut short or corrupted\. Paste a fresh Copy Link below, or dismiss\./);
+
+  const resolve = mainSrc.slice(
+    mainSrc.indexOf('async function resolveWod'),
+    mainSrc.indexOf('async function route')
+  );
+  assert.match(resolve, /\/\^#\(w\|wj\|id\)=\//);
+  assert.match(resolve, /libraryHashError = LIBRARY_HASH_ERROR/);
+  assert.match(resolve, /toast\("That link's workout could not be read"\)/);
+
+  const renderLib = mainSrc.slice(
+    mainSrc.indexOf('function renderLibrary'),
+    mainSrc.indexOf('function pasteProblem')
+  );
+  const view = renderLib.slice(renderLib.indexOf("$('app').innerHTML"));
+  const headerAt = view.indexOf('<header>');
+  const bannerAt = view.indexOf('library-error');
+  const listAt = view.indexOf('class="lib"');
+  assert.ok(headerAt >= 0 && bannerAt > headerAt && listAt > bannerAt, 'banner sits after the header and before the list');
+  assert.match(view, /libraryHashError/);
+  assert.match(view, /data-dismiss-hash-error/);
+
+  const bind = mainSrc.slice(mainSrc.indexOf('function bind()'), mainSrc.indexOf("app.addEventListener('change'"));
+  const dismiss = bind.match(/if \(e\.target\.closest\('\[data-dismiss-hash-error\]'\)\) \{[\s\S]*?\n    \}/);
+  assert.ok(dismiss, 'dismiss handler is in the click delegate');
+  assert.match(dismiss[0], /libraryHashError = null/);
+  assert.match(dismiss[0], /location\.hash = ''/);
+  assert.match(dismiss[0], /return route\(\)/);
+
+  const route = mainSrc.slice(mainSrc.indexOf('async function route()'), mainSrc.indexOf('async function shareWod'));
+  const opened = route.slice(route.indexOf('if (!wod)'));
+  assert.ok(opened.indexOf('renderLibrary()') < opened.indexOf('libraryHashError = null'));
+
+  const paste = mainSrc.slice(mainSrc.indexOf('async function openPastedLink'), mainSrc.indexOf('function pasteLink'));
+  const openedPaste = paste.slice(paste.indexOf("pasteProblem('')"));
+  assert.match(openedPaste, /libraryHashError = null/);
+});
+
 test('session duration: values already stored or filled by the timer load and save unchanged', () => {
   // The page timer fills the box with fmtClock output; the formatter must leave that alone,
   // so re-saving an untouched value (or editing next to it) never rewrites it.

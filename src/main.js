@@ -188,6 +188,10 @@ const openNotes = new Set();
 const openRounds = new Map();
 let tick = null;
 let pendingRemove = null;   // library entry awaiting its inline confirm
+// A #w= / #wj= / #id= hash that is present but cannot be read. The toast is gone
+// in a moment; this stays on the library until dismissed or a workout opens.
+let libraryHashError = null;
+const LIBRARY_HASH_ERROR = 'The link in the address bar could not be read — it was likely cut short or corrupted. Paste a fresh Copy Link below, or dismiss.';
 
 function forget(workoutId) {
   writeJSON(LIB_KEY, library().filter(x => x.workoutId !== workoutId));
@@ -757,6 +761,10 @@ function renderLibrary() {
       <div class="eyebrow"><b>WODin</b></div>
       <h1>Your workouts</h1>
     </header>
+    ${libraryHashError ? `<div class="library-error">
+      <p>${esc(libraryHashError)}</p>
+      <button class="lib-btn" type="button" data-dismiss-hash-error>Dismiss</button>
+    </div>` : ''}
     ${list.length ? `<div class="lib">${items}</div>` : empty}
     <div class="paste">
       <button class="pill" type="button" id="paste">Paste a workout link</button>
@@ -817,6 +825,7 @@ async function openPastedLink(text, quiet) {
   }
 
   pasteProblem('');
+  libraryHashError = null;
   if (location.hash === hash) { route(); return true; }
   location.hash = hash;
   return true;
@@ -976,6 +985,12 @@ function bind() {
 
     if (e.target.id === 'paste') return pasteLink();
     if (e.target.id === 'pasteGo') return void openPastedLink($('pasteInput').value);
+
+    if (e.target.closest('[data-dismiss-hash-error]')) {
+      libraryHashError = null;
+      location.hash = '';
+      return route();
+    }
 
     const ask = e.target.closest('[data-ask-remove]');
     if (ask) { pendingRemove = ask.dataset.askRemove; return renderLibrary(); }
@@ -1435,12 +1450,20 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') $('scrim').h
 
 async function resolveWod() {
   if (location.hash) {
+    const linked = /^#(w|wj|id)=/.test(location.hash);
     try {
       const wod = await decodeFragment(location.hash);
       if (wod) return wod;
+      // Present, but nothing came back — same outcome as a throw. Fall through
+      // to the library with the failure still on screen.
+      if (linked) {
+        toast("That link's workout could not be read");
+        libraryHashError = LIBRARY_HASH_ERROR;
+      }
     } catch (err) {
       console.warn('Could not read the workout from this link:', err);
       toast("That link's workout could not be read");
+      if (linked) libraryHashError = LIBRARY_HASH_ERROR;
     }
   }
 
@@ -1462,6 +1485,7 @@ async function route() {
 
   if (!wod) { WOD = null; S = null; renderLibrary(); return; }
 
+  libraryHashError = null;
   WOD = normalise(wod);
   remember(WOD);
   S = loadState();

@@ -689,7 +689,8 @@ h2 {
 .paste-manual input::placeholder { color: var(--ghost); }
 .paste-manual .lib-btn { min-height: 44px; }
 
-.paste-error {
+.paste-error,
+.library-error {
   margin: 10px 0 0;
   padding: 10px 12px;
   border-radius: var(--radius);
@@ -699,6 +700,11 @@ h2 {
   font-size: 13.5px; line-height: 1.5;
 }
 .paste-error[hidden] { display: none; }
+
+/* Stays under the library title until the athlete dismisses it or a workout opens. */
+.library-error { margin-top: 16px; }
+.library-error p { margin: 0; }
+.library-error .lib-btn { margin-top: 10px; min-height: 44px; }
 
 .foot {
   display: flex;
