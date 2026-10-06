@@ -136,8 +136,9 @@ Then run down the failure modes (the rules `wodin validate` and
 What a bad link looks like:
 
 - **Can't be decoded** (cut short, zlib header instead of raw deflate, invalid JSON): the page
-  opens on the empty "Your workouts" home with a brief "That link's workout could not be
-  read" toast. Pasting the link into **Paste a workout link** says it is damaged.
+  opens on Your workouts with a brief "That link's workout could not be read" toast and a
+  sticky banner explaining the address-bar link could not be read, with a dismiss that also
+  clears the hash. Pasting the link into **Paste a workout link** still says it is damaged.
 - **Decodes but is wrong: nothing is flagged.** A missing `kind` is drawn as `weight_reps`, so
   a row or a plank gets load and reps boxes. A missing `workoutId` leaves the date blank and
   the autosave and the returned result with no id to key on. Missing `sections` is an empty page.
