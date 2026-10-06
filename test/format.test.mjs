@@ -6,7 +6,7 @@ import {
   seedRoundState, setRoundDone, setMovementDone, roundDone, firstOpenRound,
   seedSectionState, togglePill, buildScore, buildSectionResult, withSections,
   sectionNotesAndRpe, roundSummary, digestSectionLines, validateFormat,
-  hasBlockFooter, usesFormatFeatures
+  hasBlockFooter, usesFormatFeatures, sendLabels
 } from '../src/format.js';
 
 const fixture = JSON.parse(readFileSync(new URL('../examples/format-test.json', import.meta.url), 'utf8'));
@@ -175,6 +175,14 @@ test('digest lines', () => {
   assert.ok(digestSectionLines(plain, st, { rpe: 9 }).includes('  RPE  9'));
 });
 
+test('send labels follow the plan coach name', () => {
+  assert.deepEqual(sendLabels(undefined), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels(null), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels(''), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels('   '), { button: 'Send to coach', title: 'Send to your coach' });
+  assert.deepEqual(sendLabels('  Fuse  '), { button: 'Send to Fuse', title: 'Send to Fuse' });
+});
+
 test('the fixture validates with no problems', () => {
   fixture.sections.forEach((sec, i) => {
     assert.deepEqual(validateFormat(sec, `sections[${i}]`).problems, [], sec.name);
@@ -195,7 +203,7 @@ test('validator problems and warnings', () => {
   assert.match(p({ rounds: [{ reps: 3 }] }).join(), /first round needs movements/);
   assert.match(p({ rounds: [{ movements: [{ movement: 'Row' }] }] }).join(), /missing kind/);
   assert.match(p({ rounds: [{ movements: [{ ...mv, kind: 'lift' }] }] }).join(), /kind "lift"/);
-  assert.match(p({ rounds: [{ movements: [{ ...mv, kind: 'weight_reps', load: 0 }] }] }).join(), /load 0/);
+  assert.deepEqual(p({ rounds: [{ movements: [{ ...mv, kind: 'weight_reps', load: 0 }] }] }), []);
   assert.match(p({ rounds: [{ movements: [{ ...mv, loadBwMult: 0 }] }] }).join(), /loadBwMult/);
   assert.match(p({ rounds: [{ movements: [mv] }], optional: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }).join(), /duplicate id/);
   assert.match(p({ rounds: [{ movements: [mv] }], modifiers: [{ label: 'Vest' }] }).join(), /missing id/);

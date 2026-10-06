@@ -19,7 +19,8 @@ import {
   withSections, sectionNotesAndRpe, digestSectionLines, isDerivedRounds,
   fmtClock, parseClock, isAutoFormatField, timeFormatterFor,
   showSectionRpe, showExerciseRpe, showSessionRpe, sessionRpeResult, sessionRpeText,
-  timerElapsedMs, timerStart, timerPause, timerReset, timerSetMs
+  timerElapsedMs, timerStart, timerPause, timerReset, timerSetMs,
+  sendLabels
 } from './format.js';
 
 // Replaced by scripts/build.mjs with the same content hash the service worker
@@ -1354,9 +1355,13 @@ function openSheet() {
 
   const canShare = typeof navigator.share === 'function';
   const posting = WOD.sink && WOD.sink.type === 'post' && WOD.sink.url;
+  // Set every open. The sheet lives outside #app, so a title left from the
+  // previous workout would otherwise stick.
+  const labels = sendLabels(WOD.coach);
+  $('sheetTitle').textContent = labels.title;
 
   $('sinks').innerHTML = [
-    posting ? sink('post', ICON.send, 'Send to coach',
+    posting ? sink('post', ICON.send, esc(labels.button),
       WOD.sink.mode === 'blind' ? 'Posts to your agent — no delivery receipt' : 'Posts straight to your agent',
       true) : '',
     canShare ? sink('share', ICON.share, 'Share', 'Hand it to any app', !posting) : '',

@@ -306,9 +306,6 @@ function cmdValidate(files) {
         if (!ex.kind) problems.push(`${exWhere} (${ex.movement}): missing kind — the renderer cannot infer it`);
         else if (!KINDS.includes(ex.kind)) problems.push(`${exWhere} (${ex.movement}): kind "${ex.kind}" is not one of ${KINDS.join(', ')}`);
         if (!Array.isArray(ex.sets) || !ex.sets.length) problems.push(`${exWhere} (${ex.movement}): no sets`);
-        (ex.sets || []).forEach((set, k) => {
-          if (set.load === 0) problems.push(`${exWhere}.sets[${k}]: load 0 — use "loadType": "bodyweight"`);
-        });
       });
       // format, rounds[], scaling pills and the newer exercise fields. Same
       // function the page's tests exercise, so the CLI cannot drift from it.

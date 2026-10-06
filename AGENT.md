@@ -123,7 +123,10 @@ Then run down the failure modes (the rules `wodin validate` and
 - [ ] Every exercise has `movement`, `kind` and a non-empty `sets[]`.
 - [ ] `kind` is one of `weight_reps`, `reps`, `time`, `cardio`, `carry`, set on every exercise
   and round movement. It cannot be inferred.
-- [ ] No `"load": 0`; use `"loadType": "bodyweight"`.
+- [ ] `"loadType": "bodyweight"` (renders as `BW`) only for unweighted work that does not
+  progress to absolute load (band pull-aparts, activation). A `weight_reps` lift with a
+  natural weight progression ahead (ring row, pull-up) uses `"load": 0` so the load field
+  stays open. Never put "Bodyweight" in the movement title; the modifier goes in `cue`.
 - [ ] `movement` is the plain name (`Run`, cue `Outdoors`; not `Outdoor run`, `Row 500m` or
   `Pull-up (bodyweight)`). Equipment that changes the lift stays: `Barbell deadlift`.
 - [ ] A `format` has a `type`; the first `rounds[]` entry has `movements`; a `sink` of type
@@ -198,7 +201,12 @@ It decides which fields get drawn, and it cannot be inferred — a field the ath
 | `cardio` | `2:00 /500m` `500 m` `1:58 mm:ss` | rowing, running, erg |
 | `carry` | `50 lb × 1 reps` `100 ft` | loaded carries |
 
-For unweighted work use `"loadType": "bodyweight"`, not `"load": 0`. It renders as `BW`.
+Never put "Bodyweight" in a movement title. The modifier goes in `cue`.
+
+`"loadType": "bodyweight"` renders as `BW`. Use it for unweighted work that does **not**
+progress to an absolute load — band pull-aparts, activation band work. When a `weight_reps`
+lift has a natural weight progression ahead (a ring row or a pull-up that will later take
+weight), write `"load": 0` instead, so the load field stays open for that absolute weight.
 
 Durations and paces on sets and round movements, and a time score, are typed on the digit keypad and colon-formatted as
 typed — `841` is `8:41`, `12542` is `1:25:42`, a pace stops at `m:ss` — so results carry
@@ -631,8 +639,11 @@ For **Nicole (I)** the score is `"total_reps"` and the pull-up is
 - **Do write a repeated pass once** — `{ reps }`, `{ repeat }`, `format.rounds`, or a
   Tabata's single exercise. **Don't** write eight identical rounds, or give a Tabata several
   sets (only the first counts).
-- **Do set `kind` on every movement,** including round movements, and use
-  `loadType: "bodyweight"` for unweighted work — **don't** write `load: 0`.
+- **Do set `kind` on every movement,** including round movements. **Do** use
+  `loadType: "bodyweight"` for unweighted work that will not take an absolute load (bands,
+  activation) — it renders as `BW`. **Do** write `"load": 0` on a `weight_reps` lift that
+  has a natural weight progression ahead (ring row, pull-up), so the load field stays open.
+  **Don't** put "Bodyweight" in the movement title; put the modifier in `cue`.
 - **Don't put warm-up ramps in a formatted block.** A Tabata, EMOM or for-time block
   prescribes the working load only; ramps go in their own warm-up section.
 - **Don't depend on round ticks.** Ticking rounds is optional for the athlete; the score and
@@ -880,6 +891,11 @@ infrastructure, works everywhere. If you'd rather it arrive on its own, add a `s
 
 Submit then grows a primary **Send to coach** button that POSTs the result JSON. Share and
 Copy stay as fallbacks, so a failed send is never a dead end.
+
+The plan's top-level `coach` string, trimmed, optionally renames that button and the sheet
+title. `"coach": "Fuse"` makes both **Send to Fuse**. With no `coach`, or only whitespace,
+the button stays **Send to coach** and the sheet title stays **Send to your coach**. The
+name is the same `coach` already shown as the attribution.
 
 ### Authenticating: mint a token per workout
 
