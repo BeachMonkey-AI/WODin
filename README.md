@@ -118,7 +118,10 @@ Then run down the failure modes (the rules `wodin validate` and
 - [ ] Every exercise has `movement`, `kind` and a non-empty `sets[]`.
 - [ ] `kind` is one of `weight_reps`, `reps`, `time`, `cardio`, `carry`, set on every exercise
   and round movement. It cannot be inferred.
-- [ ] No `"load": 0`; use `"loadType": "bodyweight"`.
+- [ ] `"loadType": "bodyweight"` (renders as `BW`) only for unweighted work that does not
+  progress to absolute load (band pull-aparts, activation). A `weight_reps` lift with a
+  natural weight progression ahead (ring row, pull-up) uses `"load": 0` so the load field
+  stays open. Never put "Bodyweight" in the movement title; the modifier goes in `cue`.
 - [ ] `movement` is the plain name (`Run`, cue `Outdoors`; not `Outdoor run`, `Row 500m` or
   `Pull-up (bodyweight)`). Equipment that changes the lift stays: `Barbell deadlift`.
 - [ ] A `format` has a `type`; the first `rounds[]` entry has `movements`; a `sink` of type

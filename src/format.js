@@ -915,7 +915,8 @@ export function sendLabels(coach) {
 }
 
 function checkLoad(obj, at, problems) {
-  if (obj.load === 0) problems.push(`${at}: load 0 — use "loadType": "bodyweight"`);
+  // load: 0 is a real prescription on a weight_reps lift that will later take
+  // absolute weight. loadType bodyweight is the other case (bands, activation).
   if (obj.loadBwMult !== undefined && obj.loadBwMult !== null && !isPosNum(obj.loadBwMult)) {
     problems.push(`${at}: loadBwMult must be a positive number (1.5 = 1.5× bodyweight)`);
   }
@@ -1027,7 +1028,6 @@ export function validateFormat(section, where = 'section') {
       else if (f?.type !== 'emom') warnings.push(`${at} (${ex.movement}): intervalSlot only means something in an emom`);
     }
     (ex.sets || []).forEach((set, k) => {
-      // load 0 is already reported by the CLI's set loop; only the new field here.
       if (set && set.loadBwMult !== undefined && set.loadBwMult !== null && !isPosNum(set.loadBwMult)) {
         problems.push(`${at}.sets[${k}]: loadBwMult must be a positive number (1.5 = 1.5× bodyweight)`);
       }

@@ -26,8 +26,13 @@
 - **`kind` cannot be inferred.** Which fields to draw can't be derived from which plan values
   are non-null, because a field the athlete is meant to fill is null in the plan too. Agents
   must set it; `wodin validate` fails without it.
-- **Bodyweight is `loadType: "bodyweight"`, never `load: 0`.** The original app showed
-  `0 × 12` for band pull-aparts, which is the wart this replaces.
+- **`load: 0` vs `loadType: "bodyweight"`.** Never put "Bodyweight" in a movement title;
+  the modifier goes in `cue`. A `weight_reps` lift with a natural weight progression ahead
+  (ring row, a pull-up that will later take weight) uses `"load": 0` so the load field
+  stays open for absolute weight. Unweighted work that does not progress to absolute load
+  (band pull-aparts, activation) stays `"loadType": "bodyweight"` and renders as `BW`.
+  The original app showed `0 × 12` for those bands, which is the wart `loadType` still
+  replaces — do not switch bands back to `load: 0`.
 - **Prefill rule:** prescribed values (load, reps, distance, pace) prefill; subjective values
   (session RPE, notes, summary) start blank with the Rx shown only as a ghost hint. Never
   prefill RPE — an answered 7 and a defaulted 7 must stay distinguishable in the result.

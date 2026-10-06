@@ -197,7 +197,10 @@
         "kind": { "$ref": "#/$defs/kind" },
         "reps": { "type": ["integer", "null"], "minimum": 0 },
         "load": { "type": ["number", "null"], "minimum": 0 },
-        "loadType": { "enum": ["bodyweight"] },
+        "loadType": {
+          "enum": ["bodyweight"],
+          "description": "Renders as \"BW\". For unweighted work that does not progress to absolute load (band pull-aparts, activation). A weight_reps lift with a natural weight progression ahead (ring row, pull-up) uses load: 0 instead, so the load field stays open for absolute weight. Never put Bodyweight in the movement name; put that modifier in cue."
+        },
         "loadBwMult": { "$ref": "#/$defs/loadBwMult" },
         "distance": { "type": ["number", "null"], "minimum": 0 },
         "distanceUnit": { "type": "string" },
@@ -310,7 +313,7 @@
         "load": { "type": ["number", "null"], "minimum": 0 },
         "loadType": {
           "enum": ["bodyweight"],
-          "description": "Use instead of load:0 for unweighted work. Renders as \"BW\"."
+          "description": "Renders as \"BW\". For unweighted work that does not progress to absolute load (band pull-aparts, activation). A weight_reps lift with a natural weight progression ahead (ring row, pull-up) uses load: 0 instead, so the load field stays open for absolute weight. Never put Bodyweight in the movement name; put that modifier in cue."
         },
         "loadBwMult": { "$ref": "#/$defs/loadBwMult" },
         "tempo": { "type": ["string", "null"], "examples": ["3-1-1-0"] },

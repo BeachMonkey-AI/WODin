@@ -203,7 +203,7 @@ test('validator problems and warnings', () => {
   assert.match(p({ rounds: [{ reps: 3 }] }).join(), /first round needs movements/);
   assert.match(p({ rounds: [{ movements: [{ movement: 'Row' }] }] }).join(), /missing kind/);
   assert.match(p({ rounds: [{ movements: [{ ...mv, kind: 'lift' }] }] }).join(), /kind "lift"/);
-  assert.match(p({ rounds: [{ movements: [{ ...mv, kind: 'weight_reps', load: 0 }] }] }).join(), /load 0/);
+  assert.deepEqual(p({ rounds: [{ movements: [{ ...mv, kind: 'weight_reps', load: 0 }] }] }), []);
   assert.match(p({ rounds: [{ movements: [{ ...mv, loadBwMult: 0 }] }] }).join(), /loadBwMult/);
   assert.match(p({ rounds: [{ movements: [mv] }], optional: [{ id: 'a', label: 'A' }, { id: 'a', label: 'B' }] }).join(), /duplicate id/);
   assert.match(p({ rounds: [{ movements: [mv] }], modifiers: [{ label: 'Vest' }] }).join(), /missing id/);
