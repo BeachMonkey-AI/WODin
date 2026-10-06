@@ -146,17 +146,17 @@
             {
               "id": "s1",
               "reps": 10,
-              "loadType": "bodyweight"
+              "load": 0
             },
             {
               "id": "s2",
               "reps": 8,
-              "loadType": "bodyweight"
+              "load": 0
             },
             {
               "id": "s3",
               "reps": 8,
-              "loadType": "bodyweight"
+              "load": 0
             }
           ]
         },

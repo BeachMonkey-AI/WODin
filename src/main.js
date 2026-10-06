@@ -19,13 +19,14 @@ import {
   withSections, sectionNotesAndRpe, digestSectionLines, isDerivedRounds,
   fmtClock, parseClock, isAutoFormatField, timeFormatterFor,
   showSectionRpe, showExerciseRpe, showSessionRpe, sessionRpeResult, sessionRpeText,
-  timerElapsedMs, timerStart, timerPause, timerReset, timerSetMs
+  timerElapsedMs, timerStart, timerPause, timerReset, timerSetMs,
+  sendLabels
 } from './format.js';
 
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = '92e022da';
+const BUILD = '82c62add';
 const REPO = 'https://github.com/BeachMonkey-AI/WODin';
 
 // Index 0 = RPE 1. Both RPE dropdowns list 10 down to 1 — the top of the
@@ -1354,9 +1355,13 @@ function openSheet() {
 
   const canShare = typeof navigator.share === 'function';
   const posting = WOD.sink && WOD.sink.type === 'post' && WOD.sink.url;
+  // Set every open. The sheet lives outside #app, so a title left from the
+  // previous workout would otherwise stick.
+  const labels = sendLabels(WOD.coach);
+  $('sheetTitle').textContent = labels.title;
 
   $('sinks').innerHTML = [
-    posting ? sink('post', ICON.send, 'Send to coach',
+    posting ? sink('post', ICON.send, esc(labels.button),
       WOD.sink.mode === 'blind' ? 'Posts to your agent — no delivery receipt' : 'Posts straight to your agent',
       true) : '',
     canShare ? sink('share', ICON.share, 'Share', 'Hand it to any app', !posting) : '',
