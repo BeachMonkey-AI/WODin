@@ -39,6 +39,7 @@ const COVERAGE = {
   'modifiers[] add-on pills': s => (s.modifiers || []).length > 0,
   'loadBwMult': s => movementsOf(s).some(m => m.loadBwMult),
   'partition': s => movementsOf(s).some(m => m.partition),
+  'sets on a round movement': s => (s.rounds || []).some(r => (r.movements || []).some(m => m.sets > 1)),
   'capSec': s => s.format?.capSec > 0,
   'score: time (stopwatch)': s => s.format?.score === 'time',
   'score: rounds_reps': s => s.format?.score === 'rounds_reps',

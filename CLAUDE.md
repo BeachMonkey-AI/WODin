@@ -132,6 +132,12 @@
   `AGENT.md` are verbatim copies of sections. Adding an example means it must teach something
   no other does; changing one means updating its `AGENT.md` block. Tests find sections by the
   letter in their name (`byLetter('E')`), so renumbering sections means updating them.
+- **The dose and checklist draw only when the plan asks.** `doseText` is null unless a
+  round movement has `sets` or `sides`, and `isCheckOnly` is false unless `display:
+  "checklist"` or `checkOnly` says otherwise. Every new markup fragment in `renderMovement`
+  is `''` in that case, so a plan without the fields renders the old DOM byte for byte.
+  Keep it that way. A `sets: N` line is one row of boxes + a `×N` badge, never N rows. A
+  check-only line's result has no value fields, by design.
 - **Round movements are never written to `log`.** `log` stays sets-only (`"exId.setId"`) so
   the complete-not-sparse rule and `asPlanned` keep meaning what they mean. Exercises in a
   formatted section (Murph) still log their sets there as usual.

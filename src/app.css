@@ -450,6 +450,26 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 .mv.rx .mv-top { min-height: 28px; }
+/* The plan's dose ("2 × 0:45") beside the name — the mv-rx look, in ink so it
+   reads as the prescription rather than a hint. */
+.mv-dose { color: var(--ink); }
+.mv.done .mv-dose { color: var(--dim); }
+/* A check-only line is one row: name, dose, tick; cue under it. */
+.mv.co .mv-top { min-height: 28px; }
+
+/* sets > 1: one row of boxes (the per-set values) plus a ×N badge. */
+.mv-fields-x { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.mv-fields-x .mv-fields { flex: 1; min-width: 0; margin-top: 0; }
+.mv-x {
+  flex: none;
+  display: inline-grid; place-items: center;
+  min-width: 30px; height: 22px; padding: 0 5px;
+  border-radius: 6px;
+  background: var(--well); color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  font-family: var(--fd); font-weight: 700; font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Same field widths as a set row, minus the "Set n" column. A lone reps or
    time field takes half the row rather than stretching the whole width. */

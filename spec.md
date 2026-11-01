@@ -170,6 +170,19 @@ together, so a result can never say a round is done while a movement in it is no
   cannot know.
 - `partition` (exercise or round movement) — `"free"`, `"unbroken"` or `{ "max": n }`, a
   hint under the name.
+- `sets` and `sides` (round movement) — integers ≥ 1; `sets` defaults to 1. Either one
+  draws the dose beside the name as sets × prescription: `2 × 0:45`, `1 × 20`, and with
+  `sides` above 1 the prescription is per side, `1 × 3/side`. Absent, nothing new is drawn;
+  an explicit `sets: 1` is drawn. They are counts, so the line stays flat: one checkbox, and
+  one row of boxes holding the per-set values, with a `×N` badge when `sets` is above 1. We
+  chose that over N rows because N rows would give one line N value sets to reconcile, and
+  a warm-up hold doesn't need them. The result copies both when the plan gave them.
+- `display` (section) — `"inputs"` (default) or `"checklist"`, and `checkOnly` (round
+  movement, boolean), which overrides it per line. A check-only line is name, dose, cue
+  and a checkbox: no boxes. The block keeps its one note, and a checklist's RPE defaults to
+  hidden; a warm-up ticked off isn't an effort to rate. The result records the tick only,
+  marked `checkOnly: true`, so a missing value reads as "never asked", not "left blank".
+  Exercises are unaffected; a checklist is a `rounds[]` section.
 - `intervalSlot` (exercise) — `"A"` / `"B"` for an EMOM that alternates; meaningless, and
   warned about, anywhere else.
 
