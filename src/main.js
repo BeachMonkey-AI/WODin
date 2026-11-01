@@ -13,7 +13,7 @@ import { ICON } from './icons.js';
 // and the tests; this file only draws it and routes events into it.
 import {
   describeFormat, expandRounds, isRoundsSection, isAmrap, scoreOf, scoreLabel,
-  hasBlockFooter, usesFormatFeatures, formatBwMult, describePartition, roundSummary,
+  hasBlockFooter, usesFormatFeatures, formatBwMult, describePartition, roundSummary, movementSets, doseText, isCheckOnly,
   fmtSpan, roundDone, seedSectionState, togglePill, checkRound, checkMovement,
   setMovementValue, setScoreValue, roundIsOpen, splitRef, repeatCaption, rxText,
   withSections, sectionNotesAndRpe, digestSectionLines, isDerivedRounds,
@@ -26,7 +26,7 @@ import {
 // Replaced by scripts/build.mjs with the same content hash the service worker
 // caches under. Shown in the library so "is this thing even updated?" is a
 // question you can answer by looking, rather than by guessing.
-const BUILD = 'f97a5579';
+const BUILD = 'd5874852';
 const REPO = 'https://github.com/BeachMonkey-AI/WODin';
 
 // Index 0 = RPE 1. Both RPE dropdowns list 10 down to 1 — the top of the
@@ -324,7 +324,6 @@ const bwChip = mult => mult == null ? '' : `<span class="bwx">${esc(formatBwMult
 // The A / B chip before a movement in an emom; empty everywhere else.
 const slotChip = (sec, x) => sec?.format?.type === 'emom' && x.intervalSlot
   ? `<span class="slot" aria-label="Interval ${esc(x.intervalSlot)}">${esc(x.intervalSlot)}</span>` : '';
-
 /* ── render: workout ─────────────────────────────────────────── */
 
 function renderWorkout() {
@@ -493,7 +492,10 @@ function renderRounds(sec) {
 
 function renderMovement(sec, i, j, m, v) {
   const ref = `${esc(sec.id)}:${i}:${j}`;
-  const fields = kindFields(m.kind, v, {
+  // A check-only line (display "checklist", or checkOnly) draws no inputs:
+  // name, dose, cue and the tick. Its note is the section's one block note.
+  const checkOnly = isCheckOnly(sec, m);
+  const fields = checkOnly ? '' : kindFields(m.kind, v, {
     fid: prop => `rm-${sec.id}-${i}-${j}-${prop}`,
     extra: prop => `data-rm="${ref}" data-prop="${prop}"`,
     label: prop => `${m.movement}, round ${i + 1}, ${prop}`,
@@ -501,9 +503,18 @@ function renderMovement(sec, i, j, m, v) {
     pace: m.pace,
     ph: { reps: m.athleteFills === 'reps' && (m.reps == null || m.reps === '') ? 'max' : '' }
   });
-  return `<div class="mv ${v.done ? 'done' : ''}">
+  // "2 × 0:45" beside the name, only when the plan gives sets or sides.
+  const dose = doseText(m, WOD.units);
+  // sets = N draws ONE row of boxes plus a ×N badge, not N rows: the values
+  // are per set and apply to every set, and the line keeps its one tick.
+  const sets = movementSets(m);
+  const row = `<div class="mv-fields k-${esc(m.kind)}">${fields}</div>`;
+  const body = checkOnly ? ''
+    : sets > 1 ? `<div class="mv-fields-x">${row}<span class="mv-x" aria-label="Each of ${sets} sets">×${sets}</span></div>`
+    : row;
+  return `<div class="mv ${v.done ? 'done' : ''}${checkOnly ? ' co' : ''}">
     <div class="mv-top">
-      ${slotChip(sec, m)}<a class="mv-name" href="${esc(formLink(m))}" target="_blank" rel="noopener">${esc(m.movement)}${ICON.ext}</a>
+      ${slotChip(sec, m)}<a class="mv-name" href="${esc(formLink(m))}" target="_blank" rel="noopener">${esc(m.movement)}${ICON.ext}</a>${dose ? `<span class="mv-rx mv-dose">${esc(dose)}</span>` : ''}
       <label class="check sm">
         <input type="checkbox" data-mv-check="${ref}" ${v.done ? 'checked' : ''}
                aria-label="${esc(m.movement)}, round ${i + 1}, done">
@@ -511,7 +522,7 @@ function renderMovement(sec, i, j, m, v) {
     </div>
     ${cueLine(m, bwChip(m.loadBwMult))}
     ${partitionHint(m.partition)}
-    <div class="mv-fields k-${esc(m.kind)}">${fields}</div>
+    ${body}
   </div>`;
 }
 
