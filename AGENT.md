@@ -371,7 +371,41 @@ one line each, no `sets[]`. The list is compact on purpose:
 
 A round movement is flat: the fields a set takes, on the movement itself — `id`, `movement`,
 `kind`, `reps`, `load`, `loadType`, `loadBwMult`, `distance`, `distanceUnit`, `duration`,
-`pace`, `athleteFills`, `tag`, `cue`, `link`, `partition`.
+`pace`, `athleteFills`, `tag`, `cue`, `link`, `partition` — plus three of its own: `sets`,
+`sides` and `checkOnly`.
+
+**The dose: `sets` and `sides`.** Both are counts, not lists — the line stays flat.
+
+- **`sets`** — an integer ≥ 1 (default 1): sets of that line per round. `"sets": 2` on a
+  0:45 hold is two holds per pass.
+- **`sides`** — an integer ≥ 1 for unilateral work. With `sides` above 1, `reps` (or
+  `duration`) is **per side**: `"reps": 3, "sides": 2` is 3 each side, not 6 in total.
+
+Give either one and the page draws the dose beside the name as sets × prescription:
+`2 × 0:45`, `1 × 20`, `2 × 35 × 10`, `1 × 3/side`. An explicit `"sets": 1` is drawn too;
+that's how you show a dose on a once-through warm-up line. Don't put the dose in `tag`
+(`"tag": "2×0:45"`) any more: `sets` replaces that workaround. A line with `sets` above 1
+keeps one row of boxes, holding the per-set values, with a `×N` badge beside it, plus one
+checkbox. The result copies `sets` and `sides` onto the round movement when the plan gave them
+(L · Circuit shows `sets`).
+
+```json
+{ "movement": "World's greatest stretch", "kind": "reps", "sets": 1, "reps": 3, "sides": 2,
+  "cue": "Dynamic · Slow, reach long." }
+```
+
+**Checklists: `display` and `checkOnly`.** A warm-up or cool-down usually only needs a tick
+per line. Put `"display": "checklist"` on the section and each round movement draws as name,
+dose, cue and a checkbox, with no input boxes. The block keeps its one note, and its RPE
+pill is hidden unless the section sets `rpe`. `"checkOnly": true` does the same for one line
+in a normal section, and `"checkOnly": false` puts one line back to inputs inside a checklist. A
+check-only line records `{ movement, done, checkOnly: true }` plus any `sets` / `sides`, and
+no value fields: it never asked for them. `display` only affects round movements (exercises
+still draw set rows), so write the warm-up as a `circuit` with `"rounds": 1`. See
+[`examples/lower-b-warmup-checklist.json`](examples/lower-b-warmup-checklist.json) and the
+same lines with inputs in
+[`examples/lower-b-warmup-inputs.json`](examples/lower-b-warmup-inputs.json). `display`
+takes `"inputs"` (the default) or `"checklist"`.
 
 **The check rule.** Every movement has a checkbox, and so does every round. A round is done
 exactly when all its movements are: ticking the round ticks them all, ticking the last
@@ -454,6 +488,7 @@ Pick by the shape of the work, not its name. Every row is a section of
 | Barbell load set relative to bodyweight | `loadBwMult` on the movement | J · Linda |
 | A long list done in order (chipper), maybe with an add-on | `for_time` + `exercises` + `partition`; `modifiers[]` | K · Murph |
 | An accessory circuit, not a test | `circuit` + `rounds[]`, no `benchmark` | L · Circuit |
+| A warm-up or cool-down ticked off line by line | `circuit`, `"rounds": 1`, `"display": "checklist"`; `sets` / `sides` for the dose | `lower-b-warmup-checklist.json` |
 
 **Exercises or rounds?** A list of movements each done for *sets* (or once, in order, like a
 chipper) is `exercises[]`. A short list of movements *repeated as passes* is `rounds[]`.
@@ -613,7 +648,7 @@ For **Nicole (I)** the score is `"total_reps"` and the pull-up is
   "type": "accessory",
   "format": { "type": "circuit", "rounds": 3 },
   "rounds": [{ "movements": [
-    { "movement": "Dumbbell row", "kind": "weight_reps", "reps": 10, "load": 35 },
+    { "movement": "Dumbbell row", "kind": "weight_reps", "sets": 2, "reps": 10, "load": 35 },
     { "movement": "Push-up", "kind": "reps", "reps": 10 }
   ] }]
 }
@@ -675,7 +710,10 @@ The result grows only for sections that use these features. Nothing above change
 A logged round movement reads like a log entry for its kind — `load` (or
 `loadType: "bodyweight"`) and `reps` for `weight_reps`, `distance`, `pace`, `duration` and
 `durationSec` for `cardio`, and so on — plus `movement`, `done`, and `loadBwMult` copied from
-the plan so the prescription travels next to the load actually used.
+the plan so the prescription travels next to the load actually used. `sets` and `sides` are
+copied the same way when the plan gave them; the values are then per set (and per side). A
+check-only line has no value fields at all — `{ "movement", "done", "checkOnly": true }`
+plus any `sets` / `sides` — because it never asked for them; read `done` as the answer.
 
 #### The result, per format
 

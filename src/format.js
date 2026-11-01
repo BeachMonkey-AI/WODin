@@ -115,6 +115,30 @@ export function formatBwMult(mult) {
   return `${Number(mult)}× BW`;
 }
 
+/* ── dose and display on a round movement ────────────────────── */
+
+/* `sets` and `sides` on a round movement are counts, not lists: the line stays
+ * flat. Either one being present is what turns on the dose beside the name, so
+ * a plan written without them draws exactly what it always did. An invalid
+ * value counts as absent here; validateFormat reports it. */
+
+export const DISPLAYS = ['inputs', 'checklist'];
+
+/** The plan's `sets` when it is a valid count (1 included), else null. */
+export const movementSets = m => isPosInt(m?.sets) ? m.sets : null;
+/** The plan's `sides` when it is a valid count, else null. */
+export const movementSides = m => isPosInt(m?.sides) ? m.sides : null;
+
+/** A checklist section draws its round movements as name, dose, cue and a
+ *  checkbox — no input boxes. For warm-ups and cool-downs. */
+export const isChecklist = sec => sec?.display === 'checklist';
+
+/** Whether one round movement draws without inputs: its own `checkOnly` wins
+ *  (false opts a line back into inputs inside a checklist), else the section's
+ *  display. */
+export const isCheckOnly = (sec, m) =>
+  typeof m?.checkOnly === 'boolean' ? m.checkOnly : isChecklist(sec);
+
 /** The hint drawn under a movement name, or null when there is none. */
 export function describePartition(p) {
   if (p === 'free') return 'Partition as needed';
@@ -218,10 +242,13 @@ export function rpePolicy(setting) {
   return null;
 }
 
-/** section.rpe wins; else a girl / hero benchmark assumes 11; else ask. */
+/** section.rpe wins; else a girl / hero benchmark assumes 11; else a checklist
+ *  hides it — a warm-up ticked off is not an effort worth rating, and the
+ *  checklist promises name, dose, cue, a tick and one note; else ask. */
 export function sectionRpePolicy(sec) {
   return rpePolicy(sec?.rpe)
-    || (BENCHMARKS.includes(sec?.benchmark) ? { mode: 'assume', value: ASSUMED_BENCHMARK_RPE } : ASK);
+    || (BENCHMARKS.includes(sec?.benchmark) ? { mode: 'assume', value: ASSUMED_BENCHMARK_RPE }
+      : isChecklist(sec) ? { mode: 'hide' } : ASK);
 }
 
 /** wod.rpe wins; else a day made only of benchmarks assumes 11 — there is
@@ -422,11 +449,29 @@ export function prescriptionText(m, units) {
   }
 }
 
+/**
+ * The dose beside a round movement's name — sets × the per-set prescription:
+ * "2 × 0:45", "1 × 20", "2 × 35 × 10", and with sides "1 × 3/side" (reps or
+ * duration are then per side). Only when the plan gives `sets` or `sides`;
+ * null otherwise, so nothing new is drawn for a plan without them. `sides: 1`
+ * adds no suffix — one side is just the movement. Without `sets` the dose is
+ * the prescription alone ("3/side").
+ */
+export function doseText(m, units) {
+  const sets = movementSets(m), sides = movementSides(m);
+  if (!sets && !sides) return null;
+  const rx = prescriptionText(m, units);
+  const dose = rx && sides > 1 ? `${rx}/side` : rx;
+  if (!sets) return dose || null;
+  return dose ? `${sets} × ${dose}` : `${sets} set${sets === 1 ? '' : 's'}`;
+}
+
 /** "Run 400 m · Kettlebell swing 53 × 21 · Pull-up 12" — the one line a
- *  collapsed round shows in place of its movements. */
+ *  collapsed round shows in place of its movements. A movement with a dose
+ *  shows that instead: "Kettlebell Asian squat hold 2 × 0:45". */
 export function roundSummary(round, units) {
   return (round?.movements || [])
-    .map(m => [shortName(m.movement), prescriptionText(m, units)].filter(Boolean).join(' '))
+    .map(m => [shortName(m.movement), doseText(m, units) || prescriptionText(m, units)].filter(Boolean).join(' '))
     .join(' · ');
 }
 
@@ -637,6 +682,8 @@ export function repeatCaption(section) {
 /** A read-only prescription for the AMRAP template: prescriptionText, with
  *  "reps" spelled out where a bare number would be ambiguous. */
 export function rxText(m, units) {
+  const dose = doseText(m, units);
+  if (dose) return dose;
   const t = prescriptionText(m, units);
   return m.kind === 'reps' && /^\d+$/.test(t) ? `${t} reps` : t;
 }
@@ -676,8 +723,17 @@ export function buildScore(section, score) {
 
 // Mirrors the log entry shape for the movement's kind, so an agent reading a
 // round movement reads it exactly as it would a set.
-function movementResult(m, v) {
+//
+// `sets` / `sides` are copied from the plan when it gave them, like loadBwMult,
+// so the prescription travels with the values; absent stays absent. The values
+// are per set (one box per line — see renderMovement). A check-only line had
+// no inputs, so it records the tick alone, marked checkOnly: true so a missing
+// value reads as "not asked", never as "left blank".
+function movementResult(m, v, checkOnly) {
   const out = { movement: m.movement, done: !!v.done };
+  if (movementSets(m)) out.sets = m.sets;
+  if (movementSides(m)) out.sides = m.sides;
+  if (checkOnly) { out.checkOnly = true; return out; }
   const kind = m.kind;
   if (kind === 'weight_reps' || kind === 'carry') {
     if (v.load === 'BW') out.loadType = 'bodyweight';
@@ -732,7 +788,7 @@ export function buildSectionResult(section, secState) {
     const states = st.rounds && st.rounds.length ? st.rounds : seedRoundState(section);
     out.rounds = expandRounds(section).map((r, i) => {
       const rs = states[i] || { movements: [] };
-      const movements = r.movements.map((m, j) => movementResult(m, rs.movements?.[j] || {}));
+      const movements = r.movements.map((m, j) => movementResult(m, rs.movements?.[j] || {}, isCheckOnly(section, m)));
       return { done: movements.length ? movements.every(m => m.done) : !!rs.done, movements };
     });
   }
@@ -798,6 +854,16 @@ function movementDigest(m, v, units) {
   }
 }
 
+/** One movement's digest text after its name. A check-only line had no inputs,
+ *  so it shows the plan's dose ("1 × 3/side"); the tick says whether it was
+ *  done. Otherwise the values, with the plan's sets and sides around them —
+ *  "2×0:45", "1×3/side" — and exactly movementDigest when it gave neither. */
+function digestValue(section, m, v, units) {
+  if (isCheckOnly(section, m)) return doseText(m, units) || prescriptionText(m, units);
+  const sets = movementSets(m);
+  return `${sets ? sets + '×' : ''}${movementDigest(m, v, units)}${movementSides(m) > 1 ? '/side' : ''}`;
+}
+
 /** "8:41", "18 rounds + 7 reps", "74 reps"; null when blank. */
 export function scoreText(section, score) {
   const s = buildScore(section, score);
@@ -833,7 +899,7 @@ export function digestSectionLines(section, secState, { units, rpe, note } = {})
       const done = vals.every(x => x.v.done);
       const partial = !done && vals.some(x => x.v.done);
       const body = vals.map(({ m, v }) =>
-        (partial ? (v.done ? '✓ ' : '○ ') : '') + `${m.movement} ${movementDigest(m, v, units)}`
+        (partial ? (v.done ? '✓ ' : '○ ') : '') + `${m.movement} ${digestValue(section, m, v, units)}`
       ).join(' · ');
       lines.push(`  Round ${r.n}  ${partial ? '' : done ? '✓ ' : '○ '}${body}`);
     });
@@ -979,6 +1045,9 @@ export function validateFormat(section, where = 'section') {
           else if (!KINDS.includes(m.kind)) problems.push(`${mAt} (${m.movement}): kind "${m.kind}" is not one of ${KINDS.join(', ')}`);
           checkLoad(m, mAt, problems);
           if (m.partition !== undefined && !partitionOk(m.partition)) problems.push(`${mAt}: partition must be "free", "unbroken" or { "max": n }`);
+          if (m.sets !== undefined && !isPosInt(m.sets)) problems.push(`${mAt} (${m.movement}): sets must be an integer of 1 or more — a round movement's sets is a count, not a sets[] list`);
+          if (m.sides !== undefined && !isPosInt(m.sides)) problems.push(`${mAt} (${m.movement}): sides must be an integer of 1 or more`);
+          if (m.checkOnly !== undefined && typeof m.checkOnly !== 'boolean') problems.push(`${mAt} (${m.movement}): checkOnly must be true or false`);
         });
       });
 
@@ -994,6 +1063,16 @@ export function validateFormat(section, where = 'section') {
 
   checkPills(section.optional, 'optional', where, problems);
   checkPills(section.modifiers, 'modifiers', where, problems);
+
+  if (section.display !== undefined) {
+    if (!DISPLAYS.includes(section.display)) {
+      problems.push(`${where}.display: ${JSON.stringify(section.display)} is not one of ${DISPLAYS.join(', ')}`);
+    } else if (isChecklist(section) && !isRoundsSection(section)) {
+      warnings.push(`${where}: display "checklist" only changes round movements — this section has none, so its exercises still draw set rows`);
+    } else if (isChecklist(section) && isAmrap(section)) {
+      warnings.push(`${where}: display "checklist" on an amrap changes nothing — its template round has no inputs or ticks`);
+    }
+  }
 
   if (DERIVED_FORMATS.includes(f?.type) && hasExercises && !hasRoundsKey) {
     if (!isPosInt(f.rounds)) {
@@ -1022,6 +1101,9 @@ export function validateFormat(section, where = 'section') {
   (section.exercises || []).forEach((ex, j) => {
     if (!ex || typeof ex !== 'object') return;
     const at = `${where}.exercises[${j}]`;
+    for (const k of ['sides', 'checkOnly']) {
+      if (ex[k] !== undefined) warnings.push(`${at} (${ex.movement}): ${k} is a round-movement field — an exercise ignores it`);
+    }
     if (ex.partition !== undefined && !partitionOk(ex.partition)) problems.push(`${at}: partition must be "free", "unbroken" or { "max": n }`);
     if (ex.intervalSlot !== undefined) {
       if (ex.intervalSlot !== 'A' && ex.intervalSlot !== 'B') problems.push(`${at}: intervalSlot must be "A" or "B"`);

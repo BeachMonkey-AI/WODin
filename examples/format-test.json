@@ -203,7 +203,7 @@
       "rounds": [
         {
           "movements": [
-            { "movement": "Dumbbell row", "kind": "weight_reps", "reps": 10, "load": 35 },
+            { "movement": "Dumbbell row", "kind": "weight_reps", "sets": 2, "reps": 10, "load": 35 },
             { "movement": "Push-up", "kind": "reps", "reps": 10 }
           ]
         }

@@ -248,11 +248,20 @@ intervals, for time, AMRAP, circuit), with:
 - `benchmark: "girl" | "hero"` marking a named benchmark. Those are max effort by definition,
   so no RPE pill is drawn and the result records `rpe: 11, rpeAssumed: true` for that block
   (11 is off the 1-10 scale on purpose; if every section is a benchmark the session RPE is
-  assumed 11 too). Override with `rpe: "ask" | "hide" | 1-11` on the plan or a section.
+  assumed 11 too). Override with `rpe: "ask" | "hide" | 1-11` on the plan or a section;
+- a dose on round movements: `sets` (how many sets of the line per round) and `sides`
+  (unilateral work). Either one draws the dose beside the name - `2 × 0:45`, `1 × 20`,
+  `1 × 3/side` - and a line with `sets` above 1 has one row of boxes and a `×N` badge;
+- `display: "checklist"` on a section (or `checkOnly: true` on a line) for warm-ups and
+  cool-downs: name, dose, cue and a checkbox per line, no input boxes, one note for the
+  block, and no RPE unless the section asks for one.
 
 [`examples/format-test.json`](examples/format-test.json) has twelve blocks, one distinct shape
 each - Tabata, an EMOM pair, Diane, Helen, Cindy, Murph and the rest. `AGENT.md` explains
 which to use when. Plans that don't use formats are unchanged.
+[`examples/lower-b-warmup-checklist.json`](examples/lower-b-warmup-checklist.json) and
+[`examples/lower-b-warmup-inputs.json`](examples/lower-b-warmup-inputs.json) are the same
+warm-up drawn both ways.
 
 **Naming rule.** `movement` is the plain exercise name: `Run` with cue `Outdoors`, not
 `Outdoor run`. Modifiers (outdoor, indoor, bodyweight) go in `cue`; equipment that changes
@@ -263,7 +272,8 @@ the lift stays (`Barbell deadlift`). `wodin validate` warns on violations.
 `log` (keyed `exerciseId.setId`), `notes`, `exerciseRpe`, `skipped`, `rpe` / `rpeAssumed`,
 `duration` / `durationSec`, `startedAt`, `planHash`, and a `sections{}` map (score, `optional`,
 `modifiers`, `rounds[]`, `rpe`). The score is `{time, timeSec}`, `{rounds, reps}`,
-`{totalReps}` or `null`. Top-level `score` / `optional` / `modifiers` / `rounds` mirror
+`{totalReps}` or `null`. A round movement copies the plan's `sets` / `sides` when it gave
+them; a check-only line records just `done` with `checkOnly: true`. Top-level `score` / `optional` / `modifiers` / `rounds` mirror
 `sections` only when exactly one section has an entry; read `sections`. See
 [`schema/result.schema.json`](schema/result.schema.json).
 
@@ -309,8 +319,8 @@ npm install
 npm run gen-icons        # public/icon.svg → PNG set (generated, gitignored)
 npm run build            # → dist/
 npm run serve            # or: node cli/wodin.mjs serve examples/minimal.json
-npm test                 # node:test, 5 suites: format, rounds, timers, UI state, and the example set
-npm run validate         # all 5 examples/*.json
+npm test                 # node:test, 7 suites: format, rounds, timers, UI state, sets/checklist, quick start, and the example set
+npm run validate         # all 7 examples/*.json
 ```
 
 `npm test` needs Node 21+ (CI uses 22). The example suite checks the naming rule, that every
@@ -338,11 +348,12 @@ spec.md               the model and the why
 CLAUDE.md             maintainers' non-obvious rules
 schema/               wod + result JSON Schemas
 examples/             a real workout, two contrasting athletes, the smallest valid plan,
-                      and format-test.json - every format shape on one page
+                      format-test.json - every format shape on one page - and a
+                      warm-up drawn as a checklist and with inputs
 wods/                 (optional) committed workouts, linked with ?d=<date>
 index.html            app shell
 src/                  main.js, app.css, icons.js, format.js (DOM-free format logic)
-test/                 node:test suites: examples, format, round2, timer, ui-state
+test/                 node:test suites: examples, format, quickstart, round2, sets-checklist, timer, ui-state
 styles/               design tokens, self-hosted font faces
 public/               manifest, service worker, icon source, font files
                       (public/icons/ and dist/ are generated, gitignored)
