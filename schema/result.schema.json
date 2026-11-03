@@ -225,6 +225,10 @@
         "asPlanned": {
           "type": "boolean",
           "description": "True when every logged value matches the prescription for this set. The cheap read on compliance — filter for false to see where the session diverged."
+        },
+        "done": {
+          "type": "boolean",
+          "description": "Present on every set of an exercise drawn with set ticks, which is every exercise unless its plan set setCheck: false: true when the athlete ticked the set's checkbox, false when they did not. Absent for a setCheck: false exercise — read it as not asked, never as not done. Independent of asPlanned, which compares values; the tick times stay on the device."
         }
       }
     }

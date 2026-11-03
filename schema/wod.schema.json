@@ -313,6 +313,11 @@
           "enum": ["A", "B"],
           "description": "For an emom that alternates movements: A runs on odd intervals, B on even ones. Drawn as a chip before the name. Leave it off when every interval is the same movement."
         },
+        "setCheck": {
+          "type": "boolean",
+          "default": true,
+          "description": "On by default (absent = true): every set row of this exercise, including rows the athlete adds with + set, gets one checkbox at its right end, ticked as each set is done. Ticking records the moment, and a faint m:ss count-up under the most recently ticked set on the page shows the rest so far; unticking it moves the count-up back to the latest set still ticked. Each of this exercise's sets in the result log then carries done: true or false. The times stay on the device. false opts out: no tick column, no rest clock, and the log entries carry no done. Exercises only — a round movement has its own tick, and setCheck there fails validation. Ignored in a derived tabata / emom, whose exercises draw as rounds."
+        },
 
         "sets": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/set" } }
       }

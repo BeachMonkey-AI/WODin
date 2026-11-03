@@ -139,6 +139,61 @@ export const isChecklist = sec => sec?.display === 'checklist';
 export const isCheckOnly = (sec, m) =>
   typeof m?.checkOnly === 'boolean' ? m.checkOnly : isChecklist(sec);
 
+/* ── setCheck: a tick per set row, and the rest count-up ─────── */
+
+/* Every EXERCISE draws a checkbox at the end of each of its set rows, added
+ * sets included, unless it sets `setCheck: false`. A set's state
+ * (S.sets["exId.setId"]) gains `done: true` and `doneAt` (epoch ms) when
+ * ticked; unticking drops both. The rest clock sits under the most recently
+ * ticked set on the page and counts up from its doneAt. With setCheck: false
+ * nothing here is drawn or recorded. Round movements have a tick each already
+ * and never take it. */
+
+/** Whether an exercise draws a tick per set row: on unless setCheck: false. */
+export const hasSetCheck = ex => !!ex && ex.setCheck !== false;
+
+/** The validator's complaint about an exercise's setCheck, or null. */
+export const setCheckProblem = (ex, at) =>
+  ex?.setCheck === undefined || typeof ex.setCheck === 'boolean' ? null
+    : `${at} (${ex.movement}): setCheck must be true or false`;
+
+const stampOk = t => typeof t === 'number' && Number.isFinite(t) && t > 0;
+
+/** One set's state ticked (stamped `now`) or unticked. Values are kept. */
+export function checkSetState(v, done, now) {
+  const { done: _d, doneAt: _t, ...values } = v || {};
+  return done ? { ...values, done: true, doneAt: now } : values;
+}
+
+/** A set state's values without its tick — what an added set is seeded from,
+ *  so "+ set" copies the last set's numbers but never its check or stamp. */
+export const setValuesOnly = v => checkSetState(v, false);
+
+/**
+ * Which set shows the rest clock: of `keys` (the set keys drawn with a tick,
+ * in page order), the one ticked most recently by doneAt — a tie goes to the
+ * later row — or null when none is. Unticking it hands the clock back to the
+ * latest one still ticked; a tick without a usable stamp never shows one.
+ */
+export function restSetKey(sets, keys) {
+  let best = null, at = -Infinity;
+  for (const k of keys || []) {
+    const v = sets?.[k];
+    if (v?.done && stampOk(v.doneAt) && v.doneAt >= at) { best = k; at = v.doneAt; }
+  }
+  return best;
+}
+
+/** Rest so far since a set was ticked, never negative. */
+export const restElapsedMs = (doneAt, now) => Math.max(0, now - doneAt);
+
+/** The rest clock text, m:ss (h:mm:ss past an hour). */
+export const restText = (doneAt, now) => fmtClock(restElapsedMs(doneAt, now) / 1000);
+
+/** What a ticked exercise's log entry adds: `done`, ticked or not. Nothing
+ *  with setCheck: false, so such a log carries values only. */
+export const setDoneResult = (ex, v) => hasSetCheck(ex) ? { done: !!v?.done } : {};
+
 /** The hint drawn under a movement name, or null when there is none. */
 export function describePartition(p) {
   if (p === 'free') return 'Partition as needed';
@@ -1048,6 +1103,7 @@ export function validateFormat(section, where = 'section') {
           if (m.sets !== undefined && !isPosInt(m.sets)) problems.push(`${mAt} (${m.movement}): sets must be an integer of 1 or more — a round movement's sets is a count, not a sets[] list`);
           if (m.sides !== undefined && !isPosInt(m.sides)) problems.push(`${mAt} (${m.movement}): sides must be an integer of 1 or more`);
           if (m.checkOnly !== undefined && typeof m.checkOnly !== 'boolean') problems.push(`${mAt} (${m.movement}): checkOnly must be true or false`);
+          if (m.setCheck !== undefined) problems.push(`${mAt} (${m.movement}): setCheck applies to exercises only — a round movement already has its own tick; move the line to exercises[] with sets[] for a check per set`);
         });
       });
 
@@ -1103,6 +1159,13 @@ export function validateFormat(section, where = 'section') {
     const at = `${where}.exercises[${j}]`;
     for (const k of ['sides', 'checkOnly']) {
       if (ex[k] !== undefined) warnings.push(`${at} (${ex.movement}): ${k} is a round-movement field — an exercise ignores it`);
+    }
+    const sc = setCheckProblem(ex, at);
+    if (sc) problems.push(sc);
+    // Only an explicit true: the default is on everywhere, and a derived
+    // section's exercises simply ignore it.
+    else if (ex.setCheck === true && isDerivedRounds(section)) {
+      warnings.push(`${at} (${ex.movement}): setCheck changes nothing in a derived ${f.type} — its exercises draw as rounds, not set rows`);
     }
     if (ex.partition !== undefined && !partitionOk(ex.partition)) problems.push(`${at}: partition must be "free", "unbroken" or { "max": n }`);
     if (ex.intervalSlot !== undefined) {

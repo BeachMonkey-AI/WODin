@@ -8,6 +8,20 @@ body {
   font-size: 15px;
   line-height: 1.45;
   -webkit-text-size-adjust: 100%;
+  /* viewport-fit=cover + black-translucent put the page under the status bar
+     in the installed app. Body isn't zoomed, so the inset is used as-is. */
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* A solid strip behind the status bar, so content scrolling up under it never
+   shows through and the pinned timer below it has a clean edge. Zero tall
+   wherever there is no top inset (a normal browser tab). */
+body::before {
+  content: '';
+  position: fixed; inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--ground);
+  z-index: 21;
 }
 
 .wrap {
@@ -108,12 +122,32 @@ h2 {
   font-style: italic;
 }
 
-/* ─── Timer (sticky) ───────────────────────────────────────── */
+/* ─── Timer (sticky) ───────────────────────────────────────────
+ *
+ * It must never leave the top of the screen. On iPhone Safari it did, after
+ * scrolling down, until the next scroll put it back. Root cause: iOS scrolls
+ * the page on a separate thread and moves sticky boxes there, from constraints
+ * the page hands over. A sticky box that isn't its own compositing layer is
+ * repainted with the content instead — and when the toolbar collapses
+ * mid-scroll, or renderWorkout() replaces the node while the page is scrolled
+ * (every set tick did), it gets painted at its in-flow spot, off-screen, until
+ * a later scroll recomputes it. No ancestor breaks sticky here (no overflow,
+ * transform, contain or will-change above it; .wrap's zoom is 1 on a phone).
+ *
+ * So: its own layer (translateZ + backface-visibility) so the scrolling thread
+ * always owns its position, the node itself survives re-renders (main.js), and
+ * it pins below the status bar, not under it. `top` is divided by the zoom
+ * because .wrap's zoom would otherwise scale the inset with everything else.
+ */
 
 .timer {
   position: sticky;
-  top: 0;
+  top: calc(env(safe-area-inset-top, 0px) / var(--ui-scale, 1));
   z-index: 20;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -227,6 +261,35 @@ h2 {
 .sets.has-added .set.k-reps,
 .sets.has-added .set.k-time        { grid-template-columns: 40px minmax(0,1fr) 28px; }
 .sets.has-added .set.k-cardio      { grid-template-columns: 40px 1.15fr .78fr 1.15fr 28px; }
+
+/* setCheck: the tick takes one more column at the far right of every row,
+   after the added-set × column when there is one. */
+.sets.has-check .set.k-weight_reps { grid-template-columns: 40px 1.25fr 10px 1fr 30px; }
+.sets.has-check .set.k-carry       { grid-template-columns: 40px 1.05fr 9px .82fr 1fr 30px; }
+.sets.has-check .set.k-reps,
+.sets.has-check .set.k-time        { grid-template-columns: 40px minmax(0,1fr) 30px; }
+.sets.has-check .set.k-cardio      { grid-template-columns: 40px 1.15fr .78fr 1.15fr 30px; }
+.sets.has-check.has-added .set.k-weight_reps { grid-template-columns: 40px 1.25fr 10px 1fr 28px 30px; }
+.sets.has-check.has-added .set.k-carry       { grid-template-columns: 40px 1.05fr 9px .82fr 1fr 28px 30px; }
+.sets.has-check.has-added .set.k-reps,
+.sets.has-check.has-added .set.k-time        { grid-template-columns: 40px minmax(0,1fr) 28px 30px; }
+.sets.has-check.has-added .set.k-cardio      { grid-template-columns: 40px 1.15fr .78fr 1.15fr 28px 30px; }
+/* The 44px hit area, trimmed back to the 30px column like .check elsewhere. */
+.set .check { justify-self: end; margin: -7px -8px -7px -6px; }
+.set.done .set-n { color: var(--dim); }
+
+/* The rest clock under the latest ticked set: its own full-width grid row,
+   faint small mono centered between two equal dashed rules. */
+.set-rest {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 10px;
+  margin-top: -2px;
+  font-family: var(--fm); font-size: 11.5px; color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.set-rest::before, .set-rest::after {
+  content: ''; flex: 1 1 0; border-top: 1px dashed var(--well-edge);
+}
 
 .set-n {
   font-size: 12px; color: var(--faint);
