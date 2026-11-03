@@ -20,6 +20,7 @@ import {
   fmtClock, parseClock, isAutoFormatField, timeFormatterFor,
   showSectionRpe, showExerciseRpe, showSessionRpe, sessionRpeResult, sessionRpeText,
   timerElapsedMs, timerStart, timerPause, timerReset, timerSetMs,
+  hasSetCheck, checkSetState, setValuesOnly, restSetKey, restText, setDoneResult,
   sendLabels
 } from './format.js';
 
@@ -271,8 +272,17 @@ function seedAdded() {
   eachExercise().forEach(ex => allSets(ex).forEach(set => {
     const k = ex.id + '.' + set.id;
     if (S.sets[k]) return;
-    S.sets[k] = { ...(S.sets[ex.id + '.' + ex.sets[ex.sets.length - 1].id] || {}) };
+    // The last set's numbers, never its setCheck tick or stamp.
+    S.sets[k] = setValuesOnly(S.sets[ex.id + '.' + ex.sets[ex.sets.length - 1].id]);
   }));
+}
+
+// The one set showing the rest clock: the latest ticked across every drawn,
+// unskipped setCheck exercise on the page (see restSetKey).
+function restKey() {
+  const keys = setExercises().filter(ex => hasSetCheck(ex) && !isSkipped(ex.id))
+    .flatMap(ex => allSets(ex).map(set => ex.id + '.' + set.id));
+  return restSetKey(S.sets, keys);
 }
 
 // `attrs` is pre-escaped markup for data-* hooks; `label` overrides the
@@ -350,16 +360,15 @@ function renderWorkout() {
       </div>
       ${WOD.coachNote ? `<p class="coach">${esc(WOD.coachNote)}</p>` : ''}
       ${WOD.coach ? `<p class="coach-by">— ${esc(WOD.coach)}</p>` : ''}
-    </header>
+    </header>`;
 
-    <div class="timer">
+  const timerInner = `
       <span class="clock ${S.elapsed || S.running ? '' : 'idle'}" id="clock">${clock(S.elapsed)}</span>
       <button class="btn-reset" id="reset" type="button" aria-label="Reset timer"
               ${S.elapsed || S.running ? '' : 'hidden'}>${ICON.reset}</button>
       <button class="btn-timer ${S.running ? 'running' : ''}" id="toggle" type="button">
         ${S.running ? 'Pause' : (S.elapsed ? 'Resume' : 'Start')}
-      </button>
-    </div>`;
+      </button>`;
 
   const body = (WOD.sections || []).map(renderSection).join('');
 
@@ -389,7 +398,21 @@ function renderWorkout() {
     </section>
     ${footer()}`;
 
-  $('app').innerHTML = head + body + close;
+  // The sticky timer bar is kept, not rebuilt: everything around it is
+  // replaced, but the bar element stays attached. iOS Safari paints a freshly
+  // inserted sticky box at its in-flow spot while the page is scrolled, so
+  // rebuilding it on every set tick hid it until the next scroll (see .timer
+  // in app.css). Its contents are refreshed; clicks are delegated on #app.
+  const app = $('app');
+  const bar = app.querySelector(':scope > .timer');
+  if (bar) {
+    bar.innerHTML = timerInner;
+    for (const el of [...app.childNodes]) if (el !== bar) el.remove();
+    bar.insertAdjacentHTML('beforebegin', head);
+    bar.insertAdjacentHTML('afterend', body + close);
+  } else {
+    app.innerHTML = head + `\n    <div class="timer">${timerInner}\n    </div>` + body + close;
+  }
 }
 
 /* A section is: its rule, then (only when it has them) the format header and
@@ -651,7 +674,9 @@ function renderBlockFooter(sec) {
 function renderEx(ex, sec) {
   const skipped = isSkipped(ex.id);
   const added = S.added[ex.id] || [];
-  const rows = allSets(ex).map((set, i) => renderSet(ex, set, i + 1, added.length > 0));
+  const check = hasSetCheck(ex);
+  const rest = check ? restKey() : null;
+  const rows = allSets(ex).map((set, i) => renderSet(ex, set, i + 1, added.length > 0, check, rest));
   const note = S.notes[ex.id] || '';
   const noteOpen = !!note || openNotes.has(ex.id);
   const rpe = S.rpes[ex.id] ?? '';
@@ -667,7 +692,7 @@ function renderEx(ex, sec) {
     </div>
     ${(ex.tag || ex.cue) ? `<p class="cue">${ex.tag ? `<span class="tag">${esc(ex.tag)}</span> · ` : ''}${esc(ex.cue || '')}</p>` : ''}
     ${partitionHint(ex.partition)}
-    <div class="sets ${added.length ? 'has-added' : ''}">
+    <div class="sets ${added.length ? 'has-added' : ''}${check ? ' has-check' : ''}">
       ${rows.join('')}
       ${ownPills ? `<div class="pills">
         ${showExerciseRpe(sec) ? `<select class="pill-rpe ${rpe === '' ? '' : 'set'}" data-rpe="${ex.id}"
@@ -686,7 +711,7 @@ function renderEx(ex, sec) {
   </div>`;
 }
 
-function renderSet(ex, set, n, reserveDelCol) {
+function renderSet(ex, set, n, reserveDelCol, check, rest) {
   const k = ex.id + '.' + set.id;
   const v = S.sets[k] || {};
   const kind = set.kind || ex.kind || 'weight_reps';
@@ -701,10 +726,21 @@ function renderSet(ex, set, n, reserveDelCol) {
       ? `<button class="btn-del" type="button" data-del="${k}" aria-label="Remove added set ${n}">×</button>`
       : '<span></span>';
 
-  return `<div class="set k-${kind}" data-set="${k}">
+  // setCheck: the round-movement tick, last in the row. The rest clock under
+  // the latest ticked set carries its stamp so paintClocks can repaint it in
+  // place; see runTick.
+  const tick = !check ? '' : `<label class="check sm">
+      <input type="checkbox" data-set-done="${k}" ${v.done ? 'checked' : ''}
+             aria-label="${esc(ex.movement)}, set ${n}, done">
+    </label>`;
+  const restLine = check && rest === k
+    ? `<span class="set-rest" data-rest-at="${v.doneAt}" role="timer" aria-label="Rest since set ${n}">${restText(v.doneAt, Date.now())}</span>`
+    : '';
+
+  return `<div class="set k-${kind}${check && v.done ? ' done' : ''}" data-set="${k}">
     <span class="set-n ${set._added ? 'added' : ''}">Set ${n}${set.loadBwMult != null ? bwChip(set.loadBwMult) : ''}</span>
     ${mid}
-    ${del}
+    ${del}${tick}${restLine}
   </div>`;
 }
 
@@ -1052,12 +1088,20 @@ function bind() {
     const ds = e.target.dataset || {};
     if (ds.roundCheck || ds.mvCheck) return onRoundTick(ds.roundCheck, ds.mvCheck, e.target.checked);
 
+    // A setCheck tick: stamp it, so the rest clock counts up from now.
+    if (ds.setDone) {
+      S.sets[ds.setDone] = checkSetState(S.sets[ds.setDone], e.target.checked, Date.now());
+      save(); renderWorkout(); runTick();
+      return;
+    }
+
     const sk = ds.skip;
     if (!sk) return;
     S.skipped = e.target.checked
       ? [...new Set([...S.skipped, sk])]
       : S.skipped.filter(x => x !== sk);
-    save(); renderWorkout();
+    // Unskipping can bring a ticked set's rest clock back.
+    save(); renderWorkout(); runTick();
   });
 
   // Timers are worked out from timestamps, so a tab coming back from the
@@ -1142,10 +1186,15 @@ function paintClocks() {
     const el = $('score-' + sid + '-time');
     if (el && document.activeElement !== el) el.value = clock(timerElapsedMs(S.sections[sid].timer, now) / 1000);
   });
-  return S.running || live.length > 0;
+  // The setCheck rest clock: only the label on the page, from the stamp it
+  // carries. Nothing re-renders. None drawn (no set ticked) = nothing ticking.
+  const rests = document.querySelectorAll('[data-rest-at]');
+  rests.forEach(el => { el.textContent = restText(Number(el.dataset.restAt), now); });
+  return S.running || live.length > 0 || rests.length > 0;
 }
 
-// One interval drives the session clock and every running section stopwatch.
+// One interval drives the session clock, every running section stopwatch and
+// the setCheck rest clock.
 // Safe to call any time: it restarts cleanly, and stops itself once nothing runs.
 function runTick() {
   clearInterval(tick);
@@ -1252,7 +1301,7 @@ function buildResult() {
       }
       if (set._added) entry.added = true;
       entry.asPlanned = isAsPlanned(set, v, kind);
-      log[k] = entry;
+      log[k] = { ...entry, ...setDoneResult(ex, v) };
     });
   }));
 

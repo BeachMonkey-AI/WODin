@@ -277,6 +277,37 @@ instead — your own video, a coach you trust, an ExRx page:
 
 The search is the fallback, not the feature — if you have a better reference, use it.
 
+### A tick per set, and the rest clock: `setCheck`
+
+Set ticks are **on by default**. Every exercise gets a checkbox at the right end of each of
+its set rows, including rows the athlete adds with `+ set`. When they tick a set, the page
+notes the time. A faint `m:ss` then counts up, centered under the most recently ticked set
+on the page: that's the rest so far, so they know when to go again. Only one clock shows.
+Unticking that set moves the clock back to the latest set still ticked. You don't need to
+write anything to get this.
+
+**Existing plans now show set ticks** unless they set `"setCheck": false`. Put
+`"setCheck": false` on an exercise where a tick per set is noise (warm-up activation, a
+mobility list); it then has no tick column and no rest clock, and its log entries carry no
+`done`.
+
+```json
+"exercises": [
+  { "movement": "Barbell bench press", "kind": "weight_reps",
+    "cue": "Go again at about 2:00.",
+    "sets": [ { "reps": 5, "load": 135 }, { "reps": 5, "load": 155 }, { "reps": 5, "load": 165 } ] },
+  { "movement": "Band pull-apart", "kind": "reps", "setCheck": false,
+    "sets": [ { "reps": 15, "loadType": "bodyweight" }, { "reps": 15, "loadType": "bodyweight" } ] }
+]
+```
+
+Each set of a ticked exercise carries `done: true` or `done: false` in `log` (see
+[What comes back](#the-json--when-you-want-structure)). The times stay on the device.
+`setCheck` belongs on exercises only. A round movement has its own tick already, so
+`setCheck` there fails `wodin validate`; it must be a boolean. In a derived tabata or emom
+it changes nothing, because those exercises are drawn as rounds. See
+[`examples/set-rest-timer.json`](examples/set-rest-timer.json).
+
 ### What goes where
 
 - `coach` — who wrote it. A person, a gym, or your own name if you're the agent. Shown as an
@@ -489,7 +520,6 @@ Pick by the shape of the work, not its name. Every row is a section of
 | A long list done in order (chipper), maybe with an add-on | `for_time` + `exercises` + `partition`; `modifiers[]` | K · Murph |
 | An accessory circuit, not a test | `circuit` + `rounds[]`, no `benchmark` | L · Circuit |
 | A warm-up or cool-down ticked off line by line | `circuit`, `"rounds": 1`, `"display": "checklist"`; `sets` / `sides` for the dose | `lower-b-warmup-checklist.json` |
-
 **Exercises or rounds?** A list of movements each done for *sets* (or once, in order, like a
 chipper) is `exercises[]`. A short list of movements *repeated as passes* is `rounds[]`.
 Tabata and EMOM are the exception: write the exercise once and `format.rounds` makes the
@@ -891,9 +921,9 @@ Conforms to [`schema/result.schema.json`](schema/result.schema.json).
   "rpe": 9,
   "athleteSummary": "Felt good. Row splits consistent.",
   "log": {
-    "ex5.s3": { "load": 95, "reps": 5, "asPlanned": true },
-    "ex5.a1": { "load": 105, "reps": 5, "added": true, "asPlanned": false },
-    "ex11.s1": { "distance": 500, "pace": "1:58", "duration": "1:58", "durationSec": 118, "asPlanned": false }
+    "ex5.s3": { "load": 95, "reps": 5, "asPlanned": true, "done": true },
+    "ex5.a1": { "load": 105, "reps": 5, "added": true, "asPlanned": false, "done": true },
+    "ex11.s1": { "distance": 500, "pace": "1:58", "duration": "1:58", "durationSec": 118, "asPlanned": false, "done": false }
   },
   "notes": { "ex5": "Added a little bounce on the last two reps" },
   "exerciseRpe": { "ex5": 9, "ex8": 6 },
@@ -916,6 +946,12 @@ Conforms to [`schema/result.schema.json`](schema/result.schema.json).
 
 Ids you didn't supply were assigned positionally (`ex3`, `s2`). Sets the athlete added
 beyond the prescription get `a1`, `a2` and are flagged `added: true`.
+
+Every exercise adds `done` to each of its sets in `log`, unless the plan set
+`setCheck: false` on it: `true` if the athlete ticked that set, `false` if not. It's
+separate from `asPlanned`, which compares values. `done: false` on a set that's in `log`
+means the set wasn't ticked; it does not mean the set was skipped. A `setCheck: false`
+exercise never carries `done`; read its absence as not asked.
 
 ---
 
