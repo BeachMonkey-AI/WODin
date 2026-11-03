@@ -92,6 +92,24 @@ neither gets used consistently.
 The exercise also carries `cue` — but that runs the other way, agent to athlete. Two fields,
 two directions, no overlap.
 
+## Set checks and rest
+
+Set checks are on by default: every exercise puts one checkbox at the right end of every
+set row, including rows added with `+ set`, unless it sets `setCheck: false`. Existing
+plans therefore now show set ticks unless they opt out. Checking a set records the moment;
+a faint `m:ss`, centered under the most recently checked set, counts up from then, so the athlete can judge the rest before
+the next set. Only one rest clock shows. Unchecking that set moves it to the latest set still
+checked, or removes it. The stamps persist with the log, so a reload keeps counting; elapsed
+is `Date.now()` minus the stamp, repainted by the page's one clock interval, which stops when
+no rest clock is on screen. Removing an added set drops its stamp.
+
+The result keeps the times on the device. Each set of a ticked exercise in `log` gains
+`done: true | false`; a `setCheck: false` exercise has no tick column, no rest clock and no
+`done` in its log entries. `done` is
+separate from `asPlanned`: one says the set was ticked, the other that its values match.
+`setCheck` is an exercise field; on a round movement, which has its own tick already, it is
+an error.
+
 ## Formats and rounds
 
 `sections → exercises → sets` describes a strength session well and a conditioning piece

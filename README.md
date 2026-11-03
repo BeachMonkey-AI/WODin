@@ -263,6 +263,12 @@ which to use when. Plans that don't use formats are unchanged.
 [`examples/lower-b-warmup-inputs.json`](examples/lower-b-warmup-inputs.json) are the same
 warm-up drawn both ways.
 
+Every exercise has a checkbox at the right of each of its set rows (added sets included)
+unless it sets `setCheck: false`. Checking a set records when, and a faint `m:ss` count-up
+centered under the most recently checked set shows the rest so far. Each of its sets in
+`log` then carries `done: true | false`; a `setCheck: false` exercise has no ticks, no rest
+clock and no `done`. [`examples/set-rest-timer.json`](examples/set-rest-timer.json) shows both.
+
 **Naming rule.** `movement` is the plain exercise name: `Run` with cue `Outdoors`, not
 `Outdoor run`. Modifiers (outdoor, indoor, bodyweight) go in `cue`; equipment that changes
 the lift stays (`Barbell deadlift`). `wodin validate` warns on violations.
