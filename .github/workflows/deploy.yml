@@ -11,4 +11,7 @@ jobs:
   ci:
     uses: BeachMonkey-AI/app-template/.github/workflows/ci.yml@main
   pages:
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
     uses: BeachMonkey-AI/app-template/.github/workflows/pages.yml@main
