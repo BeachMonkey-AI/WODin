@@ -1,0 +1,66 @@
+{
+  "schema": "wodin/wod@1",
+  "workoutId": "2026-11-01-lower-b-warmup-checklist",
+  "date": "2026-11-01",
+  "athleteTitle": "Odin's WOD",
+  "title": "Lower B — Warm-up (checklist)",
+  "units": { "load": "lb", "distance": "m" },
+  "sections": [
+    {
+      "id": "warmup",
+      "name": "Warm-up",
+      "type": "warmup",
+      "display": "checklist",
+      "format": { "type": "circuit", "rounds": 1, "score": "none" },
+      "rounds": [
+        {
+          "movements": [
+            {
+              "id": "ex1",
+              "movement": "Rowing machine row",
+              "kind": "cardio",
+              "sets": 1,
+              "duration": "2:00",
+              "pace": "2:35/500m",
+              "athleteFills": "distance",
+              "cue": "Warm-up · Easy, just raise the temperature."
+            },
+            {
+              "id": "ex2",
+              "movement": "Leg swing",
+              "kind": "reps",
+              "sets": 1,
+              "reps": 20,
+              "cue": "Dynamic · 10 per leg."
+            },
+            {
+              "id": "ex3",
+              "movement": "World's greatest stretch",
+              "kind": "reps",
+              "sets": 1,
+              "reps": 3,
+              "sides": 2,
+              "cue": "Dynamic · Slow, reach long."
+            },
+            {
+              "id": "ex4",
+              "movement": "Cat-camel",
+              "kind": "reps",
+              "sets": 1,
+              "reps": 8,
+              "cue": "Mobility · Full range through the spine."
+            },
+            {
+              "id": "ex5",
+              "movement": "Kettlebell Asian squat hold",
+              "kind": "time",
+              "sets": 2,
+              "duration": "0:45",
+              "cue": "Mobility · 16 kg as a counterweight; sit deep and breathe."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
