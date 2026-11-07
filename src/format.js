@@ -122,7 +122,7 @@ export function formatBwMult(mult) {
  * a plan written without them draws exactly what it always did. An invalid
  * value counts as absent here; validateFormat reports it. */
 
-export const DISPLAYS = ['inputs', 'checklist'];
+export const DISPLAYS = ['inputs', 'checklist', 'rounds'];
 
 /** The plan's `sets` when it is a valid count (1 included), else null. */
 export const movementSets = m => isPosInt(m?.sets) ? m.sets : null;
@@ -138,6 +138,16 @@ export const isChecklist = sec => sec?.display === 'checklist';
  *  display. */
 export const isCheckOnly = (sec, m) =>
   typeof m?.checkOnly === 'boolean' ? m.checkOnly : isChecklist(sec);
+
+/* display: "rounds" — for a for_time block with its own rounds[]. The full
+ * prescription is drawn once, read-only, and each round is one row with one
+ * tick. Round state carries no movements ({ done, movements: [] }), so the
+ * check rule's movement-less fallback applies: the round's own flag is the
+ * record, and no movement value or tick is ever made up from the Rx. Anywhere
+ * else the value fails validation, and the page draws the default rounds. */
+export const isRoundsDisplay = sec =>
+  sec?.display === 'rounds' && sec.format?.type === 'for_time' &&
+  Array.isArray(sec.rounds) && sec.rounds.length > 0;
 
 /* ── setCheck: a tick per set row, and the rest count-up ─────── */
 
@@ -299,11 +309,13 @@ export function rpePolicy(setting) {
 
 /** section.rpe wins; else a girl / hero benchmark assumes 11; else a checklist
  *  hides it — a warm-up ticked off is not an effort worth rating, and the
- *  checklist promises name, dose, cue, a tick and one note; else ask. */
+ *  checklist promises name, dose, cue, a tick and one note; else a
+ *  display "rounds" block hides it too — it promises the Rx and a tick per
+ *  round, and draws an RPE only when the plan sets rpe; else ask. */
 export function sectionRpePolicy(sec) {
   return rpePolicy(sec?.rpe)
     || (BENCHMARKS.includes(sec?.benchmark) ? { mode: 'assume', value: ASSUMED_BENCHMARK_RPE }
-      : isChecklist(sec) ? { mode: 'hide' } : ASK);
+      : isChecklist(sec) || isRoundsDisplay(sec) ? { mode: 'hide' } : ASK);
 }
 
 /** wod.rpe wins; else a day made only of benchmarks assumes 11 — there is
@@ -521,6 +533,62 @@ export function doseText(m, units) {
   return dose ? `${sets} × ${dose}` : `${sets} set${sets === 1 ? '' : 's'}`;
 }
 
+/** A read-only prescription for the AMRAP template: prescriptionText, with
+ *  "reps" spelled out where a bare number would be ambiguous. */
+export function rxText(m, units) {
+  const dose = doseText(m, units);
+  if (dose) return dose;
+  const t = prescriptionText(m, units);
+  return m.kind === 'reps' && /^\d+$/.test(t) ? `${t} reps` : t;
+}
+
+// One movement's Rx across the rounds it appears in: the text when every round
+// agrees, the rep scheme when only reps differ ("225 × 21-15-9", "21-15-9
+// reps"), otherwise each round's text in turn. Never drops a round's reps.
+function mergedRx(ms, units) {
+  const texts = ms.map(m => rxText(m, units));
+  if (texts.every(t => t === texts[0])) return texts[0];
+  const reps = ms.map(m => m.reps);
+  const bare = m => rxText({ ...m, reps: 0 }, units);
+  if (!reps.some(blank) && ms.every(m => bare(m) === bare(ms[0]))) {
+    const scheme = reps.join('-');
+    const t = rxText({ ...ms[0], reps: scheme }, units);
+    return ms[0].kind === 'reps' && t === scheme ? `${scheme} reps` : t;
+  }
+  return texts.join(' / ');
+}
+
+const movementKey = r => JSON.stringify(r.movements.map(m => [m.movement, m.kind]));
+
+/**
+ * The prescription a display "rounds" block draws once above its round ticks:
+ * groups of { label, movements }, each movement the expanded one plus `rx`.
+ *   Same movements every round  one unlabelled group; a movement whose values
+ *                                vary shows them all ("225 × 21-15-9").
+ *   Movements change            one group per run of rounds that agree,
+ *                                labelled "Round 1", "Rounds 2–3".
+ */
+export function roundsPrescription(section, units) {
+  const rounds = expandRounds(section);
+  if (!rounds.length) return [];
+  if (rounds.every(r => movementKey(r) === movementKey(rounds[0]))) {
+    return [{
+      label: null,
+      movements: rounds[0].movements.map((m, j) => ({ ...m, rx: mergedRx(rounds.map(r => r.movements[j]), units) }))
+    }];
+  }
+  const groups = [];
+  rounds.forEach(r => {
+    const last = groups[groups.length - 1];
+    if (last && movementKey(last.rounds[0]) === movementKey(r)) last.rounds.push(r);
+    else groups.push({ rounds: [r] });
+  });
+  return groups.map(({ rounds: rs }) => ({
+    label: rs.length === 1 ? `Round ${rs[0].n}` : `Rounds ${rs[0].n}–${rs[rs.length - 1].n}`,
+    movements: rs[0].movements.map((m, j) => ({ ...m, rx: mergedRx(rs.map(r => r.movements[j]), units) }))
+  }));
+}
+
 /** "Run 400 m · Kettlebell swing 53 × 21 · Pull-up 12" — the one line a
  *  collapsed round shows in place of its movements. A movement with a dose
  *  shows that instead: "Kettlebell Asian squat hold 2 × 0:45". */
@@ -560,6 +628,15 @@ function seedMovement(m) {
  */
 export function seedRoundState(section, saved) {
   if (isAmrap(section)) return [];
+  // display "rounds": one flag per round and nothing per movement. A saved
+  // round from before the switch (movements and all) keeps its done exactly
+  // as the check rule reads it; its movement values are not carried over.
+  if (isRoundsDisplay(section)) {
+    return expandRounds(section).map((r, i) => {
+      const old = Array.isArray(saved) ? saved[i] : null;
+      return { done: !!old && typeof old === 'object' && roundDone(old), movements: [] };
+    });
+  }
   return expandRounds(section).map((r, i) => {
     const fresh = { done: false, movements: r.movements.map(seedMovement) };
     const old = Array.isArray(saved) ? saved[i] : null;
@@ -734,15 +811,6 @@ export function repeatCaption(section) {
   return `Repeat for ${cap % 60 === 0 ? `${cap / 60} min` : fmtClock(cap)}`;
 }
 
-/** A read-only prescription for the AMRAP template: prescriptionText, with
- *  "reps" spelled out where a bare number would be ambiguous. */
-export function rxText(m, units) {
-  const dose = doseText(m, units);
-  if (dose) return dose;
-  const t = prescriptionText(m, units);
-  return m.kind === 'reps' && /^\d+$/.test(t) ? `${t} reps` : t;
-}
-
 /* ── result ──────────────────────────────────────────────────── */
 
 /** "8:41" or "841" (a numeric keypad has no colon) → "8:41". */
@@ -841,6 +909,13 @@ export function buildSectionResult(section, secState) {
 
   if (isRoundsSection(section) && !isAmrap(section)) {
     const states = st.rounds && st.rounds.length ? st.rounds : seedRoundState(section);
+    // display "rounds": the tick is all that was asked, so it is all that is
+    // recorded. No movements — the plan holds the Rx, and copying it here
+    // would read as values the athlete logged. checkOnly says it is by design.
+    if (isRoundsDisplay(section)) {
+      out.rounds = expandRounds(section).map((r, i) => ({ done: roundDone(states[i] || {}), checkOnly: true }));
+      return out;
+    }
     out.rounds = expandRounds(section).map((r, i) => {
       const rs = states[i] || { movements: [] };
       const movements = r.movements.map((m, j) => movementResult(m, rs.movements?.[j] || {}, isCheckOnly(section, m)));
@@ -947,7 +1022,12 @@ export function digestSectionLines(section, secState, { units, rpe, note } = {})
   const mods = (section.modifiers || []).filter(o => st.modifiers?.[o.id]).map(o => o.label);
   if (mods.length) lines.push('  With  ' + mods.join(', '));
 
-  if (isRoundsSection(section) && !isAmrap(section)) {
+  if (isRoundsDisplay(section)) {
+    // The tick alone: the movements were never logged, so none are listed.
+    expandRounds(section).forEach((r, i) => {
+      lines.push(`  Round ${r.n}  ${roundDone(st.rounds?.[i] || {}) ? '✓' : '○'}`);
+    });
+  } else if (isRoundsSection(section) && !isAmrap(section)) {
     expandRounds(section).forEach((r, i) => {
       const rs = st.rounds?.[i] || { movements: [] };
       const vals = r.movements.map((m, j) => ({ m, v: rs.movements?.[j] || {} }));
@@ -1127,8 +1207,23 @@ export function validateFormat(section, where = 'section') {
       warnings.push(`${where}: display "checklist" only changes round movements — this section has none, so its exercises still draw set rows`);
     } else if (isChecklist(section) && isAmrap(section)) {
       warnings.push(`${where}: display "checklist" on an amrap changes nothing — its template round has no inputs or ticks`);
+    } else if (section.display === 'rounds') {
+      // Only a for_time block with its own rounds[] has a fixed set of rounds
+      // to tick; anywhere else the mode would silently mean nothing.
+      if (f?.type !== 'for_time') {
+        problems.push(`${where}.display: "rounds" needs format.type "for_time" — got ${f?.type ? `"${f.type}"` : 'no format'}`);
+      } else if (!(Array.isArray(section.rounds) && section.rounds.length)) {
+        problems.push(`${where}.display: "rounds" needs a rounds[] list — it ticks rounds, and this section has none`);
+      } else {
+        (section.rounds || []).forEach((entry, i) => (entry?.movements || []).forEach((m, j) => {
+          if (m && m.checkOnly !== undefined) {
+            warnings.push(`${where}.rounds[${i}].movements[${j}] (${m.movement}): checkOnly changes nothing in display "rounds" — its movements are prescription only`);
+          }
+        }));
+      }
     }
   }
+  if (section.cue !== undefined && typeof section.cue !== 'string') problems.push(`${where}.cue: must be a string`);
 
   if (DERIVED_FORMATS.includes(f?.type) && hasExercises && !hasRoundsKey) {
     if (!isPosInt(f.rounds)) {

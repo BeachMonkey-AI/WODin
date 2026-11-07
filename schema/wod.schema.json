@@ -102,6 +102,13 @@
         { "required": ["exercises"] },
         { "required": ["rounds"] }
       ],
+      "allOf": [{
+        "if": { "required": ["display"], "properties": { "display": { "const": "rounds" } } },
+        "then": {
+          "required": ["format", "rounds"],
+          "properties": { "format": { "required": ["type"], "properties": { "type": { "const": "for_time" } } } }
+        }
+      }],
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
@@ -112,9 +119,13 @@
         },
         "format": { "$ref": "#/$defs/format" },
         "display": {
-          "enum": ["inputs", "checklist"],
+          "enum": ["inputs", "checklist", "rounds"],
           "default": "inputs",
-          "description": "How the section's round movements are drawn. inputs: the usual boxes per movement. checklist: name, dose, cue and a checkbox per movement, no boxes, and the one block note for the whole section — for warm-ups and cool-downs. A line's own checkOnly overrides it. A checklist hides the block RPE unless the section sets rpe. Only round movements are affected; exercises still draw set rows."
+          "description": "How the section's round movements are drawn. inputs: the usual boxes per movement. checklist: name, dose, cue and a checkbox per movement, no boxes, and the one block note for the whole section — for warm-ups and cool-downs. A line's own checkOnly overrides it. rounds: for a for_time block with its own rounds[] only (anywhere else it fails validation) — the full prescription is drawn once, read-only, then one row per round with one checkbox; no movement boxes or ticks. The result records each round as { done, checkOnly: true } with no movements. A checklist or rounds block hides the block RPE unless the section sets rpe; a score box is drawn only when format.score asks for one. Only round movements are affected; exercises still draw set rows."
+        },
+        "cue": {
+          "type": "string",
+          "description": "The coach's line for the whole block — how to pace it, what to watch. Drawn under the block's format header. Agent to athlete, like an exercise's cue; the athlete's own note comes back in the result."
         },
         "benchmark": {
           "enum": ["girl", "hero"],
