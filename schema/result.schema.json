@@ -170,13 +170,14 @@
 
     "rounds": {
       "type": "array",
-      "description": "One entry per round performed, in order, matching the plan's rounds expanded (reps and repeat applied). Round done is true exactly when every movement in it is done. Absent for amrap, whose rounds are unbounded — its score carries the count. Round movements are never written to `log`.",
+      "description": "One entry per round performed, in order, matching the plan's rounds expanded (reps and repeat applied). Round done is true exactly when every movement in it is done. A display \"rounds\" block is the exception: it ticks rounds, not movements, so each entry is { done, checkOnly: true } with no movements — done is the athlete's tick, and the prescription is the plan's. Absent for amrap, whose rounds are unbounded — its score carries the count. Round movements are never written to `log`.",
       "items": {
         "type": "object",
         "required": ["done"],
         "additionalProperties": false,
         "properties": {
           "done": { "type": "boolean" },
+          "checkOnly": { "const": true, "description": "The round was drawn as one tick with its movements as read-only prescription (plan display \"rounds\"), so no movements are recorded — by design, not left blank. Never infer movement values from it; read the plan for the Rx." },
           "movements": { "type": "array", "items": { "$ref": "#/$defs/roundMovement" } }
         }
       }

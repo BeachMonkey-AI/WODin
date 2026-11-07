@@ -10,7 +10,7 @@
   "scripts": {
     "gen-icons": "node scripts/gen-icons.mjs",
     "build": "node scripts/build.mjs",
-    "validate": "node cli/wodin.mjs validate examples/routine-2-back-biceps.json examples/athlete-1.json examples/athlete-a.json examples/minimal.json examples/format-test.json examples/lower-b-warmup-checklist.json examples/lower-b-warmup-inputs.json examples/set-rest-timer.json",
+    "validate": "node cli/wodin.mjs validate examples/routine-2-back-biceps.json examples/athlete-1.json examples/athlete-a.json examples/minimal.json examples/format-test.json examples/lower-b-warmup-checklist.json examples/lower-b-warmup-inputs.json examples/set-rest-timer.json examples/metcon-rounds.json",
     "test": "node --test \"test/*.test.mjs\"",
     "link": "node cli/wodin.mjs link",
     "serve": "node cli/wodin.mjs serve"

@@ -16,6 +16,7 @@ import {
   hasBlockFooter, usesFormatFeatures, formatBwMult, describePartition, roundSummary, movementSets, doseText, isCheckOnly,
   fmtSpan, roundDone, seedSectionState, togglePill, checkRound, checkMovement,
   setMovementValue, setScoreValue, roundIsOpen, splitRef, repeatCaption, rxText,
+  isRoundsDisplay, roundsPrescription,
   withSections, sectionNotesAndRpe, digestSectionLines, isDerivedRounds,
   fmtClock, parseClock, isAutoFormatField, timeFormatterFor,
   showSectionRpe, showExerciseRpe, showSessionRpe, sessionRpeResult, sessionRpeText,
@@ -425,7 +426,7 @@ function renderSection(sec) {
   const exercises = isDerivedRounds(sec) ? [] : (sec.exercises || []);
   return `
     <div class="sec-head">${esc(sec.name)}</div>
-    ${renderFormatHead(sec)}
+    ${renderFormatHead(sec)}${sec.cue ? `<p class="cue sec-cue">${esc(sec.cue)}</p>` : ''}
     ${renderScalePills(sec)}
     ${isRoundsSection(sec) ? renderRounds(sec) : ''}
     ${exercises.map(ex => renderEx(ex, sec)).join('')}
@@ -475,6 +476,7 @@ function cueLine(x, chip = '') {
 
 function renderRounds(sec) {
   if (isAmrap(sec)) return renderAmrap(sec);
+  if (isRoundsDisplay(sec)) return renderRoundTicks(sec);
 
   const st = S.sections[sec.id];
   const rounds = expandRounds(sec);
@@ -551,21 +553,59 @@ function renderMovement(sec, i, j, m, v) {
 
 // AMRAP rounds are open-ended, so there is nothing to tick per round: the plan
 // is shown once as a read-only template and the score box takes the count.
-function renderAmrap(sec) {
-  const cap = repeatCaption(sec);
-  const rows = expandRounds(sec).flatMap(r => r.movements).map(m => `
+// One read-only prescription line: name, Rx, cue. No inputs, no tick.
+const rxRow = (m, rx) => `
     <div class="mv rx">
       <div class="mv-top">
         <a class="mv-name" href="${esc(formLink(m))}" target="_blank" rel="noopener">${esc(m.movement)}${ICON.ext}</a>
-        <span class="mv-rx">${esc(rxText(m, WOD.units))}</span>
+        <span class="mv-rx">${esc(rx)}</span>
       </div>
       ${cueLine(m, bwChip(m.loadBwMult))}
       ${partitionHint(m.partition)}
-    </div>`).join('');
+    </div>`;
+
+function renderAmrap(sec) {
+  const cap = repeatCaption(sec);
+  const rows = expandRounds(sec).flatMap(r => r.movements).map(m => rxRow(m, rxText(m, WOD.units))).join('');
   return `<div class="rounds">
     <div class="rounds-cap">Each round</div>
     <div class="round open template"><div class="round-body">${rows}</div></div>
     ${cap ? `<p class="round-cap">${esc(cap)}</p>` : ''}
+  </div>`;
+}
+
+// display "rounds": the prescription once (read-only, like the AMRAP
+// template), then one row per round with one tick. Nothing per movement is
+// drawn under a round, so nothing per movement can be recorded for it.
+function renderRoundTicks(sec) {
+  const st = S.sections[sec.id];
+  const rounds = expandRounds(sec);
+  const f = sec.format || {};
+  const rest = f.restSec > 0 ? `<div class="round-rest"><span>Rest ${esc(fmtSpan(f.restSec))}</span></div>` : '';
+  const rx = roundsPrescription(sec, WOD.units).map(g => `
+    <div class="rounds-cap">${esc(g.label || 'Each round')}</div>
+    <div class="round open template"><div class="round-body">${g.movements.map(m => rxRow(m, m.rx)).join('')}</div></div>`).join('');
+  const rows = rounds.map((r, i) => {
+    const done = roundDone(st.rounds[i] || {});
+    return `<div class="round tick ${done ? 'done' : ''}">
+      <div class="round-head">
+        <span class="round-label">
+          <span class="dot"></span>
+          <span class="round-n">Round ${r.n}</span>
+          <span class="round-of">${r.n} of ${rounds.length}</span>
+        </span>
+        <label class="check">
+          <input type="checkbox" data-round-check="${esc(sec.id)}:${i}" ${done ? 'checked' : ''}
+                 aria-label="Round ${r.n} done">
+        </label>
+      </div>
+    </div>`;
+  });
+  return `<div class="rounds rounds-once">${rx}
+    <div class="round-ticks">
+      <div class="rounds-cap">Rounds</div>
+      ${rows.join(rest)}
+    </div>
   </div>`;
 }
 

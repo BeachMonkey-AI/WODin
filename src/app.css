@@ -483,6 +483,17 @@ h2 {
 .round.template .round-body { margin-top: 6px; border-left-color: var(--accent-mute); }
 .round-cap { margin: 2px 0 0 21px; font-size: 13px; color: var(--dim); }
 
+/* display "rounds": the Rx once, then one row per round — the round header
+   without the expand button, its tick at the far right. */
+.sec-cue { margin-top: 6px; }
+.round-label {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--tap);
+}
+.rounds-once .rounds-cap + .round.template { margin-bottom: 10px; }
+.round-ticks { margin-top: 4px; }
+
 .round-rest {
   display: flex; align-items: center; gap: 10px;
   margin: 2px 0 2px 20px;
