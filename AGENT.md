@@ -436,12 +436,45 @@ still draw set rows), so write the warm-up as a `circuit` with `"rounds": 1`. Se
 [`examples/lower-b-warmup-checklist.json`](examples/lower-b-warmup-checklist.json) and the
 same lines with inputs in
 [`examples/lower-b-warmup-inputs.json`](examples/lower-b-warmup-inputs.json). `display`
-takes `"inputs"` (the default) or `"checklist"`.
+takes `"inputs"` (the default), `"checklist"` or `"rounds"`.
 
-**The check rule.** Every movement has a checkbox, and so does every round. A round is done
-exactly when all its movements are: ticking the round ticks them all, ticking the last
-movement closes the round, and unticking any one reopens it. The result records both, and
-they always agree.
+**Metcon rounds: `"display": "rounds"`.** For a `for_time` block where the athlete only
+needs to tick each round as it's finished. Put `"display": "rounds"` on the section, and the
+page draws the whole prescription **once**, read-only (every movement in order with its load,
+reps or distance, the round count and cap in the header, and the section's `cue` as your
+note for the block), then one row per round: `Round 1`, `Round 2`, … and **one** checkbox at
+the far right of each. There are no movement boxes and no movement checkboxes, and the
+movement list isn't repeated per round. Rounds that vary keep their variation: 21-15-9 reads
+`225 × 21-15-9` on the line, and rounds whose movements change are listed in groups
+(`Round 1`, `Rounds 2–3`). It is valid **only** on `for_time` with its own `rounds[]`.
+Anywhere else (amrap, circuit, tabata, emom, exercises only) `wodin validate` fails. RPE is
+hidden unless the section sets `"rpe"`, and a score box is drawn only when `format.score`
+asks for one. Set `"score": "none"` and `"rpe": "hide"` for Rx + ticks only. The block keeps
+its one note. Each round in the result is `{ "done": true, "checkOnly": true }`, with **no**
+`movements`: the athlete ticked a round and logged nothing per movement, so read the Rx from
+your plan, not the result. See
+[`examples/metcon-rounds.json`](examples/metcon-rounds.json):
+
+```json
+{
+  "id": "metcon", "name": "Metcon", "type": "conditioning",
+  "display": "rounds",
+  "format": { "type": "for_time", "rounds": 3, "capSec": 480, "score": "none" },
+  "rpe": "hide",
+  "cue": "Steady row, unbroken slams, singles as one set. Tick each round as you finish it.",
+  "rounds": [{ "movements": [
+    { "movement": "Rowing machine row", "kind": "cardio", "distance": 250 },
+    { "movement": "Slam ball slam", "kind": "weight_reps", "load": 20, "reps": 8 },
+    { "movement": "Single-under", "kind": "reps", "reps": 50, "cue": "Jump rope" }
+  ] }]
+}
+```
+
+**The check rule.** In the default display every movement has a checkbox, and so does every
+round. A round is done exactly when all its movements are: ticking the round ticks them all,
+ticking the last movement closes the round, and unticking any one reopens it. The result
+records both, and they always agree. A `"display": "rounds"` block has no movement
+checkboxes: its round checkbox is the only one, and the round's `done` is that tick alone.
 
 ### Scaling: `optional[]` and `modifiers[]`
 
@@ -520,6 +553,7 @@ Pick by the shape of the work, not its name. Every row is a section of
 | A long list done in order (chipper), maybe with an add-on | `for_time` + `exercises` + `partition`; `modifiers[]` | K · Murph |
 | An accessory circuit, not a test | `circuit` + `rounds[]`, no `benchmark` | L · Circuit |
 | A warm-up or cool-down ticked off line by line | `circuit`, `"rounds": 1`, `"display": "checklist"`; `sets` / `sides` for the dose | `lower-b-warmup-checklist.json` |
+| A metcon shown as one Rx, ticked round by round | `for_time` + `rounds[]`, `"display": "rounds"`; section `cue` for your note | `metcon-rounds.json` |
 **Exercises or rounds?** A list of movements each done for *sets* (or once, in order, like a
 chipper) is `exercises[]`. A short list of movements *repeated as passes* is `rounds[]`.
 Tabata and EMOM are the exception: write the exercise once and `format.rounds` makes the
@@ -734,7 +768,7 @@ The result grows only for sections that use these features. Nothing above change
 | `score` | `{ "time": "8:41", "timeSec": 521 }` · `{ "rounds": 18, "reps": 7 }` · `{ "totalReps": 74 }`. `null` when the section is scored but the box was left blank; absent when it is not scored. |
 | `optional` | `{ "pike": true }` — only the pills switched on. `{}` means offered and none used. |
 | `modifiers` | `{ "vest": false }` — every modifier, `true` or `false`. |
-| `rounds` | One entry per round performed, after expansion: `{ "done", "movements": [ … ] }`. Absent for AMRAP. |
+| `rounds` | One entry per round performed, after expansion: `{ "done", "movements": [ … ] }`. A `"display": "rounds"` block records `{ "done", "checkOnly": true }` with no `movements`. Absent for AMRAP. |
 | `rpe`, `rpeAssumed` | `11`, `true` — only when the plan assumed the block's RPE (`benchmark`, or a numeric `rpe`). Never in `exerciseRpe`, which holds only what the athlete tapped. |
 
 A logged round movement reads like a log entry for its kind — `load` (or
@@ -752,6 +786,7 @@ plus any `sets` / `sides` — because it never asked for them; read `done` as th
 | No format — strength, intervals (A, B) | every set, as always | no entry |
 | `tabata`, `emom` (C, D) | none — derived rounds are not sets | `rounds[]` with `done` flags and each movement; no `score`. Block RPE and note under the section id in `exerciseRpe` / `notes` |
 | `for_time` + `rounds[]` (E, F, G, J) | none | `rounds[]`, `score` `{ time, timeSec }`, `optional`; a benchmark adds `rpe: 11, rpeAssumed: true` |
+| `for_time` + `rounds[]`, `"display": "rounds"` (`metcon-rounds.json`) | none | `rounds[]` of `{ done, checkOnly: true }`, no movements; `score` only when `format.score` asks |
 | `amrap` (H, I) | none | `score` `{ rounds, reps }` or `{ totalReps }`; **no** `rounds` |
 | `for_time` + `exercises` (K, a chipper) | every set, as always | `score`, `modifiers`; a benchmark adds `rpe: 11, rpeAssumed: true` |
 | `circuit` (L) | none | `rounds[]`; no `score`. The answered block RPE is in `exerciseRpe` under the section id |

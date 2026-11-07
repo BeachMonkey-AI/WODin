@@ -138,6 +138,12 @@
   is `''` in that case, so a plan without the fields renders the old DOM byte for byte.
   Keep it that way. A `sets: N` line is one row of boxes + a `×N` badge, never N rows. A
   check-only line's result has no value fields, by design.
+- **`display: "rounds"` ticks rounds, never movements.** Only on `for_time` + its own
+  `rounds[]` (`isRoundsDisplay`; anywhere else validation fails and the page draws default
+  rounds). Rx drawn once via `roundsPrescription`, one tick per round. Its round state is
+  `{ done, movements: [] }` (the check rule's movement-less fallback), and the result round
+  is `{ done, checkOnly: true }` with no movements. Never fill movements from the Rx; that
+  would export values nobody logged. RPE hides by default, as for a checklist.
 - **Round movements are never written to `log`.** `log` stays sets-only (`"exId.setId"`) so
   the complete-not-sparse rule and `asPlanned` keep meaning what they mean. Exercises in a
   formatted section (Murph) still log their sets there as usual.

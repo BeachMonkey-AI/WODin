@@ -168,9 +168,9 @@ test('validate: checkOnly must be a boolean', () => {
   for (const ok of [true, false]) assert.deepEqual(problems(circuit({ checkOnly: ok })), []);
 });
 
-test('validate: display must be inputs or checklist', () => {
+test('validate: display must be inputs, checklist or rounds', () => {
   for (const bad of ['list', 'Checklist', true, 1, null]) {
-    assert.match(problems(circuit({}, { display: bad })).join(), /display: .* is not one of inputs, checklist/, JSON.stringify(bad));
+    assert.match(problems(circuit({}, { display: bad })).join(), /display: .* is not one of inputs, checklist, rounds/, JSON.stringify(bad));
   }
   for (const ok of ['inputs', 'checklist']) {
     const v = validateFormat(circuit({}, { display: ok }));

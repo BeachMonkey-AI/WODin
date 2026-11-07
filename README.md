@@ -254,7 +254,11 @@ intervals, for time, AMRAP, circuit), with:
   `1 × 3/side` - and a line with `sets` above 1 has one row of boxes and a `×N` badge;
 - `display: "checklist"` on a section (or `checkOnly: true` on a line) for warm-ups and
   cool-downs: name, dose, cue and a checkbox per line, no input boxes, one note for the
-  block, and no RPE unless the section asks for one.
+  block, and no RPE unless the section asks for one;
+- `display: "rounds"` on a `for_time` block with `rounds[]` for a metcon: the full Rx drawn
+  once, then one row per round with one checkbox, no movement inputs or ticks. The result
+  records `{ done, checkOnly: true }` per round. A section `cue` carries the coach's note
+  for the block. See [`examples/metcon-rounds.json`](examples/metcon-rounds.json).
 
 [`examples/format-test.json`](examples/format-test.json) has twelve blocks, one distinct shape
 each - Tabata, an EMOM pair, Diane, Helen, Cindy, Murph and the rest. `AGENT.md` explains
@@ -279,7 +283,8 @@ the lift stays (`Barbell deadlift`). `wodin validate` warns on violations.
 `duration` / `durationSec`, `startedAt`, `planHash`, and a `sections{}` map (score, `optional`,
 `modifiers`, `rounds[]`, `rpe`). The score is `{time, timeSec}`, `{rounds, reps}`,
 `{totalReps}` or `null`. A round movement copies the plan's `sets` / `sides` when it gave
-them; a check-only line records just `done` with `checkOnly: true`. Top-level `score` / `optional` / `modifiers` / `rounds` mirror
+them; a check-only line records just `done` with `checkOnly: true`, and so does a
+`display: "rounds"` round, which carries no `movements`. Top-level `score` / `optional` / `modifiers` / `rounds` mirror
 `sections` only when exactly one section has an entry; read `sections`. See
 [`schema/result.schema.json`](schema/result.schema.json).
 
@@ -325,8 +330,8 @@ npm install
 npm run gen-icons        # public/icon.svg → PNG set (generated, gitignored)
 npm run build            # → dist/
 npm run serve            # or: node cli/wodin.mjs serve examples/minimal.json
-npm test                 # node:test, 7 suites: format, rounds, timers, UI state, sets/checklist, quick start, and the example set
-npm run validate         # all 7 examples/*.json
+npm test                 # node:test, 10 suites: format, rounds, timers, UI state, sets/checklist, set ticks, sticky timer, metcon rounds, quick start, and the example set
+npm run validate         # all 9 examples/*.json
 ```
 
 `npm test` needs Node 21+ (CI uses 22). The example suite checks the naming rule, that every
@@ -355,11 +360,14 @@ CLAUDE.md             maintainers' non-obvious rules
 schema/               wod + result JSON Schemas
 examples/             a real workout, two contrasting athletes, the smallest valid plan,
                       format-test.json - every format shape on one page - and a
-                      warm-up drawn as a checklist and with inputs
+                      warm-up drawn as a checklist and with inputs, set ticks with
+                      the rest timer, and a metcon ticked per round (display "rounds")
 wods/                 (optional) committed workouts, linked with ?d=<date>
 index.html            app shell
 src/                  main.js, app.css, icons.js, format.js (DOM-free format logic)
-test/                 node:test suites: examples, format, quickstart, round2, sets-checklist, timer, ui-state
+test/                 node:test suites: examples, format, metcon-rounds, quickstart, round2,
+                      set-check, sets-checklist, sticky-timer, timer, ui-state;
+                      helpers/page.mjs runs main.js against a stub DOM
 styles/               design tokens, self-hosted font faces
 public/               manifest, service worker, icon source, font files
                       (public/icons/ and dist/ are generated, gitignored)
